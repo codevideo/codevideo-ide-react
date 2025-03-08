@@ -1,0 +1,48 @@
+{
+  "name": "@fullstackcraftllc/codevideo-ide-react",
+  "version": "0.0.5",
+  "description": "A React TypeScript component for a fully auditable, drivable, and replayable IDE written in React with radix-ui styling.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "rollup -c ./rollup.config.js",
+    "type-check": "tsc --noEmit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codevideo/codevideo-ide-react.git"
+  },
+  "keywords": [
+    "TypeScript",
+    "React",
+    "codevideo"
+  ],
+  "author": "Chris Frewin",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/codevideo/codevideo-ide-react/issues"
+  },
+  "homepage": "https://github.com/codevideo/codevideo-ide-react#readme",
+  "devDependencies": {
+    "@fullstackcraftllc/codevideo-types": "^2.0.32",
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@types/react": "^19.0.7",
+    "rollup": "^4.13.0",
+    "rollup-plugin-dts": "^6.1.0",
+    "rollup-plugin-typescript2": "^0.36.0",
+    "typescript": "^5.8.2"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "dependencies": {
+    "@fullstackcraftllc/codevideo-virtual-ide": "^1.0.11",
+    "@monaco-editor/react": "^4.7.0",
+    "@radix-ui/themes": "^3.2.1",
+    "@react-symbols/icons": "^1.2.8",
+    "monaco-editor": "^0.52.2"
+  }
+}
