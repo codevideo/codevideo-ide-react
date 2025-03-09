@@ -35,9 +35,9 @@ import { parseCoordinatesFromAction } from './MouseOverlay/coordinateFunctions/p
 // CaptionOverlay
 import { CaptionOverlay } from './CaptionOverlay/CaptionOverlay';
 import { reconstituteAllPartsOfState } from './utils/reconstituteAllPartsOfState';
-import { DEFAULT_CARET_POSITION, KEYBOARD_TYPING_PAUSE_MS, LONG_PAUSE_MS, STANDARD_PAUSE_MS } from './constants/EditorConstants';
+import { DEFAULT_CARET_POSITION, KEYBOARD_TYPING_PAUSE_MS, LONG_PAUSE_MS, STANDARD_PAUSE_MS } from './constants/CodeVideoIDEConstants';
 
-export interface CodeVideoIDEProps {
+export interface ICodeVideoIDEProps {
   theme: 'light' | 'dark';
   project: Project;
   mode: GUIMode;
@@ -64,7 +64,7 @@ export interface CodeVideoIDEProps {
  * @param props 
  * @returns 
  */
-export function CodeVideoIDE(props: CodeVideoIDEProps) {
+export function CodeVideoIDE(props: ICodeVideoIDEProps) {
   const { theme, project, mode, allowFocusInEditor, defaultLanguage, isExternalBrowserStepUrl, currentActionIndex, currentLessonIndex, isSoundOn, withCaptions, actionFinishedCallback, speakActionAudios, fileExplorerWidth, terminalHeight, mouseColor } = props;
   const isRecording = mode === 'record'
   const [editors, setEditors] = useState<Array<IEditor>>();

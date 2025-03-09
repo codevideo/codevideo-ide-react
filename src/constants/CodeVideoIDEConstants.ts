@@ -1,3 +1,4 @@
+export const CODEVIDEO_IDE_ID = 'codevideo-ide-react';
 export const LONG_PAUSE_MS = 5000;
 export const STANDARD_PAUSE_MS = 1000;
 export const KEYBOARD_TYPING_PAUSE_MS = 50;

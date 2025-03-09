@@ -314,7 +314,7 @@ export default function Home() {
             actionFinishedCallback={goToNextAction}
             speakActionAudios={speakActionAudios}
             fileExplorerWidth={400}
-            terminalHeight={500}
+            terminalHeight={250}
             mouseColor="green"
           />
         </Box>
