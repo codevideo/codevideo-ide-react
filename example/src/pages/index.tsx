@@ -15,7 +15,7 @@ const actions: Array<IAction> = [
   },
   {
     "name": "author-speak-before",
-    "value": "In.NET, there's something known as the build directory props where you can set pretty long-lasting things, including things like the copyright."
+    "value": "In .NET, there's something known as the build directory props where you can set pretty long-lasting properties about your software, including properties like the software copyright."
   },
   {
     "name": "author-speak-before",
@@ -31,7 +31,7 @@ const actions: Array<IAction> = [
   },
   {
     "name": "author-speak-before",
-    "value": "And I'll just paste in some content into this file."
+    "value": "And I'll just write in the XML content into this file, including the copyright..."
   },
   {
     "name": "editor-type",
@@ -39,7 +39,7 @@ const actions: Array<IAction> = [
   },
   {
     "name": "author-speak-before",
-    "value": "Of course this is a toy example; typically you have much more information in Directory.Build.props, but for the illustration of what the unit test will do, its fine."
+    "value": "Of course this is a toy example; typically you have much more information in Directory.Build.props, but for the illustration of what the unit test will do, this is fine."
   },
   {
     "name": "author-speak-before",
@@ -83,7 +83,7 @@ const actions: Array<IAction> = [
   },
   {
     "name": "author-speak-before",
-    "value": "We'll assume we're using Xunit, so I'll write in 'fact' here."
+    "value": "We'll assume we're using X Unit, so I'll write in 'fact' here."
   },
   {
     "name": "editor-type",
@@ -175,7 +175,7 @@ const actions: Array<IAction> = [
   },
   {
     "name": "author-speak-before",
-    "value": "And the real import check, what we're all here for - to confirm that actual current year matches the year in our build props!"
+    "value": "And the real import check, what we're all here for - to confirm that the actual current year matches the year in our build props!"
   },
   {
     "name": "editor-type",
@@ -223,15 +223,15 @@ const actions: Array<IAction> = [
   },
   {
     "name": "editor-type",
-    "value": "using System;\nusing System.IO;\nusing System.Text.RegularExpressions;\nusing Xunit;"
+    "value": "using System;\nusing System.IO;\nusing System.Text.RegularExpressions;\nusing XUnit;"
   },
   {
     "name": "author-speak-before",
-    "value": "Wonderful! I love this as a unit test because it's definitely something everyone will forget. Something that is so small - and also only needs to be done once per year."
+    "value": "Wonderful! I love this as a unit test because, by definition, it's something that only needs to be updated once per year and therefore definitely something everyone will forget to do."
   },
   {
     "name": "author-speak-before",
-    "value": "If this runs in a CI / CD, then the first build of the year will show you that you forgot to update the copyright! It's just perfect."
+    "value": "So, if this unit test runs in a CI / CD pipeline (and your unit tests always should!), then whoever is lucky enough to be the first to kick off the first pipeline of the year will see they forgot to update the copyright! It's just perfect!"
   }
 ]
 
@@ -250,6 +250,8 @@ const project: Project = {
     }
   ]
 };
+
+// same as step for now - probably should become more universal example
 export default function Home() {
   const [mode, setMode] = useState<GUIMode>('step')
   const [currentActionIndex, setCurrentActionIndex] = useState(0)

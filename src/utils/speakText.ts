@@ -14,10 +14,18 @@ export const speakText = (text: string, volume: number, mp3Url?: string): Promis
     // if a url to an mp3 is provided, play the audio
     if (mp3Url) {
       const audioElement = new Audio(mp3Url);
+      audioElement.volume = volume;
       audioElement.onended = () => {
         resolve();
       };
-      audioElement.play();
+      audioElement.onerror = (e) => {
+        console.error("Audio playback error:", e);
+        resolve(); // Resolve instead of rejecting to prevent errors from bubbling up
+      };
+      audioElement.play().catch(error => {
+        console.error("Failed to play audio:", error);
+        resolve(); // Resolve despite the error
+      });
       return;
     }
 
