@@ -8,9 +8,6 @@ import * as monaco from 'monaco-editor';
 // types
 import { extractActionsFromProject, GUIMode, IAction, IEditor, IEditorPosition, IFileStructure, IPoint, Project } from '@fullstackcraftllc/codevideo-types';
 
-// virtual layer
-import { VirtualIDE } from '@fullstackcraftllc/codevideo-virtual-ide';
-
 // editor tabs
 import { EditorTabs } from './Editor/EditorTabs';
 
@@ -37,11 +34,8 @@ import { parseCoordinatesFromAction } from './MouseOverlay/coordinateFunctions/p
 
 // CaptionOverlay
 import { CaptionOverlay } from './CaptionOverlay/CaptionOverlay';
-
-const LONG_PAUSE_MS = 5000;
-const STANDARD_PAUSE_MS = 1000;
-const KEYBOARD_TYPING_PAUSE_MS = 50;
-const DEFAULT_CARET_POSITION = { row: 1, col: 1 };
+import { reconstituteAllPartsOfState } from './utils/reconstituteAllPartsOfState';
+import { DEFAULT_CARET_POSITION, KEYBOARD_TYPING_PAUSE_MS, LONG_PAUSE_MS, STANDARD_PAUSE_MS } from './constants/EditorConstants';
 
 export interface CodeVideoIDEProps {
   theme: 'light' | 'dark';
@@ -53,35 +47,13 @@ export interface CodeVideoIDEProps {
   defaultLanguage: string;
   isExternalBrowserStepUrl: string | null;
   isSoundOn: boolean;
+  withCaptions: boolean;
   actionFinishedCallback: () => void;
-}
-
-const reconstituteAllPartsOfState = (project: Project, currentActionIndex: number, currentLessonIndex: number | null) => {
-  // console.log("project is ", project)
-  // console.log("currentLessonIndex is ", currentLessonIndex)
-  const actions = extractActionsFromProject(project, currentLessonIndex)
-  // console.log("actions extracted are ", actions)
-  const actionsToApply = actions.slice(0, currentActionIndex + 1)
-  const virtualIDE = new VirtualIDE(project, undefined, true);
-  virtualIDE.applyActions(actionsToApply);
-  // console.log("applied actions", actionsToApply);
-  const courseSnapshot = virtualIDE.getCourseSnapshot();
-  const editors = courseSnapshot.editorSnapshot.editors;
-  const currentEditor = editors?.find(editor => editor.isActive) || editors?.[0] || {
-    filename: '',
-    content: '',
-    caretPosition: DEFAULT_CARET_POSITION,
-    highlightCoordinates: null,
-    isActive: false,
-    isSaved: false
-  };
-  const currentFilename = currentEditor.filename;
-  const fileStructure = courseSnapshot.fileExplorerSnapshot.fileStructure;
-  const currentCode = currentEditor ? currentEditor.content : '';
-  const currentCaretPosition = virtualIDE.virtualEditors && virtualIDE.virtualEditors.length > 0 ? virtualIDE.virtualEditors[0]?.virtualEditor.getCurrentCaretPosition() || DEFAULT_CARET_POSITION : DEFAULT_CARET_POSITION;
-  const currentTerminalBuffer = virtualIDE.virtualTerminals.length > 0 ? virtualIDE.virtualTerminals[0]?.getBuffer().join('\n') || '' : '';
-  const captionText = courseSnapshot?.authorSnapshot.authors[0]?.currentSpeechCaption || '';
-  return { editors, currentEditor, currentFilename, fileStructure, currentCode, currentCaretPosition, currentTerminalBuffer, captionText, actions }
+  // an array of audio elements to play when an action is spoken - if a speak action is not found by matching text, it will not play
+  speakActionAudios: Array<{
+    text: string,
+    mp3Url: string
+  }>;
 }
 
 /**
@@ -90,7 +62,7 @@ const reconstituteAllPartsOfState = (project: Project, currentActionIndex: numbe
  * @returns 
  */
 export function CodeVideoIDE(props: CodeVideoIDEProps) {
-  const { theme, project, mode, allowFocusInEditor, defaultLanguage, isExternalBrowserStepUrl, currentActionIndex, currentLessonIndex, isSoundOn, actionFinishedCallback } = props;
+  const { theme, project, mode, allowFocusInEditor, defaultLanguage, isExternalBrowserStepUrl, currentActionIndex, currentLessonIndex, isSoundOn, withCaptions, actionFinishedCallback, speakActionAudios } = props;
   const isRecording = mode === 'record'
   const [editors, setEditors] = useState<Array<IEditor>>();
   const [currentEditor, setCurrentEditor] = useState<IEditor>();
@@ -129,7 +101,8 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
         mousePosition,
         containerRef,
         setMousePosition,
-        setCaptionText
+        setCaptionText,
+        speakActionAudios
       );
     }
     updateState();
@@ -138,7 +111,16 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
 
   const updateState = () => {
 
-    const { editors, currentEditor, currentFilename, fileStructure, currentCode, currentCaretPosition, currentTerminalBuffer, captionText, actions } = reconstituteAllPartsOfState(project, currentActionIndex, currentLessonIndex);
+    const { editors,
+      currentEditor,
+      currentFilename,
+      fileStructure,
+      currentCode,
+      currentCaretPosition,
+      currentTerminalBuffer,
+      captionText,
+      actions
+    } = reconstituteAllPartsOfState(project, currentActionIndex, currentLessonIndex);
     setEditors(editors)
     setCurrentEditor(currentEditor);
     setCurrentFileName(currentFilename);
@@ -154,7 +136,7 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
   }
 
   // This is copied basically in animation way down logic below, could be refactored
-  const updateMouseState = (actions: Array<IAction>) => {
+  const updateMouseState = async (actions: Array<IAction>) => {
     if (currentActionIndex === 0 && mode === 'step') {
       if (!containerRef?.current) {
         return;
@@ -170,6 +152,9 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
     if (!currentAction) return;
 
     let newPosition = { x: mousePosition.x, y: mousePosition.y };
+
+    // before continuing, wait a little bit so file explorer can update the DOM
+    await sleep(100);
 
     switch (currentAction.name) {
       case 'mouse-click-terminal':
@@ -198,7 +183,12 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
   useEffect(() => {
     const actions = extractActionsFromProject(project, currentLessonIndex)
     if (isSoundOn && mode === 'step' && actions[currentActionIndex]?.name.startsWith('author-')) {
-      speakText(actions[currentActionIndex].value, 1);
+      // try to find a match by the sha256 hash of the action.value in the speakActionAudios array
+      const action = actions[currentActionIndex];
+      const mp3Url = speakActionAudios.find((audio) => audio.text === action.value)?.mp3Url;
+
+      // if audio element was not found, it is undefined and we default to the speech synthesis
+      speakText(actions[currentActionIndex].value, 1, mp3Url);
     } else {
       stopSpeaking();
     }
@@ -310,7 +300,7 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
     if (currentFileName) {
       const detectedLanguage = getLanguageFromFilename(currentFileName);
       setCurrentEditorLanguage(detectedLanguage);
-      
+
       // If we have an active editor model, update its language
       if (monacoEditorRef.current && globalMonacoRef.current) {
         const model = monacoEditorRef.current.getModel();
@@ -434,8 +424,8 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
       <Flex direction="row"
         style={{
           height: '100%',
-          borderTopLeftRadius: 'var(--radius-3)',
-          borderTopRightRadius: 'var(--radius-3)',
+          // borderTopLeftRadius: 'var(--radius-3)',
+          // borderTopRightRadius: 'var(--radius-3)',
           overflow: 'hidden',
           // necessary so mouse overlay can be positioned absolutely
           position: 'relative',
@@ -459,7 +449,7 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
             <FileExplorer theme={theme} currentFileName={currentFileName} fileStructure={currentFileStructure} />
             {/* Editor Tabs, Main Editor, and Terminal stack on top of eachother */}
             <Flex direction="column" width="100%">
-              <EditorTabs theme={theme} editors={editors || []}  />
+              <EditorTabs theme={theme} editors={editors || []} />
               {/* Editor */}
               <Box
                 data-codevideo-id="editor"
@@ -475,30 +465,40 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
                   height: '100%',
                   width: '100%'
                 }} />
-                <Editor
-                  path={currentEditor?.filename}
-                  theme={theme === 'light' ? 'vs' : 'vs-dark'}
-                  className={`no-mouse ${editors && editors.length === 0 ? 'display-none' : 'display-block'}`}
-                  value={isRecording || mode === 'replay' ? undefined : currentCode}
-                  defaultValue={isRecording ? currentCode : undefined}
-                  defaultLanguage={defaultLanguage}
-                  options={{
-                    automaticLayout: true,
-                    minimap: { enabled: true },
-                    scrollBeyondLastLine: true,
-                    fontSize: 14,
-                    fontFamily: 'Fira Code, monospace',
-                    fontLigatures: true,
-                    readOnly: mode === 'step',
-                    lineNumbers: 'on',
-                    renderWhitespace: 'selection',
-                    bracketPairColorization: { enabled: true },
-                    matchBrackets: 'never',
-                    formatOnPaste: true,
-                    formatOnType: true,
-                  }}
-                  onMount={handleEditorDidMount}
-                />
+                <Box style={{
+                  display: editors && editors.length === 0 ? 'none' : 'block',
+                  backgroundColor: theme === 'light' ? 'var(--gray-5)' : 'var(--gray-4)',
+                  height: '100%',
+                  width: '100%',
+                  pointerEvents: isRecording ? 'auto' : 'none',
+                  cursor: isRecording ? 'auto' : 'none',
+                  userSelect: isRecording ? 'auto' : 'none',
+                }}>
+                  <Editor
+                    path={currentEditor?.filename}
+                    theme={theme === 'light' ? 'vs' : 'vs-dark'}
+                    className={`no-mouse ${editors && editors.length === 0 ? 'display-none' : 'display-block'}`}
+                    value={isRecording || mode === 'replay' ? undefined : currentCode}
+                    defaultValue={isRecording ? currentCode : undefined}
+                    defaultLanguage={defaultLanguage}
+                    options={{
+                      automaticLayout: true,
+                      minimap: { enabled: true },
+                      scrollBeyondLastLine: true,
+                      fontSize: 14,
+                      fontFamily: 'Fira Code, monospace',
+                      fontLigatures: true,
+                      readOnly: mode === 'step',
+                      lineNumbers: 'on',
+                      renderWhitespace: 'selection',
+                      bracketPairColorization: { enabled: true },
+                      matchBrackets: 'never',
+                      formatOnPaste: true,
+                      formatOnType: true,
+                    }}
+                    onMount={handleEditorDidMount}
+                  />
+                </Box>
               </Box>
               {/* Terminal - TODO add support for multiple in the future */}
               {terminalBuffer.length > 0 ? (
@@ -517,10 +517,10 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
           mode={mode}
           mouseVisible={true}
           mousePosition={mousePosition} />
-          
+
       </Flex>
       {/* Caption Overlay */}
-      <CaptionOverlay captionText={captionText} />
+      {withCaptions && <CaptionOverlay captionText={captionText} />}
     </Flex>
   );
 }
@@ -573,12 +573,6 @@ const simulateHumanTyping = (
   });
 };
 
-const simulateKeyboardPause = async () => {
-  await new Promise((resolve) =>
-    setTimeout(resolve, KEYBOARD_TYPING_PAUSE_MS)
-  );
-}
-
 // TODO: copied the EDITOR parts mostly from the backend single editor endpoint from codevideo-backend-engine... can we generalize this?
 // the speaking and terminal stuff is new
 export const executeActionPlaybackForMonacoInstance = async (
@@ -596,7 +590,8 @@ export const executeActionPlaybackForMonacoInstance = async (
   mousePosition: IPoint,
   containerRef: React.RefObject<HTMLDivElement | null>,
   setMousePosition: (value: any) => void,
-  setCaptionText: (value: any) => void
+  setCaptionText: (value: any) => void,
+  speakActionAudios: Array<{text: string, mp3Url: string}>
 ) => {
   let startTime = -1;
 
@@ -617,6 +612,9 @@ export const executeActionPlaybackForMonacoInstance = async (
       setCurrentCaretPosition(currentCaretPosition);
       break;
   }
+
+  // before continuing, wait a little bit so file explorer can update the DOM
+  await sleep(100);
 
   // MOUSE MOVEMENT ANIMATIONS, PASS THROUGH AND CONTINUE BELOW
   let newPosition = { x: mousePosition.x, y: mousePosition.y };
@@ -707,7 +705,11 @@ export const executeActionPlaybackForMonacoInstance = async (
         break;
       case action.name.startsWith("author-"):
         setCaptionText(action.value);
-        await speakText(action.value, isSoundOn ? 1 : 0);
+        // try to find a matching mp3 url by matching the text of it to action.value in the speakActionAudios array
+        const mp3Url = speakActionAudios.find((audio) => audio.text === action.value)?.mp3Url;
+
+        // if an mp3 url was not found, it is undefined and we default to the speech synthesis
+        await speakText(action.value, isSoundOn ? 1 : 0, mp3Url);
         break;
       case action.name === 'terminal-type':
         const terminalOutput = action.value;
@@ -725,31 +727,31 @@ export const executeActionPlaybackForMonacoInstance = async (
         // @ts-ignore
         pos.lineNumber = pos.lineNumber + 1;
         editor.setPosition(pos);
-        await simulateKeyboardPause();
+        await sleep(KEYBOARD_TYPING_PAUSE_MS)
         break;
       case action.name === "editor-arrow-up" && pos !== null:
         // @ts-ignore
         pos.lineNumber = pos.lineNumber - 1;
         editor.setPosition(pos);
-        await simulateKeyboardPause();
+        await sleep(KEYBOARD_TYPING_PAUSE_MS)
         break;
       case action.name === "editor-tab" && pos !== null:
         // @ts-ignore
         pos.lineNumber = pos.lineNumber + 2;
         editor.setPosition(pos);
-        await simulateKeyboardPause();
+        await sleep(KEYBOARD_TYPING_PAUSE_MS)
         break;
       case action.name === "editor-arrow-left" && pos !== null:
         // @ts-ignore
         pos.column = pos.column - 1;
         editor.setPosition(pos);
-        await simulateKeyboardPause();
+        await sleep(KEYBOARD_TYPING_PAUSE_MS)
         break;
       case action.name === "editor-arrow-right" && pos !== null:
         // @ts-ignore
         pos.column = pos.column + 1;
         editor.setPosition(pos);
-        await simulateKeyboardPause();
+        await sleep(KEYBOARD_TYPING_PAUSE_MS)
         break;
       case action.name === "editor-enter":
         await simulateHumanTyping(editor, "\n");
@@ -761,14 +763,14 @@ export const executeActionPlaybackForMonacoInstance = async (
       //     // @ts-ignore
       //     { range: new monaco.Range(lineNumber, 1, lineNumber + 1, 1), text: null },
       //   ]);
-      //   await simulateKeyboardPause();
+      //   await sleep(KEYBOARD_TYPING_PAUSE_MS)
       //   break;
       case action.name === "editor-command-right" && pos !== null:
         // simulate moving to the end of the current line
         // @ts-ignore
         pos.column = 100000;
         editor.setPosition(pos);
-        await simulateKeyboardPause();
+        await sleep(KEYBOARD_TYPING_PAUSE_MS)
         break;
       //   // highlight breaks SSR
       // // case action.name === "editor-highlight-code":
@@ -780,7 +782,7 @@ export const executeActionPlaybackForMonacoInstance = async (
       case action.name === "editor-backspace":
         // @ts-ignore - this also breaks SSR
         typeof window !== "undefined" && editor.trigger(1, "deleteLeft");
-        await simulateKeyboardPause();
+        await sleep(KEYBOARD_TYPING_PAUSE_MS)
         break;
       case action.name === "editor-type":
         await simulateHumanTyping(editor, action.value);

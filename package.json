@@ -1,6 +1,6 @@
 {
   "name": "@fullstackcraftllc/codevideo-ide-react",
-  "version": "0.0.5",
+  "version": "0.0.9",
   "description": "A React TypeScript component for a fully auditable, drivable, and replayable IDE written in React with radix-ui styling.",
   "type": "module",
   "main": "dist/index.js",

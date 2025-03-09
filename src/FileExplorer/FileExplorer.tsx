@@ -40,8 +40,10 @@ export function FileExplorer(props: IFileExplorerProps) {
                         align="center"
                         gap="2"
                         style={{
-                            borderRadius: 'var(--radius-2)',
+                            // borderRadius: 'var(--radius-2)',
                             backgroundColor: currentFileName === fullPath ? 'var(--mint-8)' : 'transparent',
+                            // monaco like styles - the active file has a full width background
+                            width: currentFileName === fullPath ? '100%' : 'auto',
                         }}
                     >
                         {isDirectory ? <Folder height="20"/> : <FileIcon filename={name} />}

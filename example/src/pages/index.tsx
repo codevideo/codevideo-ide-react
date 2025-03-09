@@ -1,10 +1,15 @@
 import * as React from "react"
 import { GUIMode, IAction, Project } from "@fullstackcraftllc/codevideo-types"
-import { CodeVideoIDE } from "@fullstackcraftllc/codevideo-ide-react"
+import { CodeVideoIDE } from "../../../src/CodeVideoIDE"
 import { Box, Flex, Theme } from "@radix-ui/themes";
 import { useEffect, useState } from "react";
+import { AudioItem } from "../utils/audioElements";
 
-const pythonExampleActions: Array<IAction> = [
+
+const audios: Array<AudioItem> = []
+const speakActionAudios =  [];
+
+const actions: Array<IAction> = [
   {
     "name": "file-explorer-create-file",
     "value": "Directory.Build.props"
@@ -203,17 +208,18 @@ const pythonExampleActions: Array<IAction> = [
   }
 ]
 
+// TODO: actually none of these other strings affect the project... so?????
 const project: Project = {
-  id: 'python',
-  name: 'Python Print Example',
-  description: 'Learn how to use print in Python',
-  primaryLanguage: 'python',
+  id: '',
+  name: '',
+  description: '',
+  primaryLanguage: '',
   lessons: [
     {
-      id: 'python',
-      name: 'Python Print Example',
-      description: 'Learn how to use print in Python',
-      actions: pythonExampleActions
+      id: '',
+      name: '',
+      description: '',
+      actions: actions
     }
   ]
 };
@@ -233,7 +239,7 @@ export default function Home() {
       return
     }
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight' && currentActionIndex < pythonExampleActions.length - 1) {
+      if (e.key === 'ArrowRight' && currentActionIndex < actions.length - 1) {
         setCurrentActionIndex(currentActionIndex + 1)
       } else if (e.key === 'ArrowLeft' && currentActionIndex > 0) {
         setCurrentActionIndex(currentActionIndex - 1)
@@ -247,7 +253,7 @@ export default function Home() {
 
 
   const goToNextAction = () => {
-    if (currentActionIndex < pythonExampleActions.length - 1) {
+    if (currentActionIndex < actions.length - 1) {
       setCurrentActionIndex(currentActionIndex + 1)
     }
   }
@@ -277,8 +283,9 @@ export default function Home() {
             currentActionIndex={currentActionIndex}
             currentLessonIndex={0}
             isSoundOn={true}
-            // withCaptions={true}
+            withCaptions={false}
             actionFinishedCallback={goToNextAction}
+            speakActionAudios={speakActionAudios}
           />
         </Box>
       </Flex>

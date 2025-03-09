@@ -1,5 +1,6 @@
 import { Project, extractActionsFromProject } from "@fullstackcraftllc/codevideo-types";
 import { VirtualIDE } from "@fullstackcraftllc/codevideo-virtual-ide";
+import { DEFAULT_CARET_POSITION } from "../constants/EditorConstants";
 
 export const reconstituteAllPartsOfState = (project: Project, currentActionIndex: number, currentLessonIndex: number | null) => {
     // console.log("project is ", project)
