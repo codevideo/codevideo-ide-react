@@ -1,15 +1,26 @@
 import * as React from "react"
 import { GUIMode, IAction, Project } from "@fullstackcraftllc/codevideo-types"
-import { CodeVideoIDE } from "../../../src/CodeVideoIDE"
+import { CodeVideoIDE } from "@fullstackcraftllc/codevideo-ide-react"
 import { Box, Flex, Theme } from "@radix-ui/themes";
 import { useEffect, useState } from "react";
 import { AudioItem } from "../utils/audioElements";
-
 
 const audios: Array<AudioItem> = []
 const speakActionAudios =  [];
 
 const actions: Array<IAction> = [
+  {
+    "name": "author-speak-before",
+    "value": "In this quick little lesson, I'd like to show you all about a small unit test I made which my colleagues made fun of me a little bit for, but I think is actually the perfect unit test for .NET"
+  },
+  {
+    "name": "author-speak-before",
+    "value": "In.NET, there's something known as the build directory props where you can set pretty long-lasting things, including things like the copyright."
+  },
+  {
+    "name": "author-speak-before",
+    "value": "So let's just create a little example of the directory build props file."
+  },
   {
     "name": "file-explorer-create-file",
     "value": "Directory.Build.props"
@@ -19,8 +30,20 @@ const actions: Array<IAction> = [
     "value": "Directory.Build.props"
   },
   {
+    "name": "author-speak-before",
+    "value": "And I'll just paste in some content into this file."
+  },
+  {
     "name": "editor-type",
     "value": "<Project>\n\t<PropertyGroup>\n\t\t<Copyright>Copyright 2025 (c) Full Stack Craft LLC</Copyright>\n    </PropertyGroup>\n</Project>"
+  },
+  {
+    "name": "author-speak-before",
+    "value": "Of course this is a toy example; typically you have much more information in Directory.Build.props, but for the illustration of what the unit test will do, its fine."
+  },
+  {
+    "name": "author-speak-before",
+    "value": "We can save and close that for now."
   },
   {
     "name": "editor-save",
@@ -29,6 +52,10 @@ const actions: Array<IAction> = [
   {
     "name": "file-explorer-close-file",
     "value": "Directory.Build.Props"
+  },
+  {
+    "name": "author-speak-before",
+    "value": "Now, to the actual unit test."
   },
   {
     "name": "file-explorer-create-file",
@@ -283,9 +310,12 @@ export default function Home() {
             currentActionIndex={currentActionIndex}
             currentLessonIndex={0}
             isSoundOn={true}
-            withCaptions={false}
+            withCaptions={true}
             actionFinishedCallback={goToNextAction}
             speakActionAudios={speakActionAudios}
+            fileExplorerWidth={400}
+            terminalHeight={500}
+            mouseColor="green"
           />
         </Box>
       </Flex>

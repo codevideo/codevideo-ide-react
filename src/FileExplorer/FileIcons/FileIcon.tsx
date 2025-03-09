@@ -1,5 +1,23 @@
-import React, { JSX } from 'react';
-import { CodeGray, Cplus, Csharp, Gear, Git, Go, Js, License, Markdown, Python, Reactjs, Reactts, Rust, Shell, Text, TypeScript, Yaml } from '@react-symbols/icons';
+import React from 'react';
+import {
+    CodeGray,
+    Cplus,
+    Csharp,
+    Gear,
+    Git,
+    Go,
+    Js,
+    License,
+    Markdown,
+    Python,
+    Reactjs,
+    Reactts,
+    Rust,
+    Shell,
+    Text,
+    TypeScript,
+    Yaml
+} from '@react-symbols/icons';
 
 export interface IFileIconProps {
     filename: string;

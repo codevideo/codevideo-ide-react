@@ -4,10 +4,11 @@ import { Box } from '@radix-ui/themes';
 export interface ITerminalProps {
     theme?: 'light' | 'dark';
     terminalBuffer: string;
+    terminalHeight?: number;
 }
 
 export function Terminal(props: ITerminalProps) {
-    const { theme, terminalBuffer } = props;
+    const { theme, terminalBuffer, terminalHeight } = props;
     const terminalRef = useRef<HTMLDivElement>(null);
 
     // always auto-scroll to the bottom whenever the terminal buffer changes
@@ -17,13 +18,25 @@ export function Terminal(props: ITerminalProps) {
         }
     }, [terminalBuffer]);
 
+    // if the terminal buffer has no length, return a placeholder <Box/>
+    if (terminalBuffer.length === 0) {
+        return (
+            <Box 
+            style={{ 
+                backgroundColor: theme === 'light' ? 'var(--gray-5)' : 'var(--gray-4)', 
+                height: terminalHeight ? `${terminalHeight}px` : '150px',
+                borderTop: '1px solid var(--gray-7)' 
+            }} />
+        )
+    }
+
     return (
         <Box
             data-codevideo-id="terminal"
             ref={terminalRef}
             style={{
                 borderTop: '1px solid var(--gray-7)',
-                height: '150px',
+                height: terminalHeight ? `${terminalHeight}px` : '150px',
                 backgroundColor: theme === 'light' ? 'var(--gray-5)' : 'var(--gray-4)',
                 fontFamily: 'Fira Code, monospace',
                 padding: '8px',

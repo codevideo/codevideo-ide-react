@@ -54,6 +54,9 @@ export interface CodeVideoIDEProps {
     text: string,
     mp3Url: string
   }>;
+  fileExplorerWidth?: number;
+  terminalHeight?: number;
+  mouseColor?: string;
 }
 
 /**
@@ -62,7 +65,7 @@ export interface CodeVideoIDEProps {
  * @returns 
  */
 export function CodeVideoIDE(props: CodeVideoIDEProps) {
-  const { theme, project, mode, allowFocusInEditor, defaultLanguage, isExternalBrowserStepUrl, currentActionIndex, currentLessonIndex, isSoundOn, withCaptions, actionFinishedCallback, speakActionAudios } = props;
+  const { theme, project, mode, allowFocusInEditor, defaultLanguage, isExternalBrowserStepUrl, currentActionIndex, currentLessonIndex, isSoundOn, withCaptions, actionFinishedCallback, speakActionAudios, fileExplorerWidth, terminalHeight, mouseColor } = props;
   const isRecording = mode === 'record'
   const [editors, setEditors] = useState<Array<IEditor>>();
   const [currentEditor, setCurrentEditor] = useState<IEditor>();
@@ -446,7 +449,7 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
           </Flex>
         ) : (
           <>
-            <FileExplorer theme={theme} currentFileName={currentFileName} fileStructure={currentFileStructure} />
+            <FileExplorer theme={theme} currentFileName={currentFileName} fileStructure={currentFileStructure} fileExplorerWidth={fileExplorerWidth} />
             {/* Editor Tabs, Main Editor, and Terminal stack on top of eachother */}
             <Flex direction="column" width="100%">
               <EditorTabs theme={theme} editors={editors || []} />
@@ -500,15 +503,11 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
                   />
                 </Box>
               </Box>
-              {/* Terminal - TODO add support for multiple in the future */}
-              {terminalBuffer.length > 0 ? (
-                <Terminal
-                  theme={theme}
-                  terminalBuffer={terminalBuffer} />
-              ) : (
-                /* Empty terminal - colored background */
-                <Box style={{ backgroundColor: theme === 'light' ? 'var(--gray-5)' : 'var(--gray-4)', height: '150px', borderTop: '1px solid var(--gray-7)' }} />
-              )}
+              {/* Terminal - TODO: add support for multiple terminals in the future */}
+              <Terminal
+                theme={theme}
+                terminalBuffer={terminalBuffer}
+                terminalHeight={terminalHeight} />
             </Flex>
           </>
         )}
@@ -516,8 +515,8 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
         <MouseOverlay
           mode={mode}
           mouseVisible={true}
-          mousePosition={mousePosition} />
-
+          mousePosition={mousePosition}
+          mouseColor={mouseColor} />
       </Flex>
       {/* Caption Overlay */}
       {withCaptions && <CaptionOverlay captionText={captionText} />}
@@ -591,7 +590,7 @@ export const executeActionPlaybackForMonacoInstance = async (
   containerRef: React.RefObject<HTMLDivElement | null>,
   setMousePosition: (value: any) => void,
   setCaptionText: (value: any) => void,
-  speakActionAudios: Array<{text: string, mp3Url: string}>
+  speakActionAudios: Array<{ text: string, mp3Url: string }>
 ) => {
   let startTime = -1;
 

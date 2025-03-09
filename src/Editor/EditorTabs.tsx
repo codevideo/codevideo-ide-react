@@ -57,7 +57,7 @@ export function EditorTabs(props: IEditorTabsProps) {
                             style={{
                                 width: '8px',
                                 height: '8px',
-                                backgroundColor: theme === 'light' ? 'var(--gray-5)' : 'var(--gray-4)',
+                                backgroundColor: 'var(--gray-8)', // same as x icon above
                                 borderRadius: '9999px'
                             }}
                         />

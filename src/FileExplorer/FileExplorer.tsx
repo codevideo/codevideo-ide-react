@@ -8,10 +8,11 @@ export interface IFileExplorerProps {
     theme: 'light' | 'dark'
     currentFileName?: string
     fileStructure?: IFileStructure
+    fileExplorerWidth?: number
 }
 
 export function FileExplorer(props: IFileExplorerProps) {
-    const { theme, currentFileName, fileStructure } = props;
+    const { theme, currentFileName, fileStructure, fileExplorerWidth } = props;
 
     const renderFileTree = (structure: IFileStructure, path: string = '', level: number): JSX.Element[] => {
         // Sort entries alphabetically, with directories first, then files
@@ -41,7 +42,7 @@ export function FileExplorer(props: IFileExplorerProps) {
                         gap="2"
                         style={{
                             // borderRadius: 'var(--radius-2)',
-                            backgroundColor: currentFileName === fullPath ? 'var(--mint-8)' : 'transparent',
+                            backgroundColor: currentFileName === fullPath ? 'var(--mint-2)' : 'transparent',
                             // monaco like styles - the active file has a full width background
                             width: currentFileName === fullPath ? '100%' : 'auto',
                         }}
@@ -64,7 +65,7 @@ export function FileExplorer(props: IFileExplorerProps) {
             p="1"
             style={{
                 height: '100%',
-                minWidth: '250px',
+                width: fileExplorerWidth ? `${fileExplorerWidth}px` : '250px',
                 borderRight: '1px solid var(--gray-7)',
                 backgroundColor: theme === 'light' ? 'var(--gray-5)' : 'var(--gray-4)',
                 pointerEvents: 'none',
