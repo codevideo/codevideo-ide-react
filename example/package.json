@@ -7,6 +7,7 @@
   "scripts": {
     "redo": "npm install @fullstackcraftllc/codevideo-ide-react@latest --legacy-peer-deps && npm run clean && npm run develop",
     "build": "gatsby build",
+    "build-for-gh-pages": "gatsby build --prefix-paths",
     "develop": "gatsby develop",
     "start": "gatsby develop",
     "serve": "gatsby serve",
@@ -14,7 +15,8 @@
     "test": "echo \"Write tests! -> https://gatsby.dev/unit-testing\" && exit 1"
   },
   "dependencies": {
-    "@fullstackcraftllc/codevideo-ide-react": "^0.0.16",
+    "@fullstackcraftllc/codevideo-ide-react": "^0.0.17",
+    "@fullstackcraftllc/codevideo-types": "^2.0.35",
     "@radix-ui/themes": "^3.2.1",
     "gatsby": "^5.14.1",
     "puppeteer-stream": "^3.0.19",

@@ -1,6 +1,6 @@
 {
   "name": "@fullstackcraftllc/codevideo-ide-react",
-  "version": "0.0.16",
+  "version": "0.0.18",
   "description": "A React TypeScript component for a fully auditable, drivable, and replayable IDE written in React with @radix-ui/theme styling.",
   "type": "module",
   "main": "dist/index.js",
@@ -8,7 +8,7 @@
   "scripts": {
     "build": "rollup -c ./rollup.config.js",
     "type-check": "tsc --noEmit",
-    "predeploy": "cd example && npm run build",
+    "predeploy": "cd example && npm run clean && npm run build-for-gh-pages && cd ..",
     "deploy": "gh-pages -d example/public"
   },
   "repository": {
@@ -27,7 +27,7 @@
   },
   "homepage": "https://github.com/codevideo/codevideo-ide-react#readme",
   "devDependencies": {
-    "@fullstackcraftllc/codevideo-types": "^2.0.32",
+    "@fullstackcraftllc/codevideo-types": "^2.0.35",
     "@rollup/plugin-commonjs": "^25.0.7",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@types/react": "^19.0.7",
@@ -42,7 +42,7 @@
     "react-dom": "^18.2.0"
   },
   "dependencies": {
-    "@fullstackcraftllc/codevideo-virtual-ide": "^1.0.11",
+    "@fullstackcraftllc/codevideo-virtual-ide": "^1.0.12",
     "@monaco-editor/react": "^4.7.0",
     "@radix-ui/themes": "^3.2.1",
     "@react-symbols/icons": "^1.2.8",

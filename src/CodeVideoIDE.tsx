@@ -35,7 +35,7 @@ import { parseCoordinatesFromAction } from './MouseOverlay/coordinateFunctions/p
 // CaptionOverlay
 import { CaptionOverlay } from './CaptionOverlay/CaptionOverlay';
 import { reconstituteAllPartsOfState } from './utils/reconstituteAllPartsOfState';
-import { DEFAULT_CARET_POSITION, KEYBOARD_TYPING_PAUSE_MS, LONG_PAUSE_MS, STANDARD_PAUSE_MS } from './constants/CodeVideoIDEConstants';
+import { CODEVIDEO_IDE_ID, DEFAULT_CARET_POSITION, KEYBOARD_TYPING_PAUSE_MS, LONG_PAUSE_MS, STANDARD_PAUSE_MS } from './constants/CodeVideoIDEConstants';
 
 export interface ICodeVideoIDEProps {
   theme: 'light' | 'dark';
@@ -57,6 +57,7 @@ export interface ICodeVideoIDEProps {
   fileExplorerWidth?: number;
   terminalHeight?: number;
   mouseColor?: string;
+  fontSizePx?: number;
 }
 
 /**
@@ -65,7 +66,24 @@ export interface ICodeVideoIDEProps {
  * @returns 
  */
 export function CodeVideoIDE(props: ICodeVideoIDEProps) {
-  const { theme, project, mode, allowFocusInEditor, defaultLanguage, isExternalBrowserStepUrl, currentActionIndex, currentLessonIndex, isSoundOn, withCaptions, actionFinishedCallback, speakActionAudios, fileExplorerWidth, terminalHeight, mouseColor } = props;
+  const {
+    theme,
+    project,
+    mode,
+    allowFocusInEditor,
+    defaultLanguage,
+    isExternalBrowserStepUrl,
+    currentActionIndex,
+    currentLessonIndex,
+    isSoundOn,
+    withCaptions,
+    actionFinishedCallback,
+    speakActionAudios,
+    fileExplorerWidth,
+    terminalHeight,
+    mouseColor,
+    fontSizePx,
+  } = props;
   const isRecording = mode === 'record'
   const [editors, setEditors] = useState<Array<IEditor>>();
   const [currentEditor, setCurrentEditor] = useState<IEditor>();
@@ -114,7 +132,8 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
 
   const updateState = () => {
 
-    const { editors,
+    const {
+      editors,
       currentEditor,
       currentFilename,
       fileStructure,
@@ -157,7 +176,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     let newPosition = { x: mousePosition.x, y: mousePosition.y };
 
     // before continuing, wait a little bit so file explorer can update the DOM
-    await sleep(100);
+    await sleep(STANDARD_PAUSE_MS);
 
     switch (currentAction.name) {
       case 'mouse-click-terminal':
@@ -423,7 +442,14 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
   // console.log("currentFileName", currentFileName)
 
   return (
-    <Flex direction="column" style={{ height: '100%', width: '100%' }} id='advanced-editor'>
+    <Flex
+      direction="column"
+      style={{
+        height: '100%',
+        width: '100%',
+        fontSize: fontSizePx ? `${fontSizePx}px` : undefined
+      }}
+      id={CODEVIDEO_IDE_ID}>
       <Flex direction="row"
         style={{
           height: '100%',
@@ -613,7 +639,7 @@ export const executeActionPlaybackForMonacoInstance = async (
   }
 
   // before continuing, wait a little bit so file explorer can update the DOM
-  await sleep(100);
+  await sleep(STANDARD_PAUSE_MS);
 
   // MOUSE MOVEMENT ANIMATIONS, PASS THROUGH AND CONTINUE BELOW
   let newPosition = { x: mousePosition.x, y: mousePosition.y };

@@ -8,6 +8,8 @@
  * @type {import('gatsby').GatsbyConfig}
  */
 module.exports = {
+  // only used when running build with --prefix-paths flag
+  pathPrefix: "/codevideo-ide-react",
   flags: {
     DEV_SSR: true
   },

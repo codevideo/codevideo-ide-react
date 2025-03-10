@@ -421,7 +421,8 @@ export default function Puppeteer() {
             speakActionAudios={audios}
             fileExplorerWidth={400}
             terminalHeight={250}
-            mouseColor="green"
+            mouseColor="black"
+            fontSizePx={16}
           />
         </Box>
       </Flex>
