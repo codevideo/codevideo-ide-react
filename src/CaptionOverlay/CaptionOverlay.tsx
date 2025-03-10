@@ -29,7 +29,9 @@ export function CaptionOverlay(props: ICaptionOverlayProps) {
                             {fontSizePx ? (
                                 <Text style={{ fontSize: fontSizePx }}>{captionText}</Text>
                             ) :
-                                (<Text size="6">{captionText}</Text>)
+                                (
+                                    <Text size="6">{captionText}</Text>
+                                )
                             }
                         </Box>
                     </Flex>

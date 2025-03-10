@@ -545,7 +545,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
           mouseColor={mouseColor} />
       </Flex>
       {/* Caption Overlay */}
-      {withCaptions && <CaptionOverlay captionText={captionText} />}
+      {withCaptions && <CaptionOverlay captionText={captionText} fontSizePx={fontSizePx} />}
     </Flex>
   );
 }
