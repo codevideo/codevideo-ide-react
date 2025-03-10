@@ -15,6 +15,7 @@ async function test() {
         defaultViewport: { width: 1920, height: 1080 },
         args: [
             '--window-size=1920,1080',
+            '--start-fullscreen',
             '--ozone-override-screen-size=1920,1080', // for linux
         ]
     });
@@ -79,6 +80,9 @@ async function test() {
 
     // Wait until the client sends a final progress update.
     await finalProgressPromise;
+
+    // Wait a moment before stopping the recording.
+    await sleep(1000);
 
     // Once complete, tear down the recording.
     console.log("Final progress received. Stopping recording...");
