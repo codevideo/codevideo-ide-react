@@ -3,10 +3,11 @@ import { Box, Flex, Text } from '@radix-ui/themes';
 
 export interface ICaptionOverlayProps {
     captionText?: string;
+    fontSizePx?: number;
 }
 
 export function CaptionOverlay(props: ICaptionOverlayProps) {
-    const { captionText } = props;
+    const { captionText, fontSizePx } = props;
     return (
         <>
             {captionText && (
@@ -25,7 +26,11 @@ export function CaptionOverlay(props: ICaptionOverlayProps) {
                             // borderRadius: 'var(--radius-3)',
                             padding: '4px 8px',
                         }}>
-                            <Text size="6">{captionText}</Text>
+                            {fontSizePx ? (
+                                <Text style={{ fontSize: fontSizePx }}>{captionText}</Text>
+                            ) :
+                                (<Text size="6">{captionText}</Text>)
+                            }
                         </Box>
                     </Flex>
                 </Box>

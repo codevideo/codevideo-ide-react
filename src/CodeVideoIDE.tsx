@@ -514,7 +514,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
                       automaticLayout: true,
                       minimap: { enabled: true },
                       scrollBeyondLastLine: true,
-                      fontSize: 14,
+                      fontSize: fontSizePx ? fontSizePx : 14,
                       fontFamily: 'Fira Code, monospace',
                       fontLigatures: true,
                       readOnly: mode === 'step',
