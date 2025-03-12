@@ -27,7 +27,7 @@ export default function Puppeteer() {
 
   // gets manifest from the CodeVideo API running at localhost:7000
   const getManifest = async (uuid: string) => {
-    const response = await fetch(`http://localhost:7000/get-manifest-v3?uuid=${uuid}`)
+    const response = await fetch(`http://codevideo-api:7000/get-manifest-v3?uuid=${uuid}`)
     const data: ICodeVideoManifest = await response.json()
     console.log("Manifest data: ", data)
     setActions(data.actions)
