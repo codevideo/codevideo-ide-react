@@ -231,22 +231,6 @@ const actions: Array<IAction> = [
   }
 ]
 
-// TODO: actually none of these other strings affect the project... so?????
-const project: Project = {
-  id: '',
-  name: '',
-  description: '',
-  primaryLanguage: '',
-  lessons: [
-    {
-      id: '',
-      name: '',
-      description: '',
-      actions: actions
-    }
-  ]
-};
-
 export default function Record() {
   const [mode, setMode] = useState<GUIMode>('record')
   const [currentActionIndex, setCurrentActionIndex] = useState(30)
@@ -276,7 +260,7 @@ export default function Record() {
           {/* TODO, coming soon , need to pull some more stuff out of studio.codevideo.io */}
           <CodeVideoIDE
             theme='dark'
-            project={project}
+            project={actions}
             mode={mode}
             allowFocusInEditor={false}
             defaultLanguage={'python'}

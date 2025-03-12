@@ -1,12 +1,11 @@
 import * as React from "react"
-import { GUIMode, IAction, Project } from "@fullstackcraftllc/codevideo-types"
+import { GUIMode, IAction, IAudioItem} from "@fullstackcraftllc/codevideo-types"
 import { CodeVideoIDE } from "@fullstackcraftllc/codevideo-ide-react"
 import { Box, Flex, Theme } from "@radix-ui/themes";
 import { useEffect, useState } from "react";
-import { AudioItem } from "../utils/audioElements";
 
 // currently, audio manifests can be generated from codevideo-backend-engine npm run generate-audio-manifest
-const audios: Array<AudioItem> = [
+const audioItems: Array<IAudioItem> = [
   {
     "text": "In this quick little lesson, I'd like to show you all about a small unit test I made which my colleagues made fun of me a little bit for, but I think is actually the perfect unit test for .NET",
     "mp3Url": "https://coffee-app.sfo2.cdn.digitaloceanspaces.com/codevideo/audio/0b60d878fd11fcbce04cac74c5e62a503a9624319e76f8e0c21eda5d13202723.mp3"
@@ -300,22 +299,6 @@ const actions: Array<IAction> = [
   }
 ]
 
-// TODO: actually none of these other strings affect the project... so?????
-const project: Project = {
-  id: '',
-  name: '',
-  description: '',
-  primaryLanguage: '',
-  lessons: [
-    {
-      id: '',
-      name: '',
-      description: '',
-      actions: actions
-    }
-  ]
-};
-
 export default function Replay() {
   const [mode, setMode] = useState<GUIMode>('step')
   const [currentActionIndex, setCurrentActionIndex] = useState(0)
@@ -378,7 +361,7 @@ export default function Replay() {
         >
           <CodeVideoIDE
             theme='dark'
-            project={project}
+            project={actions}
             mode={mode}
             allowFocusInEditor={false}
             defaultLanguage={'python'}
@@ -392,7 +375,7 @@ export default function Replay() {
             withCaptions={false}
             actionFinishedCallback={goToNextAction}
             // this example has audios! see codevideo-backend-engine, command: `npm run generate-audio-manifest <your actions json or ts file here> elevenlabs`
-            speakActionAudios={audios}
+            speakActionAudios={audioItems}
             fileExplorerWidth={400}
             terminalHeight={250}
             mouseColor="green"

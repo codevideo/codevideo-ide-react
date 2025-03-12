@@ -47,7 +47,6 @@ async function test() {
 
     // Give the page some time to settle.
     const sleep = ms => new Promise(res => setTimeout(res, ms));
-    await sleep(15000);
 
     const videoConstraints = {
         mandatory: {
@@ -64,8 +63,8 @@ async function test() {
         video: true,
         mimeType: "video/webm", // WebM is well-supported for high-quality web video
         audioBitsPerSecond: 384000, // 384 kbps for high-quality stereo audio
-        videoBitsPerSecond: 18000000, // 18 Mbps (18,000 kbps) for high-quality 1080p video
-        frameSize: 100, // 100ms packets for good streaming balance
+        videoBitsPerSecond: 20000000, // 20 Mbps (20,000 kbps) for high-quality 1080p video
+        frameSize: 50, // 100ms packets for good streaming balance
         videoConstraints
     });
     stream.pipe(file);

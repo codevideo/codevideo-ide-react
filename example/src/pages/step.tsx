@@ -1,5 +1,5 @@
 import * as React from "react"
-import { GUIMode, IAction, Project } from "@fullstackcraftllc/codevideo-types"
+import { GUIMode, IAction } from "@fullstackcraftllc/codevideo-types"
 import { CodeVideoIDE } from "@fullstackcraftllc/codevideo-ide-react"
 import { Box, Flex, Theme } from "@radix-ui/themes";
 import { useEffect, useState } from "react";
@@ -231,21 +231,6 @@ const actions: Array<IAction> = [
   }
 ]
 
-// TODO: actually none of these other strings affect the project... so?????
-const project: Project = {
-  id: '',
-  name: '',
-  description: '',
-  primaryLanguage: '',
-  lessons: [
-    {
-      id: '',
-      name: '',
-      description: '',
-      actions: actions
-    }
-  ]
-};
 export default function Step() {
   const [mode, setMode] = useState<GUIMode>('step')
   const [currentActionIndex, setCurrentActionIndex] = useState(0)
@@ -292,7 +277,7 @@ export default function Step() {
         >
           <CodeVideoIDE
             theme='dark'
-            project={project}
+            project={actions}
             mode={mode}
             allowFocusInEditor={false}
             defaultLanguage={'python'}
