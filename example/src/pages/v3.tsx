@@ -5,6 +5,7 @@ import { Box, Flex, Theme } from "@radix-ui/themes";
 import { useEffect, useState } from "react";
 
 // this example is nearly the same as the record example, but with some puppeteer window injections
+// it also loads the manifest from the CodeVideo API running at localhost:7000
 export default function Puppeteer() {
   const [mode, setMode] = useState<GUIMode>('step')
   const [currentActionIndex, setCurrentActionIndex] = useState(0)

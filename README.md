@@ -41,8 +41,6 @@ import "@radix-ui/themes/styles.css";
 
 For Gatsby, add this to your `gatsby-browser.js` and `gatsby-ssr.js` files:
 
-```ts
-
 ```js
 require('@radix-ui/themes/styles.css');
 ```
