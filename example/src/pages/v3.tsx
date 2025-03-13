@@ -16,9 +16,10 @@ export default function Puppeteer() {
   // on user interaction, set mode to 'replay' and reset the current action index
   const [userInteracted, setUserInteracted] = useState(false)
 
-  // Handle user interaction
+  // Handle user interaction - when the user interacts with the page, set the mode to 'replay' and reset the current action index
   const handleUserInteraction = () => {
     if (!userInteracted) {
+      console.log('Starting replay...')
       setCurrentActionIndex(0)
       setMode('replay')
       setUserInteracted(true)
@@ -28,7 +29,8 @@ export default function Puppeteer() {
 
   // gets manifest from the CodeVideo API running at localhost:7000
   const getManifest = async (uuid: string) => {
-    const response = await fetch(`http://codevideo-api:7000/get-manifest-v3?uuid=${uuid}`)
+    // const response = await fetch(`http://codevideo-api:7000/get-manifest-v3?uuid=${uuid}`)
+    const response = await fetch(`http://localhost:7000/get-manifest-v3?uuid=${uuid}`)
     const data: ICodeVideoManifest = await response.json()
     console.log("Manifest data: ", data)
     setActions(data.actions)
@@ -45,7 +47,7 @@ export default function Puppeteer() {
     }
   }, [])
 
-  // Set up event listeners for user interaction
+  // On mount, set up event listeners for user interaction
   useEffect(() => {
     // Common user interaction events
     const interactionEvents = ['click', 'keydown', 'touchstart']
@@ -63,7 +65,7 @@ export default function Puppeteer() {
         document.removeEventListener(event, handleInteraction)
       })
     }
-  }, [userInteracted])
+  }, [])
 
   // to continue to next action in replay mode, you need to implementation a function for the actionFinishedCallback prop
   const goToNextAction = () => {

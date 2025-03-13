@@ -100,19 +100,20 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
   const globalMonacoRef = useRef<Monaco | undefined>(undefined);
 
   // for cleanup TODO
-  const modelUrisRef = useRef<Set<string>>(new Set());
-  const prevMode = useRef<GUIMode>(mode);
-  const isInitialMount = useRef(true);
+  // const modelUrisRef = useRef<Set<string>>(new Set());
+  // const prevMode = useRef<GUIMode>(mode);
+  // const isInitialMount = useRef(true);
 
   const applyAnimation = async () => {
     const actions = extractActionsFromProject(project, currentLessonIndex)
-    if (monacoEditorRef.current && actions[currentActionIndex]) {
+    const currentAction = currentActionIndex > 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
+    if (monacoEditorRef.current && currentAction) {
       await executeActionPlaybackForMonacoInstance(
         monacoEditorRef.current,
         project,
         currentActionIndex,
         currentLessonIndex,
-        actions[currentActionIndex],
+        currentAction,
         isSoundOn,
         setEditors,
         setCurrentEditor,
@@ -125,13 +126,12 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
         setCaptionText,
         speakActionAudios
       );
+      updateState();
+      actionFinishedCallback();
     }
-    updateState();
-    actionFinishedCallback();
   }
 
   const updateState = () => {
-
     const {
       editors,
       currentEditor,
@@ -170,7 +170,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
       });
       return;
     }
-    const currentAction = actions[currentActionIndex];
+    const currentAction = currentActionIndex > 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
     if (!currentAction) return;
 
     let newPosition = { x: mousePosition.x, y: mousePosition.y };
@@ -204,13 +204,14 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
   // whenever issoundon changes or currentActionIndex, and we are in step mode, and the current action includes 'speak', we should speak
   useEffect(() => {
     const actions = extractActionsFromProject(project, currentLessonIndex)
-    if (isSoundOn && mode === 'step' && actions[currentActionIndex]?.name.startsWith('author-')) {
+    const currentAction = currentActionIndex > 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
+    if (isSoundOn && mode === 'step' && currentAction && currentAction.name.startsWith('author-')) {
       // try to find a match by the sha256 hash of the action.value in the speakActionAudios array
-      const action = actions[currentActionIndex];
+      const action = currentAction;
       const mp3Url = speakActionAudios.find((audio) => audio.text === action.value)?.mp3Url;
 
       // if audio element was not found, it is undefined and we default to the speech synthesis
-      speakText(actions[currentActionIndex].value, 1, mp3Url);
+      speakText(currentAction.value, 1, mp3Url);
     } else {
       stopSpeaking();
     }
@@ -220,7 +221,6 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
   useEffect(() => {
     // normal step by step mode OR initial replay state - can update state immediately
     if (mode === 'step') {
-      console.log('updating state for step mode')
       updateState();
       return;
     }
