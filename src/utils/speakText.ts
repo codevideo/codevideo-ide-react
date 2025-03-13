@@ -22,8 +22,15 @@ export const speakText = (text: string, volume: number, mp3Url?: string): Promis
         console.error("Audio playback error:", e);
         resolve(); // Resolve instead of rejecting to prevent errors from bubbling up
       };
-      audioElement.play().catch(error => {
-        console.error("Failed to play audio:", error);
+      audioElement.play().catch(async error => {
+        try {
+        // Extract the 'message' property from the error handle
+        const messageHandle = await error.getProperty('message');
+        const message = await messageHandle.jsonValue();
+        console.error("Failed to play audio:", message);
+        } catch (e) {
+          console.error("Failed to extract error message:", e);
+        }
         resolve(); // Resolve despite the error
       });
       return;
@@ -31,7 +38,7 @@ export const speakText = (text: string, volume: number, mp3Url?: string): Promis
 
     // else default to speech synthesis
     const speechSynthesis = window.speechSynthesis;
-    
+
     // Create a new SpeechSynthesisUtterance object
     const utterance = new SpeechSynthesisUtterance(text);
     // Set the volume

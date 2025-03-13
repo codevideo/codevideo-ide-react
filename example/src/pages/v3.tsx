@@ -40,6 +40,16 @@ export default function Puppeteer() {
       setCurrentActionIndex(0)
       setMode('replay')
       setIsSoundOn(true)
+      if (typeof (window as any).__onActionProgress === 'function') {
+        (window as any).__onActionProgress({
+          currentAction: currentActionIndex,
+          totalActions: actions.length,
+          progress: (currentActionIndex / actions.length * 100).toFixed(1),
+          actionName: actions[currentActionIndex]?.name || `Action ${currentActionIndex}`,
+          actionValue: actions[currentActionIndex]?.value || '',
+          timestamp: Date.now().toLocaleString()
+        });
+      }
     }
   }, [readyToReplay])
 
