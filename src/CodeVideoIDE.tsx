@@ -126,9 +126,9 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
         setCaptionText,
         speakActionAudios
       );
-      updateState();
-      actionFinishedCallback();
     }
+    updateState();
+    actionFinishedCallback();
   }
 
   const updateState = () => {
