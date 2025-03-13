@@ -16,16 +16,24 @@ export default function Puppeteer() {
   // on user interaction, set mode to 'replay' and reset the current action index
   const [userInteracted, setUserInteracted] = useState(false)
 
-  // Handle user interaction - when the user interacts with the page, set the mode to 'replay' and reset the current action index
+  // set user interacted to true on user interaction
   const handleUserInteraction = () => {
-    if (!userInteracted) {
+    console.log("User interacted, attempting to replay...")
+    if (!actions) {
+      console.log("No actions to replay yet; won't set interacted to true!")
+      return
+    }
+    setUserInteracted(true)
+  }
+
+  useEffect(() => {
+    if (userInteracted) {
       console.log('Starting replay...')
       setCurrentActionIndex(0)
       setMode('replay')
-      setUserInteracted(true)
       setIsSoundOn(true)
     }
-  }
+  }, [userInteracted])
 
   // gets manifest from the CodeVideo API running at localhost:7000
   const getManifest = async (uuid: string) => {
