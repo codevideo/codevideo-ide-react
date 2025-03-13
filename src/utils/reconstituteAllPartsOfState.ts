@@ -3,15 +3,20 @@ import { VirtualIDE } from "@fullstackcraftllc/codevideo-virtual-ide";
 import { DEFAULT_CARET_POSITION } from "../constants/CodeVideoIDEConstants";
 
 export const reconstituteAllPartsOfState = (project: Project, currentActionIndex: number, currentLessonIndex: number | null) => {
-    // console.log("project is ", project)
-    // console.log("currentLessonIndex is ", currentLessonIndex)
     const actions = extractActionsFromProject(project, currentLessonIndex)
-    // console.log("actions extracted are ", actions)
-    const actionsToApply = actions.slice(0, currentActionIndex + 1)
+    let sanitizedCurrentActionIndex = currentActionIndex;
+    // action index can be maximum of actions.length - 1
+    if (currentActionIndex >= actions.length) {
+      sanitizedCurrentActionIndex = actions.length - 1;
+    }
+    // action index can be minimum of 0
+    if (currentActionIndex < 0) {
+      sanitizedCurrentActionIndex = 0;
+    }
+    const actionsToApply = actions.slice(0, sanitizedCurrentActionIndex + 1)
     // activate verbose to true if debugging is needed
     const virtualIDE = new VirtualIDE(project, undefined, false);
     virtualIDE.applyActions(actionsToApply);
-    // console.log("applied actions", actionsToApply);
     const courseSnapshot = virtualIDE.getCourseSnapshot();
     const editors = courseSnapshot.editorSnapshot.editors;
     const currentEditor = editors?.find(editor => editor.isActive) || editors?.[0] || {

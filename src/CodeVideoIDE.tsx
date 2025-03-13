@@ -106,7 +106,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
 
   const applyAnimation = async () => {
     const actions = extractActionsFromProject(project, currentLessonIndex)
-    const currentAction = currentActionIndex > 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
+    const currentAction = currentActionIndex >= 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
     if (monacoEditorRef.current && currentAction) {
       await executeActionPlaybackForMonacoInstance(
         monacoEditorRef.current,
@@ -170,7 +170,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
       });
       return;
     }
-    const currentAction = currentActionIndex > 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
+    const currentAction = currentActionIndex >= 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
     if (!currentAction) return;
 
     let newPosition = { x: mousePosition.x, y: mousePosition.y };
@@ -204,7 +204,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
   // whenever issoundon changes or currentActionIndex, and we are in step mode, and the current action includes 'speak', we should speak
   useEffect(() => {
     const actions = extractActionsFromProject(project, currentLessonIndex)
-    const currentAction = currentActionIndex > 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
+    const currentAction = currentActionIndex >= 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
     if (isSoundOn && mode === 'step' && currentAction && currentAction.name.startsWith('author-')) {
       // try to find a match by the sha256 hash of the action.value in the speakActionAudios array
       const action = currentAction;
