@@ -107,7 +107,12 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
   const applyAnimation = async () => {
     const actions = extractActionsFromProject(project, currentLessonIndex)
     const currentAction = currentActionIndex >= 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
-    if (monacoEditorRef.current && currentAction) {
+
+    if (!currentAction) {
+      return;
+    }
+
+    if (monacoEditorRef.current) {
       await executeActionPlaybackForMonacoInstance(
         monacoEditorRef.current,
         project,
