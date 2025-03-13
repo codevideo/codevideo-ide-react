@@ -19,7 +19,7 @@ export default function Puppeteer() {
   // set user interacted to true on user interaction
   const handleUserInteraction = () => {
     console.log("User interacted, attempting to replay...")
-    if (!actions) {
+    if (actions.length === 0) {
       console.log("No actions to replay yet; won't set interacted to true!")
       return
     }
