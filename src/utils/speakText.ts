@@ -13,6 +13,8 @@ export const speakText = (text: string, volume: number, mp3Url?: string): Promis
 
     // if a url to an mp3 is provided, play the audio
     if (mp3Url) {
+      console.log("Creating audio element for MP3 URL:", mp3Url);
+      console.log("Volume", volume);
       const audioElement = new Audio(mp3Url);
       audioElement.volume = volume;
       audioElement.onended = () => {
@@ -37,6 +39,13 @@ export const speakText = (text: string, volume: number, mp3Url?: string): Promis
       };
       audioElement.play().catch(async error => {
         try {
+          if (error instanceof Error) {
+            console.error(`${error.name}: ${error.message}\nStack: ${error.stack}`);
+          } else {
+            console.error(String(error));
+          }
+          // Option 1: Convert error to string directly
+          console.error(String(error));
           // Extract the 'message' property from the error handle
           const messageHandle = await error.getProperty('message');
           const message = await messageHandle.jsonValue();
