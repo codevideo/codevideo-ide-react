@@ -18,16 +18,29 @@ export const speakText = (text: string, volume: number, mp3Url?: string): Promis
       audioElement.onended = () => {
         resolve();
       };
-      audioElement.onerror = (e) => {
-        console.error("Audio playback error:", e);
+      audioElement.onerror = (e: string | Event) => {
+        if (typeof e === 'string') {
+          console.error("Audio playback error:", e);
+        } else {
+          try {
+            // e is an Event
+            console.error("Audio error event:", e.type);
+            // Access specific properties if available, for instance:
+            if (e.target && (e.target as any).error) {
+              console.error("Error details:", (e.target as any).error);
+            }
+          } catch (e) {
+            console.error("Failed to extract error details:", e);
+          }
+        }
         resolve(); // Resolve instead of rejecting to prevent errors from bubbling up
       };
       audioElement.play().catch(async error => {
         try {
-        // Extract the 'message' property from the error handle
-        const messageHandle = await error.getProperty('message');
-        const message = await messageHandle.jsonValue();
-        console.error("Failed to play audio:", message);
+          // Extract the 'message' property from the error handle
+          const messageHandle = await error.getProperty('message');
+          const message = await messageHandle.jsonValue();
+          console.error("Failed to play audio:", message);
         } catch (e) {
           console.error("Failed to extract error message:", e);
         }

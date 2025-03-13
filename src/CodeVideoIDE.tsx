@@ -59,6 +59,7 @@ export interface ICodeVideoIDEProps {
   terminalHeight?: number;
   mouseColor?: string;
   fontSizePx?: number;
+  monacoLoadedCallback?: () => void;
 }
 
 /**
@@ -85,6 +86,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     terminalHeight,
     mouseColor,
     fontSizePx,
+    monacoLoadedCallback
   } = props;
   const isRecording = mode === 'record'
   const [editors, setEditors] = useState<Array<IEditor>>();
@@ -266,6 +268,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     // setTimeout(() => {
     //   monaco.editor.setTheme('Monokai');
     // }, 1);
+    monacoLoadedCallback && monacoLoadedCallback();
   };
 
   // caret position effect - we don't use in replay mode because it is handled in the animation
@@ -823,7 +826,7 @@ export const executeActionPlaybackForMonacoInstance = async (
       default:
         // no op - but still do default delay
         await sleep(STANDARD_PAUSE_MS);
-        console.warn("Unable to apply action", action);
+        console.warn("Unable to apply action", JSON.stringify(action));
         break;
     }
   }

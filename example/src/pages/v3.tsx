@@ -12,6 +12,7 @@ export default function Puppeteer() {
   const [actions, setActions] = useState<Array<IAction>>([])
   const [audioItems, setAudioItems] = useState<Array<IAudioItem>>([])
   const [isSoundOn, setIsSoundOn] = useState<boolean>(false)
+  const [monacoLoaded, setMonacoLoaded] = useState<boolean>(false)
 
   // on user interaction, set mode to 'replay' and reset the current action index
   const [readyToReplay, setReadyToReplay] = useState(false)
@@ -35,7 +36,7 @@ export default function Puppeteer() {
   // }
 
   useEffect(() => {
-    if (readyToReplay) {
+    if (readyToReplay && monacoLoaded) {
       console.log('Starting replay...')
       setCurrentActionIndex(0)
       setMode('replay')
@@ -51,7 +52,7 @@ export default function Puppeteer() {
         });
       }
     }
-  }, [readyToReplay])
+  }, [readyToReplay, monacoLoaded])
 
   // gets manifest from the CodeVideo API running at localhost:7000
   const getManifest = async (uuid: string) => {
@@ -170,6 +171,7 @@ export default function Puppeteer() {
             terminalHeight={250}
             mouseColor="black"
             fontSizePx={24}
+            monacoLoadedCallback={() => setMonacoLoaded(true)}
           />
         </Box>
       </Flex>
