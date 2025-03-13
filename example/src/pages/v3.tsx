@@ -16,6 +16,14 @@ export default function Puppeteer() {
   // on user interaction, set mode to 'replay' and reset the current action index
   const [readyToReplay, setReadyToReplay] = useState(false)
 
+  // Expose the __startRecording function globally.
+  useEffect(() => {
+    (window as any).__startRecording = () => {
+      console.log("Recording triggered programmatically!");
+      setReadyToReplay(true);
+    };
+  }, []);
+
   // set user interacted to true on user interaction
   // const handleUserInteraction = () => {
   //   console.log("User interacted, attempting to replay...")
@@ -43,7 +51,6 @@ export default function Puppeteer() {
       console.log("Manifest data: ", data)
       setActions(data.actions)
       setAudioItems(data.audioItems)
-      setReadyToReplay(true)
     } catch (error) {
       console.error("Error getting manifest: ", error)
     }
