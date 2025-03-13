@@ -8,7 +8,8 @@ export const reconstituteAllPartsOfState = (project: Project, currentActionIndex
     const actions = extractActionsFromProject(project, currentLessonIndex)
     // console.log("actions extracted are ", actions)
     const actionsToApply = actions.slice(0, currentActionIndex + 1)
-    const virtualIDE = new VirtualIDE(project, undefined, true);
+    // activate verbose to true if debugging is needed
+    const virtualIDE = new VirtualIDE(project, undefined, false);
     virtualIDE.applyActions(actionsToApply);
     // console.log("applied actions", actionsToApply);
     const courseSnapshot = virtualIDE.getCourseSnapshot();
