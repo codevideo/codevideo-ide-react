@@ -69,6 +69,7 @@ export default function Puppeteer() {
 
   // to continue to next action in replay mode, you need to implementation a function for the actionFinishedCallback prop
   const goToNextAction = () => {
+    console.log("Going to next action...")
     const nextIndex = currentActionIndex + 1
     if (nextIndex < actions.length) {
       // Send progress update - see scripts/make-video-from-record-page.js
@@ -88,6 +89,7 @@ export default function Puppeteer() {
 
   // when the video is complete, you need may want to implement a function for the playBackCompleteCallback prop
   const playBackCompleteCallback = () => {
+    console.log("Playback complete!")
     // Send final progress update (the one with 100%) only once when the final action is reached this is actually when nextIndex === actions.length
     if (typeof (window as any).__onActionProgress === 'function') {
       (window as any).__onActionProgress({
