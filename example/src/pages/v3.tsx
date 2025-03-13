@@ -83,21 +83,22 @@ export default function Puppeteer() {
         });
       }
     }
-
-    // Send final progress update (the one with 100%) only once when the final action is reached this is actually when nextIndex === actions.length
-    if (nextIndex === actions.length) {
-      if (typeof (window as any).__onActionProgress === 'function') {
-        (window as any).__onActionProgress({
-          currentAction: actions.length,
-          totalActions: actions.length,
-          progress: "100.0",
-          actionName: actions[actions.length - 1]?.name || `Action ${actions.length}`,
-          actionValue: actions[actions.length - 1]?.value || '',
-          timestamp: Date.now().toLocaleString()
-        });
-      }
-    }
     setCurrentActionIndex(nextIndex)
+  }
+
+  // when the video is complete, you need may want to implement a function for the playBackCompleteCallback prop
+  const playBackCompleteCallback = () => {
+    // Send final progress update (the one with 100%) only once when the final action is reached this is actually when nextIndex === actions.length
+    if (typeof (window as any).__onActionProgress === 'function') {
+      (window as any).__onActionProgress({
+        currentAction: actions.length,
+        totalActions: actions.length,
+        progress: "100.0",
+        actionName: actions[actions.length - 1]?.name || `Action ${actions.length}`,
+        actionValue: actions[actions.length - 1]?.value || '',
+        timestamp: Date.now().toLocaleString()
+      });
+    }
   }
 
   // Note the codevideoIDE must be rendered within a radix <Theme/> scope to render properly
@@ -130,6 +131,7 @@ export default function Puppeteer() {
             // for this example, since the user gets directly in their email, captions are nice
             withCaptions={true}
             actionFinishedCallback={goToNextAction}
+            playBackCompleteCallback={playBackCompleteCallback}
             // this example has audios! see codevideo-backend-engine, command: `npm run generate-audio-manifest <your actions json or ts file here> elevenlabs`
             speakActionAudios={audioItems}
             fileExplorerWidth={400}

@@ -49,6 +49,7 @@ export interface ICodeVideoIDEProps {
   isSoundOn: boolean;
   withCaptions: boolean;
   actionFinishedCallback: () => void;
+  playBackCompleteCallback: () => void;
   // an array of audio elements to play when an action is spoken - if a speak action is not found by matching text, it will not play
   speakActionAudios: Array<{
     text: string,
@@ -78,6 +79,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     isSoundOn,
     withCaptions,
     actionFinishedCallback,
+    playBackCompleteCallback,
     speakActionAudios,
     fileExplorerWidth,
     terminalHeight,
@@ -109,6 +111,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     const currentAction = currentActionIndex >= 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
 
     if (!currentAction) {
+      playBackCompleteCallback();
       return;
     }
 
