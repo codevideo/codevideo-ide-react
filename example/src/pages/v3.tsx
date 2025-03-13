@@ -14,35 +14,39 @@ export default function Puppeteer() {
   const [isSoundOn, setIsSoundOn] = useState<boolean>(false)
 
   // on user interaction, set mode to 'replay' and reset the current action index
-  const [userInteracted, setUserInteracted] = useState(false)
+  const [readyToReplay, setReadyToReplay] = useState(false)
 
   // set user interacted to true on user interaction
-  const handleUserInteraction = () => {
-    console.log("User interacted, attempting to replay...")
-    if (actions.length === 0) {
-      console.log("No actions to replay yet; won't set interacted to true!")
-      return
-    }
-    setUserInteracted(true)
-  }
+  // const handleUserInteraction = () => {
+  //   console.log("User interacted, attempting to replay...")
+  //   if (actions.length === 0) {
+  //     console.log("No actions to replay yet; won't set interacted to true!")
+  //     return
+  //   }
+  //   setUserInteracted(true)
+  // }
 
   useEffect(() => {
-    if (userInteracted) {
+    if (readyToReplay) {
       console.log('Starting replay...')
       setCurrentActionIndex(0)
       setMode('replay')
       setIsSoundOn(true)
     }
-  }, [userInteracted])
+  }, [readyToReplay])
 
   // gets manifest from the CodeVideo API running at localhost:7000
   const getManifest = async (uuid: string) => {
-    // const response = await fetch(`http://codevideo-api:7000/get-manifest-v3?uuid=${uuid}`)
-    const response = await fetch(`http://localhost:7000/get-manifest-v3?uuid=${uuid}`)
-    const data: ICodeVideoManifest = await response.json()
-    console.log("Manifest data: ", data)
-    setActions(data.actions)
-    setAudioItems(data.audioItems)
+    try {
+      const response = await fetch(`http://codevideo-api:7000/get-manifest-v3?uuid=${uuid}`)
+      const data: ICodeVideoManifest = await response.json()
+      console.log("Manifest data: ", data)
+      setActions(data.actions)
+      setAudioItems(data.audioItems)
+      setReadyToReplay(true)
+    } catch (error) {
+      console.error("Error getting manifest: ", error)
+    }
   }
 
   // on mount, load uuid from "uuid" property in the url
@@ -55,25 +59,26 @@ export default function Puppeteer() {
     }
   }, [])
 
+  // not needed in puppeteer since we use the 
   // On mount, set up event listeners for user interaction
-  useEffect(() => {
-    // Common user interaction events
-    const interactionEvents = ['click', 'keydown', 'touchstart']
+  // useEffect(() => {
+  //   // Common user interaction events
+  //   const interactionEvents = ['click', 'keydown', 'touchstart']
 
-    const handleInteraction = () => handleUserInteraction()
+  //   const handleInteraction = () => handleUserInteraction()
 
-    // Add event listeners
-    interactionEvents.forEach(event => {
-      document.addEventListener(event, handleInteraction, { once: true })
-    })
+  //   // Add event listeners
+  //   interactionEvents.forEach(event => {
+  //     document.addEventListener(event, handleInteraction, { once: true })
+  //   })
 
-    // Clean up
-    return () => {
-      interactionEvents.forEach(event => {
-        document.removeEventListener(event, handleInteraction)
-      })
-    }
-  }, [])
+  //   // Clean up
+  //   return () => {
+  //     interactionEvents.forEach(event => {
+  //       document.removeEventListener(event, handleInteraction)
+  //     })
+  //   }
+  // }, [])
 
   // to continue to next action in replay mode, you need to implementation a function for the actionFinishedCallback prop
   const goToNextAction = () => {
