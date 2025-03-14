@@ -6,13 +6,14 @@ let currentUtterance: SpeechSynthesisUtterance | null = null;
  * @param text The text to speak
  * @returns A promise that resolves when speech is finished
  */
-export const speakText = (text: string, volume: number, mp3Url?: string): Promise<void> => {
+export const speakText = async (text: string, volume: number, mp3Url?: string): Promise<void> => {
   return new Promise<void>((resolve, reject) => {
     // First, cancel any ongoing speech or audio playback
     stopSpeaking();
 
     // if a url to an mp3 is provided, play the audio
     if (mp3Url) {
+      playAudio(mp3Url);
       console.log("Creating audio element for MP3 URL:", mp3Url);
       console.log("Volume", volume);
       const audioElement = new Audio(mp3Url);
@@ -108,3 +109,58 @@ export const stopSpeaking = (): void => {
 export const isSpeaking = (): boolean => {
   return window.speechSynthesis.speaking;
 };
+
+export const fetchAudioAsDataURL = async (url: string): Promise<string> => {
+  try {
+    // Fetch the audio file
+    console.log(`Fetching audio from: ${url}`);
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch audio: ${response.status} ${response.statusText}`);
+    }
+    
+    // Get the blob from the response
+    const blob = await response.blob();
+    console.log(`Received blob of type: ${blob.type}, size: ${blob.size} bytes`);
+    
+    // Convert blob to base64 data URL
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataURL = reader.result;
+        if (typeof dataURL !== 'string') {
+          reject(new Error('Failed to convert blob to data URL'));
+          return;
+        }
+        console.log(`Converted to data URL, length: ${dataURL.length}`);
+        resolve(dataURL);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error("Error fetching audio:", error);
+    throw error;
+  }
+}
+
+export const playAudio = async (url: string) => {
+  try {
+    const dataURL = await fetchAudioAsDataURL(url);
+    
+    // Create and play audio with the data URL
+    const audio = new Audio(dataURL);
+    audio.addEventListener("error", (e) => {
+      console.error("Audio error event:", e.type);
+      console.error("Error details:", audio.error);
+    });
+    
+    console.log("Playing audio from data URL...");
+    audio.play().catch(err => {
+      console.error("Play error:", err);
+    });
+  } catch (error) {
+    console.error("Failed to play audio:", error);
+  }
+}
