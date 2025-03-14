@@ -16,7 +16,7 @@
     "test": "echo \"Write tests! -> https://gatsby.dev/unit-testing\" && exit 1"
   },
   "dependencies": {
-    "@fullstackcraftllc/codevideo-ide-react": "^0.0.30",
+    "@fullstackcraftllc/codevideo-ide-react": "^0.0.31",
     "@fullstackcraftllc/codevideo-types": "^2.0.37",
     "@radix-ui/themes": "^3.2.1",
     "gatsby": "^5.14.1",

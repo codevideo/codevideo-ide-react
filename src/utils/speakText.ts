@@ -13,7 +13,6 @@ export const speakText = async (text: string, volume: number, mp3Url?: string): 
 
     // if a url to an mp3 is provided, play the audio
     if (mp3Url) {
-      playAudio(mp3Url);
       console.log("Creating audio element for MP3 URL:", mp3Url);
       console.log("Volume", volume);
       const audioElement = new Audio(mp3Url);
@@ -110,6 +109,33 @@ export const isSpeaking = (): boolean => {
   return window.speechSynthesis.speaking;
 };
 
+
+
+
+
+
+
+// leftovers from trials with audio playing in headless chromium:
+
+export const playAudio = async (url: string) => {
+  try {
+    const dataURL = await fetchAudioAsDataURL(url);
+    
+    // Create and play audio with the data URL
+    const audio = new Audio(dataURL);
+    audio.addEventListener("error", (e) => {
+      console.error("Audio error event:", e.type);
+      console.error("Error details:", audio.error);
+    });
+    
+    console.log("Playing audio from data URL...");
+    audio.play().catch(err => {
+      console.error("Play error:", err);
+    });
+  } catch (error) {
+    console.error("Failed to play audio:", error);
+  }
+}
 export const fetchAudioAsDataURL = async (url: string): Promise<string> => {
   try {
     // Fetch the audio file
@@ -142,25 +168,5 @@ export const fetchAudioAsDataURL = async (url: string): Promise<string> => {
   } catch (error) {
     console.error("Error fetching audio:", error);
     throw error;
-  }
-}
-
-export const playAudio = async (url: string) => {
-  try {
-    const dataURL = await fetchAudioAsDataURL(url);
-    
-    // Create and play audio with the data URL
-    const audio = new Audio(dataURL);
-    audio.addEventListener("error", (e) => {
-      console.error("Audio error event:", e.type);
-      console.error("Error details:", audio.error);
-    });
-    
-    console.log("Playing audio from data URL...");
-    audio.play().catch(err => {
-      console.error("Play error:", err);
-    });
-  } catch (error) {
-    console.error("Failed to play audio:", error);
   }
 }

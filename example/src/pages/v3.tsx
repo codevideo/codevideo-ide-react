@@ -45,7 +45,7 @@ export default function Puppeteer() {
         (window as any).__onActionProgress({
           currentAction: currentActionIndex,
           totalActions: actions.length,
-          progress: (currentActionIndex / actions.length * 100).toFixed(1),
+          progress: 0,
           actionName: actions[currentActionIndex]?.name || `Action ${currentActionIndex}`,
           actionValue: actions[currentActionIndex]?.value || '',
           timestamp: Date.now().toLocaleString()
@@ -57,7 +57,7 @@ export default function Puppeteer() {
   // gets manifest from the CodeVideo API running at localhost:7000
   const getManifest = async (uuid: string) => {
     try {
-      const response = await fetch(`http://codevideo-api:7000/get-manifest-v3?uuid=${uuid}`)
+      const response = await fetch(`http://localhost:7000/get-manifest-v3?uuid=${uuid}`)
       const data: ICodeVideoManifest = await response.json()
       console.log("Manifest data: ", data)
       setActions(data.actions)
@@ -76,27 +76,6 @@ export default function Puppeteer() {
       getManifest(uuid)
     }
   }, [])
-
-  // not needed in puppeteer since we use the 
-  // On mount, set up event listeners for user interaction
-  // useEffect(() => {
-  //   // Common user interaction events
-  //   const interactionEvents = ['click', 'keydown', 'touchstart']
-
-  //   const handleInteraction = () => handleUserInteraction()
-
-  //   // Add event listeners
-  //   interactionEvents.forEach(event => {
-  //     document.addEventListener(event, handleInteraction, { once: true })
-  //   })
-
-  //   // Clean up
-  //   return () => {
-  //     interactionEvents.forEach(event => {
-  //       document.removeEventListener(event, handleInteraction)
-  //     })
-  //   }
-  // }, [])
 
   // to continue to next action in replay mode, you need to implementation a function for the actionFinishedCallback prop
   const goToNextAction = () => {
