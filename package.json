@@ -1,6 +1,6 @@
 {
   "name": "@fullstackcraftllc/codevideo-ide-react",
-  "version": "0.0.31",
+  "version": "0.0.32",
   "description": "A React TypeScript component for a fully auditable, drivable, and replayable IDE written in React with @radix-ui/theme styling.",
   "type": "module",
   "main": "dist/index.js",
@@ -27,7 +27,7 @@
   },
   "homepage": "https://github.com/codevideo/codevideo-ide-react#readme",
   "devDependencies": {
-    "@fullstackcraftllc/codevideo-types": "^2.0.35",
+    "@fullstackcraftllc/codevideo-types": "^2.0.40",
     "@rollup/plugin-commonjs": "^25.0.7",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@types/react": "^19.0.7",
