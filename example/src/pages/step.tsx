@@ -288,6 +288,7 @@ export default function Step() {
             withCaptions={true}
             // not needed in step mode
             actionFinishedCallback={() => {}}
+            playBackCompleteCallback={() => {}}
             speakActionAudios={[]}
             fileExplorerWidth={400}
             terminalHeight={250}
