@@ -1,11 +1,10 @@
 import * as React from "react"
-import { GUIMode, IAction, Project, IAudioItem } from "@fullstackcraftllc/codevideo-types"
+import { GUIMode, IAction, Project } from "@fullstackcraftllc/codevideo-types"
 import { CodeVideoIDE } from "@fullstackcraftllc/codevideo-ide-react"
-import { Box, Flex, Theme } from "@radix-ui/themes";
+import { Box, Flex, Theme, Text, Link, Container, Heading } from "@radix-ui/themes";
 import { useEffect, useState } from "react";
 
-const audios: Array<IAudioItem> = []
-const speakActionAudios =  [];
+const speakActionAudios = [];
 
 const actions: Array<IAction> = [
   {
@@ -254,36 +253,29 @@ const project: Project = {
 export default function Home() {
   const [mode, setMode] = useState<GUIMode>('step')
   const [currentActionIndex, setCurrentActionIndex] = useState(0)
+  const [isSoundOn, setIsSoundOn] = useState(false)
 
-  // on mount, ensure that currentActionIndex is set to 0
-  useEffect(() => {
-    setCurrentActionIndex(0)
-    setMode('step')
-  }, [])
-
-  // on mount, setup event listeners for left and right arrow keys - to navigate between actions
-  useEffect(() => {
-    if (mode !== 'step') {
-      return
-    }
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight' && currentActionIndex < actions.length - 1) {
-        setCurrentActionIndex(currentActionIndex + 1)
-      } else if (e.key === 'ArrowLeft' && currentActionIndex > 0) {
-        setCurrentActionIndex(currentActionIndex - 1)
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [mode, currentActionIndex])
-
-
+  // function to go to the next action
   const goToNextAction = () => {
     if (currentActionIndex < actions.length - 1) {
-      setCurrentActionIndex(currentActionIndex + 1)
+      setIsSoundOn(false)
+      setCurrentActionIndex((prevIndex) => prevIndex + 1)
     }
+  }
+
+  // function to go to the previous action
+  const goToPreviousAction = () => {
+    if (currentActionIndex > 0) {
+      setIsSoundOn(false)
+      setCurrentActionIndex((prevIndex) => prevIndex - 1)
+    }
+  }
+
+  const startPlayback = () => {
+    // set index to 0 and mode to 'replay'
+    setCurrentActionIndex(0)
+    setMode('replay')
+    setIsSoundOn(true)
   }
 
   // Note the codevideoIDE must be rendered within a radix <Theme/> scope to render properly
@@ -294,33 +286,54 @@ export default function Home() {
       panelBackground="translucent"
       radius="large"
     >
-      <Flex direction="column" justify="center" align="center">
-        <Box
-          style={{
-            height: '100vh',
-            width: '100vw',
-          }}
+      <Container style={{ backgroundColor: 'var(--mint-a6)', minHeight: '100vh' }}>
+        <Heading size="9" m="9">Here's an example blog or e-learning site</Heading>
+        <Text m="3" as="p">and some description</Text>
+        <Text m="3" as="p">and some more description</Text>
+        <Text m="3" as="p">Imagine this is a nice detailed blog post - or maybe you even used the <Link href="https://studio.codevideo.io" target="_blank">CodeVideo Studio</Link> markdown export to generate the blog (markdown) version of your project.</Text>
+        <Text m="3" as="p">You can embed the CodeVideo editor directly into your website in a standalone embed:</Text>
+        <Theme
+          accentColor="mint"
+          appearance="dark"
+          panelBackground="translucent"
+          radius="large"
         >
-          <CodeVideoIDE
-            theme='dark'
-            project={project}
-            mode={mode}
-            allowFocusInEditor={false}
-            defaultLanguage={'python'}
-            isExternalBrowserStepUrl={null}
-            currentActionIndex={currentActionIndex}
-            currentLessonIndex={0}
-            isSoundOn={true}
-            withCaptions={true}
-            actionFinishedCallback={goToNextAction}
-            speakActionAudios={speakActionAudios}
-            fileExplorerWidth={400}
-            terminalHeight={250}
-            mouseColor="green" 
-            playBackCompleteCallback={() => {}}
-          />
-        </Box>
-      </Flex>
+          <Flex direction="column" justify="center" align="center" m="6">
+            <Box
+              style={{
+                height: '480px',
+                width: '854px',
+              }}
+            >
+              <CodeVideoIDE
+                fontSizePx={12}
+                theme='dark'
+                project={project}
+                mode={mode}
+                allowFocusInEditor={false}
+                defaultLanguage={'python'}
+                isExternalBrowserStepUrl={null}
+                currentActionIndex={currentActionIndex}
+                currentLessonIndex={0}
+                isSoundOn={isSoundOn}
+                withCaptions={true}
+                actionFinishedCallback={goToNextAction}
+                speakActionAudios={speakActionAudios}
+                fileExplorerWidth={300}
+                terminalHeight={150}
+                mouseColor="black"
+                // set isEmbedMode to true to enable the embed overlay
+                isEmbedMode={true}
+                // for embed mode, you should implement these three callbacks:
+                requestStepModeCallback={() => setMode('step')}
+                requestNextActionCallback={goToNextAction}
+                requestPreviousActionCallback={goToPreviousAction}
+                requestPlaybackStartCallback={startPlayback}
+              />
+            </Box>
+          </Flex>
+        </Theme>
+      </Container>
     </Theme>
   )
 }

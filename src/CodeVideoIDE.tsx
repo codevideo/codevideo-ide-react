@@ -36,7 +36,9 @@ import { parseCoordinatesFromAction } from './MouseOverlay/coordinateFunctions/p
 import { CaptionOverlay } from './CaptionOverlay/CaptionOverlay';
 import { reconstituteAllPartsOfState } from './utils/reconstituteAllPartsOfState';
 import { CODEVIDEO_IDE_ID, DEFAULT_CARET_POSITION, KEYBOARD_TYPING_PAUSE_MS, LONG_PAUSE_MS, STANDARD_PAUSE_MS } from './constants/CodeVideoIDEConstants';
+import { EmbedOverlay } from './EmbedOverlay/EmbedOverlay';
 
+// Props!
 export interface ICodeVideoIDEProps {
   theme: 'light' | 'dark';
   project: Project;
@@ -48,8 +50,8 @@ export interface ICodeVideoIDEProps {
   isExternalBrowserStepUrl: string | null;
   isSoundOn: boolean;
   withCaptions: boolean;
-  actionFinishedCallback: () => void;
-  playBackCompleteCallback: () => void;
+  actionFinishedCallback?: () => void;
+  playBackCompleteCallback?: () => void;
   // an array of audio elements to play when an action is spoken - if a speak action is not found by matching text, it will not play
   speakActionAudios: Array<{
     text: string,
@@ -60,6 +62,11 @@ export interface ICodeVideoIDEProps {
   mouseColor?: string;
   fontSizePx?: number;
   monacoLoadedCallback?: () => void;
+  isEmbedMode?: boolean;
+  requestStepModeCallback?: (mode: GUIMode) => void;
+  requestNextActionCallback?: () => void;
+  requestPreviousActionCallback?: () => void;
+  requestPlaybackStartCallback?: () => void;
 }
 
 /**
@@ -86,7 +93,12 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     terminalHeight,
     mouseColor,
     fontSizePx,
-    monacoLoadedCallback
+    monacoLoadedCallback,
+    isEmbedMode,
+    requestStepModeCallback,
+    requestNextActionCallback,
+    requestPreviousActionCallback,
+    requestPlaybackStartCallback
   } = props;
   const isRecording = mode === 'record'
   const [editors, setEditors] = useState<Array<IEditor>>();
@@ -99,6 +111,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
   const [currentCaretPosition, setCurrentCaretPosition] = useState<IEditorPosition>(DEFAULT_CARET_POSITION);
   const [captionText, setCaptionText] = useState<string>('');
   const [currentEditorLanguage, setCurrentEditorLanguage] = useState<string>(defaultLanguage);
+  const [showEmbedOverlay, setShowEmbedOverlay] = useState<boolean>(isEmbedMode || false);
   const containerRef = useRef<HTMLDivElement>(null);
   const monacoEditorRef = useRef<monaco.editor.IStandaloneCodeEditor | undefined>(undefined);
   const globalMonacoRef = useRef<Monaco | undefined>(undefined);
@@ -113,7 +126,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     const currentAction = currentActionIndex >= 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
 
     if (!currentAction) {
-      playBackCompleteCallback();
+      playBackCompleteCallback && playBackCompleteCallback();
       return;
     }
 
@@ -138,7 +151,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
       );
     }
     updateState();
-    actionFinishedCallback();
+    actionFinishedCallback && actionFinishedCallback();
   }
 
   const updateState = () => {
@@ -344,6 +357,30 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     }
   }, [currentFileName]);
 
+  // if embedMode is 'true', we use space bar to request playback, left arrow to request previous frame, and right arrow to request next frame
+  useEffect(() => {
+    if (isEmbedMode) {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'ArrowRight') {
+          setShowEmbedOverlay(false);
+          requestStepModeCallback && requestStepModeCallback('step');
+          requestNextActionCallback && requestNextActionCallback();
+        } else if (e.key === 'ArrowLeft') {
+          setShowEmbedOverlay(false);
+          requestStepModeCallback && requestStepModeCallback('step');
+          requestPreviousActionCallback && requestPreviousActionCallback();
+        } else if (e.key === ' ') {
+          setShowEmbedOverlay(false);
+          requestPlaybackStartCallback && requestPlaybackStartCallback();
+        }
+      }
+      window.addEventListener('keydown', handleKeyDown)
+      return () => {
+        window.removeEventListener('keydown', handleKeyDown)
+      }
+    }
+  }, [isEmbedMode]);
+
   // monaco cleanup - whenever replay ends, clear all models
   // useEffect(() => {
   //   if (mode !== 'replay' && monacoEditorRef.current) {
@@ -458,7 +495,9 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
       style={{
         height: '100%',
         width: '100%',
-        fontSize: fontSizePx ? `${fontSizePx}px` : undefined
+        fontSize: fontSizePx ? `${fontSizePx}px` : undefined,
+        // necessary so embed overlay can be positioned absolutely
+        position: 'relative'
       }}
       id={CODEVIDEO_IDE_ID}>
       <Flex direction="row"
@@ -531,6 +570,9 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
                       readOnly: mode === 'step',
                       lineNumbers: 'on',
                       renderWhitespace: 'selection',
+                      wrappingStrategy: 'advanced',
+                      wordWrap: 'on',
+                      wordWrapColumn: 80,
                       bracketPairColorization: { enabled: true },
                       matchBrackets: 'never',
                       formatOnPaste: true,
@@ -557,6 +599,9 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
       </Flex>
       {/* Caption Overlay */}
       {withCaptions && <CaptionOverlay captionText={captionText} fontSizePx={fontSizePx} />}
+
+      {/* Embed start overlay */}
+      {showEmbedOverlay && <EmbedOverlay/>}
     </Flex>
   );
 }

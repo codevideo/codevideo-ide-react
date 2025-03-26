@@ -27,7 +27,7 @@ export function CaptionOverlay(props: ICaptionOverlayProps) {
                             padding: '4px 8px',
                         }}>
                             {fontSizePx ? (
-                                <Text style={{ fontSize: fontSizePx }}>{captionText}</Text>
+                                <Text style={{ fontSize: fontSizePx*1.5 }}>{captionText}</Text>
                             ) :
                                 (
                                     <Text size="6">{captionText}</Text>
