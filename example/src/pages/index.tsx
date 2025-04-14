@@ -13,7 +13,7 @@ const speakActionAudios =  [];
 const actions: Array<IAction> = [
   {
     "name": "author-speak-before",
-    "value": "Hi guys, we've just added some major updates to the CodeVideo React IDE. I'm excited to show you the new features we've implemented!"
+    "value": "Hi guys, Chris here - I've just added some major updates to the CodeVideo React IDE. I'm excited to show you the new features we've implemented!"
   },
   {
     "name": "author-speak-before",
@@ -33,7 +33,7 @@ const actions: Array<IAction> = [
   },
   {
     "name": "author-speak-before",
-    "value": "Notice how we now have a full context menu - this is one of our new features!"
+    "value": "Notice how we now have a context menu whenever right clicking in the file explorer - this is one of our new features!"
   },
   {
     "name": "mouse-move-file-explorer-context-menu-new-file",
@@ -161,7 +161,7 @@ const actions: Array<IAction> = [
   },
   {
     "name": "author-speak-before",
-    "value": "And that's it! We now have a fully functional IDE with context menus, advanced mouse tracking, tab management, and unsaved changes detection. Thanks for checking out our latest updates to the CodeVideo React IDE!"
+    "value": "And that's it! We now have a fully functional IDE with context menus, advanced mouse tracking, tab management, and unsaved changes detection. Thanks for checking out our latest updates to the CodeVideo React IDE! Lots more coming soon - stay tuned!"
   }
 ];
 
@@ -255,7 +255,7 @@ export default function Home() {
             speakActionAudios={speakActionAudios}
             fileExplorerWidth={400}
             terminalHeight={250}
-            mouseColor="green" 
+            mouseColor="black" 
             playBackCompleteCallback={() => {}}
           />
         </Box>

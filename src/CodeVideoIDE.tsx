@@ -124,6 +124,8 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
   const [renameFolderInputValue, setRenameFolderInputValue] = useState<string>("")
   const [currentHoveredFileName, setCurrentHoveredFileName] = useState<string>("")
   const [currentHoveredFolderName, setCurrentHoveredFolderName] = useState<string>("")
+  const [newFileParentPath, setNewFileParentPath] = useState<string>("")
+  const [newFolderParentPath, setNewFolderParentPath] = useState<string>("")
   const [currentHoveredEditorTabFileName, setCurrentHoveredEditorTabFileName] = useState<string>("")
   const [isUnsavedChangesDialogOpen, setIsUnsavedChangesDialogOpen] = useState<boolean>(false);
   const [unsavedFileName, setUnsavedFileName] = useState<string>("");
@@ -206,6 +208,8 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     setOriginalFolderBeingRenamed(fileExplorerSnapshot.originalFolderBeingRenamed);
     setCurrentHoveredFileName(mouseSnapshot.currentHoveredFileName);
     setCurrentHoveredFolderName(mouseSnapshot.currentHoveredFolderName);
+    setNewFileParentPath(fileExplorerSnapshot.newFileParentPath);
+    setNewFolderParentPath(fileExplorerSnapshot.newFolderParentPath);
     setCurrentHoveredEditorTabFileName(mouseSnapshot.currentHoveredEditorTabFileName);
     setIsUnsavedChangesDialogOpen(isUnsavedChangesDialogOpen);
     setUnsavedFileName(unsavedFileName);
@@ -561,8 +565,8 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
               renameFolderInputValue={renameFolderInputValue}
               currentHoveredFileName={currentHoveredFileName}
               currentHoveredFolderName={currentHoveredFolderName}
-              newFileParentPath='' // TODO
-              newFolderParentPath='' // TODO
+              newFileParentPath={newFileParentPath}
+              newFolderParentPath={newFolderParentPath}
             />
             {/* Editor Tabs, Main Editor, and Terminal stack on top of eachother */}
             <Flex direction="column" width="100%">
@@ -840,14 +844,26 @@ export const executeActionPlaybackForMonacoInstance = async (
       case action.name === "file-explorer-type-new-file-input":
         simulateHumanTypingWithReactSetterCallback(setNewFileInputValue, action.value)
         break;
+      case action.name === "file-explorer-enter-new-file-input":
+        setNewFileInputValue("")
+        break;
       case action.name === "file-explorer-type-new-folder-input":
         simulateHumanTypingWithReactSetterCallback(setNewFolderInputValue, action.value)
+        break;
+      case action.name === "file-explorer-enter-new-folder-input":
+        setNewFolderInputValue("")
         break;
       case action.name === "file-explorer-type-rename-file-input":
         simulateHumanTypingWithReactSetterCallback(setRenameFileInputValue, action.value)
         break;
+      case action.name === "file-explorer-enter-rename-file-input":
+        setRenameFileInputValue("")
+        break;
       case action.name === "file-explorer-type-rename-folder-input":
         simulateHumanTypingWithReactSetterCallback(setRenameFolderInputValue, action.value)
+        break;
+      case action.name === "file-explorer-enter-rename-folder-input":
+        setRenameFolderInputValue("")
         break;
       // BEGIN TERMINAL ACTIONS
       case action.name === 'terminal-type':

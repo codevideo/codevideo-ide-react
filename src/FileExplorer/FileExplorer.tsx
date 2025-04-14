@@ -21,13 +21,13 @@ export interface IFileExplorerProps {
     originalFolderBeingRenamed: string
     renameFileInputValue: string
     renameFolderInputValue: string
+    newFileParentPath: string
+    newFolderParentPath: string
     currentHoveredFileName?: string
     currentHoveredFolderName?: string
     currentFileName?: string
     fileStructure?: IFileStructure
     fileExplorerWidth?: number
-    newFileParentPath?: string
-    newFolderParentPath?: string
 }
 
 export function FileExplorer(props: IFileExplorerProps) {
@@ -54,10 +54,14 @@ export function FileExplorer(props: IFileExplorerProps) {
         newFolderParentPath
     } = props;
 
-    console.log('isNewFileInputVisible', isNewFileInputVisible)
-    console.log('isNewFolderInputVisible', isNewFolderInputVisible)
-    console.log('newFileInputValue', newFileInputValue)
-    console.log('newFolderInputValue', newFolderInputValue)
+    // For debugging
+    console.log('[FileExplorer] Props state:');
+    console.log('- isNewFileInputVisible:', isNewFileInputVisible);
+    console.log('- isNewFolderInputVisible:', isNewFolderInputVisible);
+    console.log('- newFileInputValue:', newFileInputValue);
+    console.log('- newFolderInputValue:', newFolderInputValue);
+    console.log('- newFileParentPath:', newFileParentPath);
+    console.log('- newFolderParentPath:', newFolderParentPath);
 
     const resolveFileOrFolderText = (name: string) => {
         // if we're currently renaming this file, show as input of the renamefileinputvalue
@@ -82,6 +86,54 @@ export function FileExplorer(props: IFileExplorerProps) {
         )
     }
 
+    // Single instance of file input to be used throughout the component
+    const renderNewFileInput = () => {
+        if (!isNewFileInputVisible) return null;
+        
+        const inputId = `new-file-input-${newFileParentPath || 'root'}`;
+        console.log(`[FileExplorer] Rendering file input with ID: ${inputId}, value: ${newFileInputValue}`);
+        
+        return (
+            <Flex
+                data-codevideo-id={inputId}
+                align="center"
+                gap="2"
+                mt="1"
+            >
+                <TextIcon height="20" />
+                <TextField.Root 
+                    value={newFileInputValue} 
+                    readOnly={true} 
+                    autoFocus={true}
+                />
+            </Flex>
+        );
+    };
+
+    // Single instance of folder input to be used throughout the component
+    const renderNewFolderInput = () => {
+        if (!isNewFolderInputVisible) return null;
+        
+        const inputId = `new-folder-input-${newFolderParentPath || 'root'}`;
+        console.log(`[FileExplorer] Rendering folder input with ID: ${inputId}, value: ${newFolderInputValue}`);
+        
+        return (
+            <Flex
+                data-codevideo-id={inputId}
+                align="center"
+                gap="2"
+                mt="1"
+            >
+                <Folder height="20" />
+                <TextField.Root 
+                    value={newFolderInputValue} 
+                    readOnly={true} 
+                    autoFocus={true}
+                />
+            </Flex>
+        );
+    };
+
     const renderFileTree = (structure: IFileStructure, path: string = '', level: number): JSX.Element[] => {
         // Sort entries alphabetically, with directories first, then files
         const sortedEntries = Object.entries(structure).sort((a, b) => {
@@ -104,16 +156,16 @@ export function FileExplorer(props: IFileExplorerProps) {
             const nextLevel = level + 1;
             const isHighlight = currentFileName === fullPath || currentHoveredFileName === fullPath || currentHoveredFolderName === fullPath;
 
-            // Check if this directory is where we should show the new inputs
-            const showNewFileInputHere = isNewFileInputVisible && newFileParentPath === fullPath;
-            const showNewFolderInputHere = isDirectory && isNewFolderInputVisible && newFolderParentPath === fullPath;
-            const showNewFileInputRoot = level === 0 && path === '' && isNewFileInputVisible && newFileParentPath === '';
-            const showNewFolderInputRoot = level === 0 && path === '' && isNewFolderInputVisible && newFolderParentPath === '';
+            // Check if this directory should show the new file/folder inputs
+            const shouldShowFileInput = isNewFileInputVisible && newFileParentPath === fullPath && isDirectory;
+            const shouldShowFolderInput = isNewFolderInputVisible && newFolderParentPath === fullPath && isDirectory;
 
-            console.log('showNewFileInputHere', showNewFileInputHere)
-            console.log('showNewFolderInputHere', showNewFolderInputHere)
-            console.log('showNewFileInputRoot', showNewFileInputRoot)
-            console.log('showNewFolderInputRoot', showNewFolderInputRoot)
+            if (shouldShowFileInput || shouldShowFolderInput) {
+                console.log(`[FileExplorer] Directory ${fullPath} should show inputs:`, {
+                    file: shouldShowFileInput,
+                    folder: shouldShowFolderInput
+                });
+            }
 
             return (
                 <Box key={fullPath} ml={leftMargin}>
@@ -130,66 +182,42 @@ export function FileExplorer(props: IFileExplorerProps) {
                         {resolveFileOrFolderText(name)}
                     </Flex>
 
-                    {/* Directory contents */}
-                    <Box ml="4">
-                        {/* Show new file input inside this directory if it matches */}
-                        {showNewFileInputHere && (
-                            <Flex
-                                data-codevideo-id={`new-file-input-${fullPath}`}
-                                align="center"
-                                gap="2"
-                                mt="1"
-                            >
-                                <TextIcon height="20" />
-                                <TextField.Root value={newFileInputValue} readOnly={true} autoFocus={true} />
-                            </Flex>
-                        )}
+                    {isDirectory && (
+                        <Box ml="4">
+                            {/* Only show inputs in the correct directory */}
+                            {shouldShowFileInput && renderNewFileInput()}
+                            {shouldShowFolderInput && renderNewFolderInput()}
 
-                        {/* Show new folder input inside this directory if it matches */}
-                        {showNewFolderInputHere && (
-                            <Flex
-                                data-codevideo-id={`new-folder-input-${fullPath}`}
-                                align="center"
-                                gap="2"
-                                mt="1"
-                            >
-                                <Folder height="20" />
-                                <TextField.Root value={newFolderInputValue} readOnly={true} autoFocus={true} />
-                            </Flex>
-                        )}
-
-                        {/* Render children directories/files */}
-                        {isDirectory && item.children && renderFileTree(item.children, fullPath, nextLevel)}
-                    </Box>
-
-                    {/* Show new file input at root level if parent path is empty */}
-                    {showNewFileInputRoot && (
-                        <Flex
-                            data-codevideo-id="new-file-input-root"
-                            align="center"
-                            gap="2"
-                            mt="1"
-                        >
-                            <TextIcon height="20" />
-                            <TextField.Root value={newFileInputValue} readOnly={true} autoFocus={true} />
-                        </Flex>
-                    )}
-
-                    {/* Show new folder input at root level if parent path is empty */}
-                    {showNewFolderInputRoot && (
-                        <Flex
-                            data-codevideo-id="new-folder-input-root"
-                            align="center"
-                            gap="2"
-                            mt="1"
-                        >
-                            <Folder height="20" />
-                            <TextField.Root value={newFolderInputValue} readOnly={true} autoFocus={true} />
-                        </Flex>
+                            {/* Render children */}
+                            {item.children && renderFileTree(item.children, fullPath, nextLevel)}
+                        </Box>
                     )}
                 </Box>
             );
         });
+    };
+
+    // Handle the root level inputs separately
+    const renderRootLevelInputs = () => {
+        const isRoot = newFileParentPath === '' || newFileParentPath === null || newFileParentPath === undefined;
+        const isRootFolder = newFolderParentPath === '' || newFolderParentPath === null || newFolderParentPath === undefined;
+        
+        const shouldShowRootFileInput = isNewFileInputVisible && isRoot;
+        const shouldShowRootFolderInput = isNewFolderInputVisible && isRootFolder;
+        
+        if (shouldShowRootFileInput || shouldShowRootFolderInput) {
+            console.log('[FileExplorer] Showing root level inputs:', {
+                file: shouldShowRootFileInput,
+                folder: shouldShowRootFolderInput
+            });
+        }
+        
+        return (
+            <>
+                {shouldShowRootFileInput && renderNewFileInput()}
+                {shouldShowRootFolderInput && renderNewFolderInput()}
+            </>
+        );
     };
 
     if (!fileStructure) {
@@ -207,26 +235,32 @@ export function FileExplorer(props: IFileExplorerProps) {
                 pointerEvents: 'none',
                 userSelect: 'none',
             }}>
-            <Box p="2">{renderFileTree(fileStructure, '', 0)}</Box>
-            {/* Empty area specifically for targeting the file explorer background */}
+            <Box p="2">
+                {/* First render the file tree structure */}
+                {renderFileTree(fileStructure, '', 0)}
+                
+                {/* Then render any root-level inputs if needed */}
+                {renderRootLevelInputs()}
+            </Box>
+            
+            {/* Empty area for file explorer background clicks */}
             <Box
                 data-codevideo-id="file-explorer"
                 style={{
                     flexGrow: 1,
-                    minHeight: '20px', // Ensure there's always some clickable area
+                    minHeight: '20px',
                 }}
             />
-            {/* The context menu when right clicking anywhere empty in the file explorer */}
+            
+            {/* Context menus */}
             <FileExplorerContextMenu
                 isVisible={isFileExplorerContextMenuVisible}
                 currentMousePosition={currentMousePosition}
             />
-            {/* The context menu when right clicking a file in the file explorer */}
             <FileContextMenu
                 isVisible={isFileContextMenuVisible}
                 currentMousePosition={currentMousePosition}
             />
-            {/* The context menu when right clicking a folder in the file explorer */}
             <FolderContextMenu
                 isVisible={isFolderContextMenuVisible}
                 currentMousePosition={currentMousePosition}
