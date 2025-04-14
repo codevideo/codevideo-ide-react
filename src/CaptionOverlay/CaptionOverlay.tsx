@@ -17,6 +17,7 @@ export function CaptionOverlay(props: ICaptionOverlayProps) {
                         color: 'white',
                         position: 'absolute',
                         bottom: 65,
+                        zIndex: 10001,
                     }}
                 >
                     <Flex justify="center" align="center">

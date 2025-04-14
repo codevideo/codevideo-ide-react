@@ -8,8 +8,10 @@ import {visualizer} from 'rollup-plugin-visualizer';
 const external = [
   "@fullstackcraftllc/codevideo-types", 
   "react", 
+  "react-dom/client",
   "react/jsx-runtime",
-  "@radix-ui/themes", 
+  "@radix-ui/themes",
+  "@radix-ui/react-icons", 
   "@react-symbols/icons",
   "@monaco-editor/react",
   "@fullstackcraftllc/codevideo-virtual-ide",

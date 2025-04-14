@@ -27,16 +27,14 @@ import { Terminal } from './Terminal/Terminal';
 
 // MouseOverlay
 import { MouseOverlay } from './MouseOverlay/MouseOverlay';
-import { getCoordinatesOfTerminalInput } from './MouseOverlay/coordinateFunctions/getCoordinatesOfTerminalInput';
-import { getCoordinatesOfEditor } from './MouseOverlay/coordinateFunctions/getCoordinatesOfEditor';
-import { getCoordinatesOfFileOrFolder } from './MouseOverlay/coordinateFunctions/getCoordinatesOfFileOrFolder';
-import { parseCoordinatesFromAction } from './MouseOverlay/coordinateFunctions/parseCoordinatesFromAction';
 
 // CaptionOverlay
 import { CaptionOverlay } from './CaptionOverlay/CaptionOverlay';
 import { reconstituteAllPartsOfState } from './utils/reconstituteAllPartsOfState';
-import { CODEVIDEO_IDE_ID, DEFAULT_CARET_POSITION, KEYBOARD_TYPING_PAUSE_MS, LONG_PAUSE_MS, STANDARD_PAUSE_MS } from './constants/CodeVideoIDEConstants';
+import { CODEVIDEO_IDE_ID, DEFAULT_CARET_POSITION, DEFAULT_MOUSE_POSITION, KEYBOARD_TYPING_PAUSE_MS, LONG_PAUSE_MS, STANDARD_PAUSE_MS } from './constants/CodeVideoIDEConstants';
 import { EmbedOverlay } from './EmbedOverlay/EmbedOverlay';
+import { getNewMousePosition } from './MouseOverlay/utils/getNewMousePosition';
+import { UnsavedChangesDialog } from './UnsavedChangesDialog/UnsavedChangesDialog';
 
 // Props!
 export interface ICodeVideoIDEProps {
@@ -107,11 +105,29 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
   const [currentFileStructure, setCurrentFileStructure] = useState<IFileStructure>();
   const [currentCode, setCurrentCode] = useState<string>('');
   const [terminalBuffer, setTerminalBuffer] = useState<string>('');
-  const [mousePosition, setMousePosition] = useState<IPoint>({ x: 0, y: 0 });
+  const [targetMousePosition, setTargetMousePosition] = useState<IPoint>(DEFAULT_MOUSE_POSITION);
+  const [currentMousePosition, setCurrentMousePosition] = useState<IPoint>(DEFAULT_MOUSE_POSITION);
   const [currentCaretPosition, setCurrentCaretPosition] = useState<IEditorPosition>(DEFAULT_CARET_POSITION);
   const [captionText, setCaptionText] = useState<string>('');
   const [currentEditorLanguage, setCurrentEditorLanguage] = useState<string>(defaultLanguage);
   const [showEmbedOverlay, setShowEmbedOverlay] = useState<boolean>(isEmbedMode || false);
+  const [isFileExplorerContextMenuVisible, setIsFileExplorerContextMenuVisible] = useState<boolean>(false);
+  const [isFileContextMenuVisible, setIsFileContextMenuVisible] = useState<boolean>(false)
+  const [isFolderContextMenuVisible, setIsFolderContextMenuVisible] = useState<boolean>(false)
+  const [isNewFileInputVisible, setIsNewFileInputVisible] = useState<boolean>(false)
+  const [isNewFolderInputVisible, setIsNewFolderInputVisible] = useState<boolean>(false)
+  const [newFileInputValue, setNewFileInputValue] = useState<string>("")
+  const [newFolderInputValue, setNewFolderInputValue] = useState<string>("")
+  const [originalFileBeingRenamed, setOriginalFileBeingRenamed] = useState<string>("")
+  const [originalFolderBeingRenamed, setOriginalFolderBeingRenamed] = useState<string>("")
+  const [renameFileInputValue, setRenameFileInputValue] = useState<string>("")
+  const [renameFolderInputValue, setRenameFolderInputValue] = useState<string>("")
+  const [currentHoveredFileName, setCurrentHoveredFileName] = useState<string>("")
+  const [currentHoveredFolderName, setCurrentHoveredFolderName] = useState<string>("")
+  const [currentHoveredEditorTabFileName, setCurrentHoveredEditorTabFileName] = useState<string>("")
+  const [isUnsavedChangesDialogOpen, setIsUnsavedChangesDialogOpen] = useState<boolean>(false);
+  const [unsavedFileName, setUnsavedFileName] = useState<string>("");
+
   const containerRef = useRef<HTMLDivElement>(null);
   const monacoEditorRef = useRef<monaco.editor.IStandaloneCodeEditor | undefined>(undefined);
   const globalMonacoRef = useRef<Monaco | undefined>(undefined);
@@ -143,11 +159,15 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
         setCurrentFileName,
         setCurrentCaretPosition,
         setTerminalBuffer,
-        mousePosition,
+        targetMousePosition,
         containerRef,
-        setMousePosition,
+        setTargetMousePosition,
         setCaptionText,
-        speakActionAudios
+        speakActionAudios,
+        setNewFileInputValue,
+        setNewFolderInputValue,
+        setRenameFileInputValue,
+        setRenameFolderInputValue
       );
     }
     updateState();
@@ -159,35 +179,52 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
       editors,
       currentEditor,
       currentFilename,
-      fileStructure,
+      fileExplorerSnapshot,
       currentCode,
       currentCaretPosition,
       currentTerminalBuffer,
       captionText,
-      actions
+      actions,
+      mouseSnapshot,
+      isUnsavedChangesDialogOpen,
+      unsavedFileName
     } = reconstituteAllPartsOfState(project, currentActionIndex, currentLessonIndex);
     setEditors(editors)
     setCurrentEditor(currentEditor);
     setCurrentFileName(currentFilename);
-    setCurrentFileStructure(fileStructure);
+    setCurrentFileStructure(fileExplorerSnapshot.fileStructure);
     setCurrentCode(currentCode);
     setCurrentCaretPosition(currentCaretPosition);
     setTerminalBuffer(currentTerminalBuffer);
     setCaptionText(captionText);
+    setIsFileExplorerContextMenuVisible(fileExplorerSnapshot.isFileExplorerContextMenuOpen);
+    setIsFileContextMenuVisible(fileExplorerSnapshot.isFileContextMenuOpen);
+    setIsFolderContextMenuVisible(fileExplorerSnapshot.isFolderContextMenuOpen);
+    setIsNewFileInputVisible(fileExplorerSnapshot.isNewFileInputVisible);
+    setIsNewFolderInputVisible(fileExplorerSnapshot.isNewFolderInputVisible);
+    setOriginalFileBeingRenamed(fileExplorerSnapshot.originalFileBeingRenamed);
+    setOriginalFolderBeingRenamed(fileExplorerSnapshot.originalFolderBeingRenamed);
+    setCurrentHoveredFileName(mouseSnapshot.currentHoveredFileName);
+    setCurrentHoveredFolderName(mouseSnapshot.currentHoveredFolderName);
+    setCurrentHoveredEditorTabFileName(mouseSnapshot.currentHoveredEditorTabFileName);
+    setIsUnsavedChangesDialogOpen(isUnsavedChangesDialogOpen);
+    setUnsavedFileName(unsavedFileName);
 
-    // TODO: these should be derived from the snapshot directly but I ran out of time :(
-    // can unit test and add back in later - though the coordinate based stuff is a mix of client.. not sure how to solve that one discreetly.
-    updateMouseState(actions);
+    // Only update mouse position in step mode, not in replay mode
+    // This prevents double mouse movement animations in replay mode
+    if (mode !== 'replay') {
+      updateMouseStateAndSideEffects(actions);
+    }
   }
 
   // This is copied basically in animation way down logic below, could be refactored
-  const updateMouseState = async (actions: Array<IAction>) => {
+  const updateMouseStateAndSideEffects = async (actions: Array<IAction>) => {
     if (currentActionIndex === 0 && mode === 'step') {
       if (!containerRef?.current) {
         return;
       }
       const rect = containerRef.current.getBoundingClientRect();
-      setMousePosition({
+      setTargetMousePosition({
         x: rect.width / 2,
         y: rect.height / 2,
       });
@@ -196,32 +233,10 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     const currentAction = currentActionIndex >= 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
     if (!currentAction) return;
 
-    let newPosition = { x: mousePosition.x, y: mousePosition.y };
+    const newPosition = await getNewMousePosition(targetMousePosition, currentAction, containerRef);
+    console.log(`Action: ${currentAction.name}, New position: x=${newPosition.x}, y=${newPosition.y}`);
 
-    // before continuing, wait a little bit so file explorer can update the DOM
-    await sleep(STANDARD_PAUSE_MS);
-
-    switch (currentAction.name) {
-      case 'mouse-click-terminal':
-      case 'terminal-open':
-        newPosition = getCoordinatesOfTerminalInput(containerRef)
-        break;
-      case 'mouse-click-editor':
-      case 'editor-type':
-        newPosition = getCoordinatesOfEditor(containerRef)
-        break;
-      case 'file-explorer-create-folder':
-      case 'file-explorer-create-file':
-      case 'file-explorer-open-file':
-      case 'mouse-click-filename':
-        newPosition = getCoordinatesOfFileOrFolder(currentAction.value, containerRef)
-        break;
-      case 'mouse-move':
-        newPosition = parseCoordinatesFromAction(currentAction.value, containerRef)
-        break;
-    }
-
-    setMousePosition(newPosition);
+    setTargetMousePosition(newPosition);
   }
 
   // whenever issoundon changes or currentActionIndex, and we are in step mode, and the current action includes 'speak', we should speak
@@ -488,6 +503,8 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
   // console.log('captionText', captionText);
   // current filepath
   // console.log("currentFileName", currentFileName)
+  // console.log("isUnsavedChangesDialogOpen", isUnsavedChangesDialogOpen)
+  // console.log("unsavedFileName", unsavedFileName)
 
   return (
     <Flex
@@ -525,7 +542,28 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
           </Flex>
         ) : (
           <>
-            <FileExplorer theme={theme} currentFileName={currentFileName} fileStructure={currentFileStructure} fileExplorerWidth={fileExplorerWidth} />
+            <FileExplorer
+              theme={theme}
+              currentFileName={currentFileName}
+              fileStructure={currentFileStructure}
+              fileExplorerWidth={fileExplorerWidth}
+              currentMousePosition={currentMousePosition}
+              isFileExplorerContextMenuVisible={isFileExplorerContextMenuVisible}
+              isFileContextMenuVisible={isFileContextMenuVisible}
+              isFolderContextMenuVisible={isFolderContextMenuVisible}
+              isNewFileInputVisible={isNewFileInputVisible}
+              isNewFolderInputVisible={isNewFolderInputVisible}
+              newFileInputValue={newFileInputValue}
+              newFolderInputValue={newFolderInputValue}
+              originalFileBeingRenamed={originalFileBeingRenamed}
+              originalFolderBeingRenamed={originalFolderBeingRenamed}
+              renameFileInputValue={renameFileInputValue}
+              renameFolderInputValue={renameFolderInputValue}
+              currentHoveredFileName={currentHoveredFileName}
+              currentHoveredFolderName={currentHoveredFolderName}
+              newFileParentPath='' // TODO
+              newFolderParentPath='' // TODO
+            />
             {/* Editor Tabs, Main Editor, and Terminal stack on top of eachother */}
             <Flex direction="column" width="100%">
               <EditorTabs theme={theme} editors={editors || []} />
@@ -590,24 +628,45 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
             </Flex>
           </>
         )}
-        {/* Mouse Overlay */}
-        <MouseOverlay
-          mode={mode}
-          mouseVisible={true}
-          mousePosition={mousePosition}
-          mouseColor={mouseColor} />
+
       </Flex>
+
+      {/* Unsaved Changes Dialog */}
+      <UnsavedChangesDialog isUnsavedChangesDialogOpen={isUnsavedChangesDialogOpen} unsavedFileName={unsavedFileName} />
+
+      {/* Mouse Overlay */}
+      {!showEmbedOverlay && <MouseOverlay
+        mode={mode}
+        mouseVisible={true}
+        targetMousePosition={targetMousePosition}
+        onCurrentPositionChange={setCurrentMousePosition}
+        onAnimationFinished={() => {
+          // TODO ...
+        }}
+        mouseColor={mouseColor} />}
+
       {/* Caption Overlay */}
-      {withCaptions && <CaptionOverlay captionText={captionText} fontSizePx={fontSizePx} />}
+      {!showEmbedOverlay && withCaptions && <CaptionOverlay captionText={captionText} fontSizePx={fontSizePx} />}
 
       {/* Embed start overlay */}
-      {showEmbedOverlay && <EmbedOverlay/>}
+      {showEmbedOverlay && <EmbedOverlay />}
     </Flex>
   );
 }
 
+const simulateHumanTypingWithReactSetterCallback = async (
+  setter: React.Dispatch<React.SetStateAction<string>>,
+  text: string
+) => {
+  const characters = text.split("");
+  for (var i = 0; i < characters.length; i++) {
+    setter((prev: string) => prev + characters[i]);
+    await sleep(KEYBOARD_TYPING_PAUSE_MS);
+  }
+}
+
 // define the human typing here in the puppeteer environment
-const simulateHumanTyping = (
+const simulateHumanTypingInMonaco = (
   editor: monaco.editor.IStandaloneCodeEditor,
   code: string
 ) => {
@@ -672,7 +731,11 @@ export const executeActionPlaybackForMonacoInstance = async (
   containerRef: React.RefObject<HTMLDivElement | null>,
   setMousePosition: (value: any) => void,
   setCaptionText: (value: any) => void,
-  speakActionAudios: Array<{ text: string, mp3Url: string }>
+  speakActionAudios: Array<{ text: string, mp3Url: string }>,
+  setNewFileInputValue: React.Dispatch<React.SetStateAction<string>>,
+  setNewFolderInputValue: React.Dispatch<React.SetStateAction<string>>,
+  setRenameFileInputValue: React.Dispatch<React.SetStateAction<string>>,
+  setRenameFolderInputValue: React.Dispatch<React.SetStateAction<string>>,
 ) => {
   let startTime = -1;
 
@@ -698,27 +761,8 @@ export const executeActionPlaybackForMonacoInstance = async (
   await sleep(STANDARD_PAUSE_MS);
 
   // MOUSE MOVEMENT ANIMATIONS, PASS THROUGH AND CONTINUE BELOW
-  let newPosition = { x: mousePosition.x, y: mousePosition.y };
-
-  switch (action.name) {
-    case 'mouse-click-terminal':
-    case 'terminal-open':
-      newPosition = getCoordinatesOfTerminalInput(containerRef)
-      break;
-    case 'mouse-click-editor':
-    case 'editor-type':
-      newPosition = getCoordinatesOfEditor(containerRef)
-      break;
-    case 'file-explorer-create-folder':
-    case 'file-explorer-create-file':
-    case 'file-explorer-open-file':
-    case 'mouse-click-filename':
-      newPosition = getCoordinatesOfFileOrFolder(action.value, containerRef)
-      break;
-    case 'mouse-move':
-      newPosition = parseCoordinatesFromAction(action.value, containerRef)
-      break;
-  }
+  // 
+  const newPosition = await getNewMousePosition(mousePosition, action, containerRef)
 
   setMousePosition(newPosition);
 
@@ -792,6 +836,20 @@ export const executeActionPlaybackForMonacoInstance = async (
         // if an mp3 url was not found, it is undefined and we default to the speech synthesis
         await speakText(action.value, isSoundOn ? 1 : 0, mp3Url);
         break;
+      // BEGIN FILE EXPLORER TYPING ACTIONS
+      case action.name === "file-explorer-type-new-file-input":
+        simulateHumanTypingWithReactSetterCallback(setNewFileInputValue, action.value)
+        break;
+      case action.name === "file-explorer-type-new-folder-input":
+        simulateHumanTypingWithReactSetterCallback(setNewFolderInputValue, action.value)
+        break;
+      case action.name === "file-explorer-type-rename-file-input":
+        simulateHumanTypingWithReactSetterCallback(setRenameFileInputValue, action.value)
+        break;
+      case action.name === "file-explorer-type-rename-folder-input":
+        simulateHumanTypingWithReactSetterCallback(setRenameFolderInputValue, action.value)
+        break;
+      // BEGIN TERMINAL ACTIONS
       case action.name === 'terminal-type':
         const terminalOutput = action.value;
         const terminalLines = terminalOutput.split('\n');
@@ -804,6 +862,7 @@ export const executeActionPlaybackForMonacoInstance = async (
           }
         }
         break;
+      // BEGIN EDITOR ACTIONS
       case action.name === "editor-arrow-down" && pos !== null:
         // @ts-ignore
         pos.lineNumber = pos.lineNumber + 1;
@@ -835,7 +894,7 @@ export const executeActionPlaybackForMonacoInstance = async (
         await sleep(KEYBOARD_TYPING_PAUSE_MS)
         break;
       case action.name === "editor-enter":
-        await simulateHumanTyping(editor, "\n");
+        await simulateHumanTypingInMonaco(editor, "\n");
         break;
       // case action.name === "editor-delete-line" && lineNumber !== null:
       //   console.log("deleting line");
@@ -858,7 +917,7 @@ export const executeActionPlaybackForMonacoInstance = async (
       // //   highlightText(editor, action.value);
       // //   break;
       case action.name === "editor-space":
-        await simulateHumanTyping(editor, " ");
+        await simulateHumanTypingInMonaco(editor, " ");
         break;
       case action.name === "editor-backspace":
         // @ts-ignore - this also breaks SSR
@@ -866,7 +925,7 @@ export const executeActionPlaybackForMonacoInstance = async (
         await sleep(KEYBOARD_TYPING_PAUSE_MS)
         break;
       case action.name === "editor-type":
-        await simulateHumanTyping(editor, action.value);
+        await simulateHumanTypingInMonaco(editor, action.value);
         break;
       default:
         // no op - but still do default delay

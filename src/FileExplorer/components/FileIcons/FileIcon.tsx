@@ -20,12 +20,25 @@ import {
 } from '@react-symbols/icons';
 
 export interface IFileIconProps {
-    filename: string;
+    filename?: string;
 }
 
 export function FileIcon(props: IFileIconProps) {
     const { filename } = props;
+
+    if (!filename) {
+        return <CodeGray height="20" />;
+    }
+
     const ext = filename.split('.').pop()?.toLowerCase();
+
+    if (filename.toUpperCase() === 'LICENSE') {
+        return <License height="20" />;
+    }
+    if (filename.toUpperCase() === 'README') {
+        return <Markdown height="20" />;
+    }
+
     switch (ext) {
         case 'js':
             return <Js height="20" />;
@@ -60,9 +73,6 @@ export function FileIcon(props: IFileIconProps) {
         case "txt":
             return <Text height="20" />;
         default:
-            if (filename.toUpperCase() === 'LICENSE') {
-                return <License height="20" />;
-            }
             return <CodeGray height="20" />;
     }
 }

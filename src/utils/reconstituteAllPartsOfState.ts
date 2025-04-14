@@ -28,10 +28,13 @@ export const reconstituteAllPartsOfState = (project: Project, currentActionIndex
       isSaved: false
     };
     const currentFilename = currentEditor.filename;
-    const fileStructure = courseSnapshot.fileExplorerSnapshot.fileStructure;
+    const fileExplorerSnapshot = courseSnapshot.fileExplorerSnapshot;
     const currentCode = currentEditor ? currentEditor.content : '';
     const currentCaretPosition = virtualIDE.virtualEditors && virtualIDE.virtualEditors.length > 0 ? virtualIDE.virtualEditors[0]?.virtualEditor.getCurrentCaretPosition() || DEFAULT_CARET_POSITION : DEFAULT_CARET_POSITION;
     const currentTerminalBuffer = virtualIDE.virtualTerminals.length > 0 ? virtualIDE.virtualTerminals[0]?.getBuffer().join('\n') || '' : '';
     const captionText = courseSnapshot?.authorSnapshot.authors[0]?.currentSpeechCaption || '';
-    return { editors, currentEditor, currentFilename, fileStructure, currentCode, currentCaretPosition, currentTerminalBuffer, captionText, actions }
+    const mouseSnapshot = courseSnapshot?.mouseSnapshot;
+    const isUnsavedChangesDialogOpen = courseSnapshot.isUnsavedChangesDialogOpen;
+    const unsavedFileName = courseSnapshot.unsavedFileName;
+    return { editors, currentEditor, currentFilename, fileExplorerSnapshot, currentCode, currentCaretPosition, currentTerminalBuffer, captionText, actions, mouseSnapshot, isUnsavedChangesDialogOpen, unsavedFileName };
   }

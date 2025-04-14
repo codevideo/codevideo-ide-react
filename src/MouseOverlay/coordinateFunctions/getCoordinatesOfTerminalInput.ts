@@ -1,10 +1,11 @@
 import { IPoint } from "@fullstackcraftllc/codevideo-types";
 import { convertToContainerCoordinates } from "./convertToContainerCoordinates";
+import { DEFAULT_MOUSE_POSITION } from "src/constants/CodeVideoIDEConstants";
 
 export const getCoordinatesOfTerminalInput = (containerRef: React.RefObject<HTMLDivElement | null>): IPoint => {
-    if (!containerRef) return { x: 0, y: 0 };
+    if (!containerRef) return DEFAULT_MOUSE_POSITION;
     const terminal = document.querySelector('[data-codevideo-id="terminal"]');
-    if (!terminal) return { x: 0, y: 0 };
+    if (!terminal) return DEFAULT_MOUSE_POSITION;
     // console.log('terminal element', terminal);
     const rect = terminal.getBoundingClientRect();
     return convertToContainerCoordinates({

@@ -1,8 +1,19 @@
 import * as React from 'react';
+import * as ReactDOM from 'react-dom/client';
 import { CodeVideoIDE, ICodeVideoIDEProps } from './CodeVideoIDE';
 import { Box, Flex, Theme } from '@radix-ui/themes';
 import { useState } from 'react';
 import { extractActionsFromProject, GUIMode } from '@fullstackcraftllc/codevideo-types';
+
+export function mountEmbeddableCodeVideoIDE(props: any, containerId: string) {
+    const container = document.getElementById(containerId);
+    if (!container) {
+        console.error('Container not found');
+        return;
+    }
+    const root = ReactDOM.createRoot(container);
+    root.render(React.createElement(EmbeddableCodeVideoIDE, props));
+}
 
 export interface EmbeddableCodeVideoIDEProps extends ICodeVideoIDEProps {
     width?: number | string;
@@ -51,34 +62,31 @@ export function EmbeddableCodeVideoIDE({
             appearance="dark"
             panelBackground="translucent"
             radius="large"
+            style={{ width, height }}
         >
-            <Flex direction="column" justify="center" align="center">
-                <Box style={{ width, height }}>
-                    <CodeVideoIDE
-                        fontSizePx={12}
-                        theme={theme}
-                        project={project}
-                        mode={modeInternal}
-                        allowFocusInEditor={false}
-                        defaultLanguage={'python'}
-                        isExternalBrowserStepUrl={null}
-                        currentActionIndex={currentActionIndexInternal}
-                        currentLessonIndex={currentLessonIndex}
-                        isSoundOn={isSoundOn}
-                        withCaptions={true}
-                        actionFinishedCallback={goToNextAction}
-                        speakActionAudios={[]}
-                        fileExplorerWidth={300}
-                        terminalHeight={150}
-                        mouseColor="black"
-                        isEmbedMode={true}
-                        requestStepModeCallback={() => setModeInternal('step')}
-                        requestNextActionCallback={goToNextAction}
-                        requestPreviousActionCallback={goToPreviousAction}
-                        requestPlaybackStartCallback={startPlayback}
-                    />
-                </Box>
-            </Flex>
+            <CodeVideoIDE
+                fontSizePx={12}
+                theme={theme}
+                project={project}
+                mode={modeInternal}
+                allowFocusInEditor={false}
+                defaultLanguage={'python'}
+                isExternalBrowserStepUrl={null}
+                currentActionIndex={currentActionIndexInternal}
+                currentLessonIndex={currentLessonIndex}
+                isSoundOn={isSoundOn}
+                withCaptions={true}
+                actionFinishedCallback={goToNextAction}
+                speakActionAudios={[]}
+                fileExplorerWidth={300}
+                terminalHeight={150}
+                mouseColor="black"
+                isEmbedMode={true}
+                requestStepModeCallback={() => setModeInternal('step')}
+                requestNextActionCallback={goToNextAction}
+                requestPreviousActionCallback={goToPreviousAction}
+                requestPlaybackStartCallback={startPlayback}
+            />
         </Theme>
     );
 }

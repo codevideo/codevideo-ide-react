@@ -1,8 +1,9 @@
 import { IPoint } from "@fullstackcraftllc/codevideo-types";
 import { convertToContainerCoordinates } from "./convertToContainerCoordinates";
+import { DEFAULT_MOUSE_POSITION } from "src/constants/CodeVideoIDEConstants";
 
-export const parseCoordinatesFromAction = (value: string, containerRef: React.RefObject<HTMLDivElement | null>): IPoint => {
-    if (!containerRef) return { x: 0, y: 0 };
+export const parseCoordinatesFromMouseCoordinateAction = (value: string, containerRef: React.RefObject<HTMLDivElement | null>): IPoint => {
+    if (!containerRef) return DEFAULT_MOUSE_POSITION;
     // try to get two parts
     const parts = value.split(',')
     if (parts.length == 2) {

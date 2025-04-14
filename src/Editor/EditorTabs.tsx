@@ -29,41 +29,49 @@ export function EditorTabs(props: IEditorTabsProps) {
                 userSelect: 'none',
             }}
         >
-            {editors.map(editor => (
-                <Flex
-                    key={editor.filename}
-                    align="center"
-                    style={{ borderRight: '1px solid var(--gray-7)', padding: '0 10px' }}
-                >
-                    <Text style={{ fontFamily: 'Fira Code, monospace', color: '#CCCECC' }}>
-                        {editor.filename.split('/').pop()}
-                    </Text>
+            {editors.map(editor => {
+                const absoluteFileName = editor.filename;
+                const baseFileName = absoluteFileName.split('/').pop()
+                return (
+                    <Flex
+                        data-codevideo-id={`editor-tab-${absoluteFileName}`}
+                        key={editor.filename}
+                        align="center"
+                        style={{ borderRight: '1px solid var(--gray-7)', padding: '0 10px' }}
+                    >
+                        <Text style={{ fontFamily: 'Fira Code, monospace', color: '#CCCECC' }}>
+                            {baseFileName}
+                        </Text>
 
-                    {editor.isSaved ? (
-                        <Box
-                            ml="2"
-                            style={{
-                                color: 'var(--gray-8)',
-                                padding: 0,
-                                lineHeight: 1,
-                                minWidth: 'auto',
-                            }}
-                        >
-                            ×
-                        </Box>
-                    ) : (
-                        <Box
-                            ml="2"
-                            style={{
-                                width: '8px',
-                                height: '8px',
-                                backgroundColor: 'var(--gray-8)', // same as x icon above
-                                borderRadius: '9999px'
-                            }}
-                        />
-                    )}
-                </Flex>
-            ))}
+                        {editor.isSaved ? (
+                            <Box
+                                data-codevideo-id={`editor-tab-close-${absoluteFileName}`}
+                                ml="2"
+                                style={{
+                                    color: 'var(--gray-8)',
+                                    padding: 0,
+                                    lineHeight: 1,
+                                    minWidth: 'auto',
+                                }}
+                            >
+                                ×
+                            </Box>
+                        ) : (
+                            <Box
+                                data-codevideo-id={`editor-tab-close-${absoluteFileName}`}
+                                ml="2"
+                                style={{
+                                    width: '8px',
+                                    height: '8px',
+                                    backgroundColor: 'var(--gray-8)', // same as x icon above
+                                    borderRadius: '9999px'
+                                }}
+                            />
+                        )}
+                    </Flex>
+                )
+            }
+            )}
         </Flex>
     );
 }

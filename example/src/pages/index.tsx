@@ -1,6 +1,9 @@
 import * as React from "react"
 import { GUIMode, IAction, Project, IAudioItem } from "@fullstackcraftllc/codevideo-types"
+// actual package import
 import { CodeVideoIDE } from "@fullstackcraftllc/codevideo-ide-react"
+// local import from src below - doesn't seem to work because of relative path issues
+// import { CodeVideoIDE } from "../../../src/CodeVideoIDE"
 import { Box, Flex, Theme } from "@radix-ui/themes";
 import { useEffect, useState } from "react";
 
@@ -10,229 +13,157 @@ const speakActionAudios =  [];
 const actions: Array<IAction> = [
   {
     "name": "author-speak-before",
-    "value": "In this quick little lesson, I'd like to show you all about a small unit test I made which my colleagues made fun of me a little bit for, but I think is actually the perfect unit test for .NET"
+    "value": "Hi guys, we've just added some major updates to the CodeVideo React IDE. I'm excited to show you the new features we've implemented!"
   },
   {
     "name": "author-speak-before",
-    "value": "In .NET, there's something known as the build directory props where you can set pretty long-lasting properties about your software, including properties like the software copyright."
+    "value": "One of our biggest improvements is the enhanced file explorer with context menus. Let me demonstrate how to create files using this new feature."
   },
   {
     "name": "author-speak-before",
-    "value": "So let's just create a little example of the directory build props file."
+    "value": "Let's create our first file called a.txt using the new context menu."
   },
   {
-    "name": "file-explorer-create-file",
-    "value": "Directory.Build.props"
-  },
-  {
-    "name": "file-explorer-open-file",
-    "value": "Directory.Build.props"
-  },
-  {
-    "name": "author-speak-before",
-    "value": "And I'll just write in the XML content into this file, including the copyright..."
-  },
-  {
-    "name": "editor-type",
-    "value": "<Project>\n\t<PropertyGroup>\n\t\t<Copyright>Copyright 2025 (c) Full Stack Craft LLC</Copyright>\n    </PropertyGroup>\n</Project>"
-  },
-  {
-    "name": "author-speak-before",
-    "value": "Of course this is a toy example; typically you have much more information in Directory.Build.props, but for the illustration of what the unit test will do, this is fine."
-  },
-  {
-    "name": "author-speak-before",
-    "value": "We can save and close that for now."
-  },
-  {
-    "name": "editor-save",
+    "name": "mouse-move-file-explorer",
     "value": "1"
   },
   {
-    "name": "file-explorer-close-file",
-    "value": "Directory.Build.Props"
-  },
-  {
-    "name": "author-speak-before",
-    "value": "Now, to the actual unit test."
-  },
-  {
-    "name": "file-explorer-create-file",
-    "value": "DirectoryBuildPropsTests.cs"
-  },
-  {
-    "name": "file-explorer-open-file",
-    "value": "DirectoryBuildPropsTests.cs"
-  },
-  {
-    "name": "editor-type",
-    "value": "public class DirectoryBuildPropsTests"
-  },
-  {
-    "name": "editor-enter",
-    "value": "1"
-  },
-  {
-    "name": "editor-type",
-    "value": "{"
-  },
-  {
-    "name": "editor-enter",
+    "name": "mouse-right-click",
     "value": "1"
   },
   {
     "name": "author-speak-before",
-    "value": "We'll assume we're using X Unit, so I'll write in 'fact' here."
+    "value": "Notice how we now have a full context menu - this is one of our new features!"
   },
   {
-    "name": "editor-type",
-    "value": "    [Fact]"
+    "name": "mouse-move-file-explorer-context-menu-new-file",
+    "value": "1"
   },
   {
-    "name": "editor-enter",
+    "name": "mouse-left-click",
+    "value": "1"
+  },
+  {
+    "name": "file-explorer-type-new-file-input",
+    "value": "a.txt"
+  },
+  {
+    "name": "file-explorer-enter-new-file-input",
     "value": "1"
   },
   {
     "name": "author-speak-before",
-    "value": "And now for the main event! What I believe is an absolutely perfect unit test: checking that the copyright year in the DirectoryBuildProps is equal to the current year!"
+    "value": "Perfect! Now let's create a second file to show how our multi-tab support works."
   },
   {
-    "name": "editor-type",
-    "value": "    public void CopyrightYear_ShouldBeCurrentYear()"
-  },
-  {
-    "name": "editor-enter",
+    "name": "mouse-move-file-explorer",
     "value": "1"
   },
   {
-    "name": "editor-type",
-    "value": "    {"
-  },
-  {
-    "name": "editor-enter",
+    "name": "mouse-right-click",
     "value": "1"
   },
   {
-    "name": "editor-type",
-    "value": "        // Arrange"
-  },
-  {
-    "name": "editor-enter",
+    "name": "mouse-move-file-explorer-context-menu-new-file",
     "value": "1"
   },
   {
-    "name": "author-speak-before",
-    "value": "For arranging, we'll just read the directory props file as well as store a var for the actual current year."
-  },
-  {
-    "name": "editor-type",
-    "value": "        var filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, \"Directory.Build.props\");\n        var fileContent = File.ReadAllText(filePath);\n        var currentYear = DateTime.Now.Year.ToString();"
-  },
-  {
-    "name": "editor-enter",
-    "value": "2"
-  },
-  {
-    "name": "editor-type",
-    "value": "        // Act"
-  },
-  {
-    "name": "author-speak-before",
-    "value": "And we'll get the year stored in the file via regex."
-  },
-  {
-    "name": "editor-enter",
+    "name": "mouse-left-click",
     "value": "1"
   },
   {
-    "name": "editor-type",
-    "value": "        var match = Regex.Match(fileContent, @\"<Copyright>.*?(\\d{4}).*?</Copyright>\");"
+    "name": "file-explorer-type-new-file-input",
+    "value": "b.txt"
   },
   {
-    "name": "editor-enter",
-    "value": "2"
-  },
-  {
-    "name": "editor-type",
-    "value": "        // Assert"
-  },
-  {
-    "name": "editor-enter",
+    "name": "file-explorer-enter-new-file-input",
     "value": "1"
   },
   {
     "name": "author-speak-before",
-    "value": "If we don't even get a match, we'll log out a clear message - that the copyright tag couldn't be found."
+    "value": "And now a third file - our advanced mouse tracking system allows for seamless interaction between multiple files."
   },
   {
-    "name": "editor-type",
-    "value": "        Assert.True(match.Success, \"Copyright tag not found\");"
+    "name": "mouse-move-file-explorer",
+    "value": "1"
   },
   {
-    "name": "editor-enter",
+    "name": "mouse-right-click",
+    "value": "1"
+  },
+  {
+    "name": "mouse-move-file-explorer-context-menu-new-file",
+    "value": "1"
+  },
+  {
+    "name": "mouse-left-click",
+    "value": "1"
+  },
+  {
+    "name": "file-explorer-type-new-file-input",
+    "value": "c.txt"
+  },
+  {
+    "name": "file-explorer-enter-new-file-input",
     "value": "1"
   },
   {
     "name": "author-speak-before",
-    "value": "And the real import check, what we're all here for - to confirm that the actual current year matches the year in our build props!"
+    "value": "Now let's add some content to our c.txt file to demonstrate another new feature - our unsaved changes detection system."
   },
   {
-    "name": "editor-type",
-    "value": "        Assert.Equal(currentYear, match.Groups[1].Value);"
+    "name": "mouse-move-editor",
+    "value": "1"
   },
   {
-    "name": "editor-enter",
+    "name": "mouse-left-click",
     "value": "1"
   },
   {
     "name": "editor-type",
-    "value": "    }"
-  },
-  {
-    "name": "editor-enter",
-    "value": "1"
-  },
-  {
-    "name": "editor-type",
-    "value": "}"
+    "value": "console.log('Hello, world!');"
   },
   {
     "name": "author-speak-before",
-    "value": "Let's add all the imports we need now."
+    "value": "Great! Now let's try to close this file without saving it to trigger our brand new unsaved changes dialog."
   },
   {
-    "name": "editor-arrow-left",
+    "name": "mouse-move-editor-tab-close",
+    "value": "c.txt"
+  },
+  {
+    "name": "mouse-left-click",
     "value": "1"
-  },
-  {
-    "name": "editor-arrow-up",
-    "value": "18"
-  },
-  {
-    "name": "editor-enter",
-    "value": "1"
-  },
-  {
-    "name": "editor-enter",
-    "value": "1"
-  },
-  {
-    "name": "editor-arrow-up",
-    "value": "2"
-  },
-  {
-    "name": "editor-type",
-    "value": "using System;\nusing System.IO;\nusing System.Text.RegularExpressions;\nusing XUnit;"
   },
   {
     "name": "author-speak-before",
-    "value": "Wonderful! I love this as a unit test because, by definition, it's something that only needs to be updated once per year and therefore definitely something everyone will forget to do."
+    "value": "As you can see, we now have a professional IDE-style unsaved changes dialog that prompts you to save your work!"
+  },
+  {
+    "name": "mouse-move-unsaved-changes-dialog-button-dont-save",
+    "value": "1"
+  },
+  {
+    "name": "mouse-left-click",
+    "value": "1"
   },
   {
     "name": "author-speak-before",
-    "value": "So, if this unit test runs in a CI / CD pipeline (and your unit tests always should!), then whoever is lucky enough to be the first to kick off the first pipeline of the year will see they forgot to update the copyright! It's just perfect!"
+    "value": "We chose not to save the changes, and now the file is closed. Let's close another tab to show how our tab management works."
+  },
+  {
+    "name": "mouse-move-editor-tab-close",
+    "value": "a.txt"
+  },
+  {
+    "name": "mouse-left-click",
+    "value": "1"
+  },
+  {
+    "name": "author-speak-before",
+    "value": "And that's it! We now have a fully functional IDE with context menus, advanced mouse tracking, tab management, and unsaved changes detection. Thanks for checking out our latest updates to the CodeVideo React IDE!"
   }
-]
+];
 
 // TODO: actually none of these other strings affect the project... so?????
 const project: Project = {
@@ -268,9 +199,16 @@ export default function Home() {
     }
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight' && currentActionIndex < actions.length - 1) {
+        console.log('going to next action')
         setCurrentActionIndex(currentActionIndex + 1)
       } else if (e.key === 'ArrowLeft' && currentActionIndex > 0) {
+        console.log('going to previous action')
         setCurrentActionIndex(currentActionIndex - 1)
+      } else if (e.key === ' ') {
+        console.log('replaying mode active')
+        // reset actions to 0 and set mode to replay
+        setCurrentActionIndex(0)
+        setMode('replay')
       }
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -278,6 +216,7 @@ export default function Home() {
       window.removeEventListener('keydown', handleKeyDown)
     }
   }, [mode, currentActionIndex])
+
 
 
   const goToNextAction = () => {
