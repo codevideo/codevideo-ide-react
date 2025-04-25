@@ -35,6 +35,7 @@ import { CODEVIDEO_IDE_ID, DEFAULT_CARET_POSITION, DEFAULT_MOUSE_POSITION, KEYBO
 import { EmbedOverlay } from './EmbedOverlay/EmbedOverlay';
 import { getNewMousePosition } from './MouseOverlay/utils/getNewMousePosition';
 import { UnsavedChangesDialog } from './UnsavedChangesDialog/UnsavedChangesDialog';
+import { SlideViewer } from './SlideViewer/SlideViewer';
 
 // Props!
 export interface ICodeVideoIDEProps {
@@ -65,6 +66,8 @@ export interface ICodeVideoIDEProps {
   requestNextActionCallback?: () => void;
   requestPreviousActionCallback?: () => void;
   requestPlaybackStartCallback?: () => void;
+  isFileExplorerVisible?: boolean
+  isTerminalVisible?: boolean;
 }
 
 /**
@@ -96,7 +99,9 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     requestStepModeCallback,
     requestNextActionCallback,
     requestPreviousActionCallback,
-    requestPlaybackStartCallback
+    requestPlaybackStartCallback,
+    isFileExplorerVisible = true,
+    isTerminalVisible = true,
   } = props;
   const isRecording = mode === 'record'
   const [editors, setEditors] = useState<Array<IEditor>>();
@@ -129,6 +134,9 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
   const [currentHoveredEditorTabFileName, setCurrentHoveredEditorTabFileName] = useState<string>("")
   const [isUnsavedChangesDialogOpen, setIsUnsavedChangesDialogOpen] = useState<boolean>(false);
   const [unsavedFileName, setUnsavedFileName] = useState<string>("");
+  const [isSlideDisplayStep, setIsSlideDisplayStep] = useState<boolean>(false);
+  const [slideMarkdown, setSlideMarkdown] = useState<string>("");
+  const [prevActionIndex, setPrevActionIndex] = useState<number>(-1);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const monacoEditorRef = useRef<monaco.editor.IStandaloneCodeEditor | undefined>(undefined);
@@ -242,6 +250,61 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
 
     setTargetMousePosition(newPosition);
   }
+
+  // whenever current action changes, determine if we are still isSlideDisplayStep
+  // basically any starts with 'slides-' or 'author-' we keep displaying the slides
+  // useEffect(() => {
+  //   const actions = extractActionsFromProject(project, currentLessonIndex)
+  //   const currentAction = currentActionIndex >= 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
+  //   if (currentAction) {
+  //     if (currentAction.name === 'slide-display') {
+  //       // when the current action is a slide, we show the slide and set the slide markdown
+  //       setIsSlideDisplayStep(true);
+  //       setSlideMarkdown(currentAction.value);
+  //     } else if (isSlideDisplayStep && currentAction.name.startsWith('author-')) {
+  //       // if we're already on a slide but speaking, we keep displaying the slide
+  //     } else {
+  //       // we've moved away from a slide, so we hide it
+  //       setIsSlideDisplayStep(false);
+  //       setSlideMarkdown("");
+  //     }
+  //   }
+  // }, [currentActionIndex, project, currentLessonIndex]);
+  
+  useEffect(() => {
+    const actions = extractActionsFromProject(project, currentLessonIndex);
+    const currentAction = currentActionIndex >= 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
+    
+    // Determine if we're moving forward or backward through actions
+    const isSteppingForward = currentActionIndex > prevActionIndex;
+    
+    if (currentAction) {
+      if (currentAction.name === 'slide-display') {
+        // When current action is a slide-display, always show it
+        setIsSlideDisplayStep(true);
+        setSlideMarkdown(currentAction.value);
+      } else if (currentAction.name.startsWith('author-')) {
+        // For author actions, maintain slide state when stepping forward
+        // but hide slide when stepping backward
+        if (!isSteppingForward) {
+          setIsSlideDisplayStep(false);
+          setSlideMarkdown("");
+        }
+        // When stepping forward, keep any currently displayed slide
+      } else {
+        // For any other action, always hide the slide
+        setIsSlideDisplayStep(false);
+        setSlideMarkdown("");
+      }
+    } else {
+      // No action at this index, hide the slide
+      setIsSlideDisplayStep(false);
+      setSlideMarkdown("");
+    }
+    
+    // Update the previous action index for next comparison
+    setPrevActionIndex(currentActionIndex);
+  }, [currentActionIndex, project, currentLessonIndex]);
 
   // whenever issoundon changes or currentActionIndex, and we are in step mode, and the current action includes 'speak', we should speak
   useEffect(() => {
@@ -532,7 +595,11 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
         }}
         ref={containerRef}
       >
-        {isExternalBrowserStepUrl !== null ? (
+        {isSlideDisplayStep ? (
+          <SlideViewer 
+            hljsTheme='monokai'
+            slideMarkdown={slideMarkdown} />
+        ) : isExternalBrowserStepUrl !== null ? (
           <Flex direction="row"
             style={{
               height: '100%',
@@ -542,11 +609,15 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
             }}
             ref={containerRef}
           >
-            <ExternalWebViewer url={isExternalBrowserStepUrl} />
+            <ExternalWebViewer
+              url={isExternalBrowserStepUrl}
+              mode={mode}
+              scrollPosition={0} // TODO: implement external-browser-scroll!
+            />
           </Flex>
         ) : (
           <>
-            <FileExplorer
+            {isFileExplorerVisible && <FileExplorer
               theme={theme}
               currentFileName={currentFileName}
               fileStructure={currentFileStructure}
@@ -567,7 +638,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
               currentHoveredFolderName={currentHoveredFolderName}
               newFileParentPath={newFileParentPath}
               newFolderParentPath={newFolderParentPath}
-            />
+            />}
             {/* Editor Tabs, Main Editor, and Terminal stack on top of eachother */}
             <Flex direction="column" width="100%">
               <EditorTabs theme={theme} editors={editors || []} />
@@ -625,14 +696,13 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
                 </Box>
               </Box>
               {/* Terminal - TODO: add support for multiple terminals in the future */}
-              <Terminal
+              {isTerminalVisible && <Terminal
                 theme={theme}
                 terminalBuffer={terminalBuffer}
-                terminalHeight={terminalHeight} />
+                terminalHeight={terminalHeight} />}
             </Flex>
           </>
         )}
-
       </Flex>
 
       {/* Unsaved Changes Dialog */}
@@ -829,6 +899,7 @@ export const executeActionPlaybackForMonacoInstance = async (
     // actual logic
     switch (true) {
       case action.name.startsWith("external-"):
+      case action.name.startsWith("slides-"):
         // no op - but do a long pause
         await sleep(LONG_PAUSE_MS);
         break;

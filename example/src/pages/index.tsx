@@ -13,123 +13,43 @@ const speakActionAudios =  [];
 const actions: Array<IAction> = [
   {
     "name": "author-speak-before",
-    "value": "Hi guys, Chris here - I've just added some major updates to the CodeVideo React IDE. I'm excited to show you the new features we've implemented!"
+    "value": "Hi guys, Chris here again with another CodeVideo update! We've just added slideshow support within the CodeVideo ecosystem! You can show a slide by using the 'slide-display' action and specifying the slide's content with markdown, like so:"
+  },
+  {
+    "name": "slide-display",
+    "value": "# This is a slide!\n\n## And this is a subheading\n\n- This is a bullet point\n- This is another bullet point\n- This is a third bullet point\n\nAnd this is some text below the bullet points.\n\n```typescript\nexport interface MyInterface {\n    name: string;\n    age: number;\n}\n```\n\nAnd that ^ is a TypeScript code block! We can also render `inline code` and emojis 😎.\n\n"
   },
   {
     "name": "author-speak-before",
-    "value": "One of our biggest improvements is the enhanced file explorer with context menus. Let me demonstrate how to create files using this new feature."
+    "value": "You can see out of the box that we support headings, bullet points, and code blocks! In fact, any valid markdown will work for these slides."
   },
   {
     "name": "author-speak-before",
-    "value": "Let's create our first file called a.txt using the new context menu."
-  },
-  {
-    "name": "mouse-move-file-explorer",
-    "value": "1"
-  },
-  {
-    "name": "mouse-right-click",
-    "value": "1"
+    "value": "I can keep talking on the same slide as much as I want."
   },
   {
     "name": "author-speak-before",
-    "value": "Notice how we now have a context menu whenever right clicking in the file explorer - this is one of our new features!"
-  },
-  {
-    "name": "mouse-move-file-explorer-context-menu-new-file",
-    "value": "1"
-  },
-  {
-    "name": "mouse-left-click",
-    "value": "1"
-  },
-  {
-    "name": "file-explorer-type-new-file-input",
-    "value": "a.txt"
-  },
-  {
-    "name": "file-explorer-enter-new-file-input",
-    "value": "1"
+    "value": "The slide won't change until we do a non-speaking or non-slide action."
   },
   {
     "name": "author-speak-before",
-    "value": "Perfect! Now let's create a second file to show how our multi-tab support works."
+    "value": "Alright, let's go on to the next slide by issuing 'slide-display' with new markdown content!"
   },
   {
-    "name": "mouse-move-file-explorer",
-    "value": "1"
-  },
-  {
-    "name": "mouse-right-click",
-    "value": "1"
-  },
-  {
-    "name": "mouse-move-file-explorer-context-menu-new-file",
-    "value": "1"
-  },
-  {
-    "name": "mouse-left-click",
-    "value": "1"
-  },
-  {
-    "name": "file-explorer-type-new-file-input",
-    "value": "b.txt"
-  },
-  {
-    "name": "file-explorer-enter-new-file-input",
-    "value": "1"
+    "name": "slide-display",
+    "value": "# This is the NEXT slide!\n\nWow, CodeVideo™ is great! Maybe we should just start calling it EducationalVideo™!"
   },
   {
     "name": "author-speak-before",
-    "value": "And now a third file - our advanced mouse tracking system allows for seamless interaction between multiple files."
+    "value": "Let's go to the next slide!"
   },
   {
-    "name": "mouse-move-file-explorer",
-    "value": "1"
-  },
-  {
-    "name": "mouse-right-click",
-    "value": "1"
-  },
-  {
-    "name": "mouse-move-file-explorer-context-menu-new-file",
-    "value": "1"
-  },
-  {
-    "name": "mouse-left-click",
-    "value": "1"
-  },
-  {
-    "name": "file-explorer-type-new-file-input",
-    "value": "c.txt"
-  },
-  {
-    "name": "file-explorer-enter-new-file-input",
-    "value": "1"
+    "name": "slide-display",
+    "value": "# Here's a final third slide\n\nthis is the last slide :( I'm sad to see it end... :("
   },
   {
     "name": "author-speak-before",
-    "value": "Now let's add some content to our c.txt file to demonstrate another new feature - our unsaved changes detection system."
-  },
-  {
-    "name": "mouse-move-editor",
-    "value": "1"
-  },
-  {
-    "name": "mouse-left-click",
-    "value": "1"
-  },
-  {
-    "name": "editor-type",
-    "value": "console.log('Hello, world!');"
-  },
-  {
-    "name": "author-speak-before",
-    "value": "Great! Now let's try to close this file without saving it to trigger our brand new unsaved changes dialog."
-  },
-  {
-    "name": "mouse-move-editor-tab-close",
-    "value": "c.txt"
+    "value": "Alright, let's get back into the editor."
   },
   {
     "name": "mouse-left-click",
@@ -137,32 +57,12 @@ const actions: Array<IAction> = [
   },
   {
     "name": "author-speak-before",
-    "value": "As you can see, we now have a professional IDE-style unsaved changes dialog that prompts you to save your work!"
-  },
-  {
-    "name": "mouse-move-unsaved-changes-dialog-button-dont-save",
-    "value": "1"
-  },
-  {
-    "name": "mouse-left-click",
-    "value": "1"
+    "value": "All I did to hide the slide was issue the 'mouse-left-click' action - this is an editor related action, so the slides will no longer be shown."
   },
   {
     "name": "author-speak-before",
-    "value": "We chose not to save the changes, and now the file is closed. Let's close another tab to show how our tab management works."
+    "value": "That's it for this new feature! I hope you enjoy it, and I can't wait to see what you create with CodeVideo! Until next time, cheers everyone!"
   },
-  {
-    "name": "mouse-move-editor-tab-close",
-    "value": "a.txt"
-  },
-  {
-    "name": "mouse-left-click",
-    "value": "1"
-  },
-  {
-    "name": "author-speak-before",
-    "value": "And that's it! We now have a fully functional IDE with context menus, advanced mouse tracking, tab management, and unsaved changes detection. Thanks for checking out our latest updates to the CodeVideo React IDE! Lots more coming soon - stay tuned!"
-  }
 ];
 
 // TODO: actually none of these other strings affect the project... so?????

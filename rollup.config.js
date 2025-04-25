@@ -15,7 +15,11 @@ const external = [
   "@react-symbols/icons",
   "@monaco-editor/react",
   "@fullstackcraftllc/codevideo-virtual-ide",
-  "monaco-editor"
+  "monaco-editor",
+  "marked",
+  "marked-highlight",
+  "highlight.js",
+  "dompurify",
 ];
 
 export default  [
