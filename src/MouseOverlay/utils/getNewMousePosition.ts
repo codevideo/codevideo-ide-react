@@ -4,6 +4,7 @@ import { getCoordinatesOfFileOrFolder } from "../coordinateFunctions/getCoordina
 import { getCoordinatesOfTerminalInput } from "../coordinateFunctions/getCoordinatesOfTerminalInput";
 import { parseCoordinatesFromMouseCoordinateAction } from "../coordinateFunctions/parseCoordinatesFromAction";
 import { getGaussianCoordinatesByCodeVideoDataID } from "../coordinateFunctions/getCoordinatesByCodeVideoDataID";
+import { FILE_EXPLORER_ID } from "src/constants/CodeVideoDataIds";
 
 export const getNewMousePosition = async (targetMousePosition: IPoint, currentAction: IAction, containerRef: React.RefObject<HTMLDivElement | null>) => {
   let newPosition = { x: targetMousePosition.x, y: targetMousePosition.y };
@@ -11,7 +12,7 @@ export const getNewMousePosition = async (targetMousePosition: IPoint, currentAc
   switch (currentAction.name) {
     // movement actions
     case 'mouse-move-file-explorer':
-      newPosition = getGaussianCoordinatesByCodeVideoDataID('file-explorer', containerRef)
+      newPosition = getGaussianCoordinatesByCodeVideoDataID(FILE_EXPLORER_ID, containerRef)
       break;
     case 'mouse-move-terminal':
       newPosition = getCoordinatesOfTerminalInput(containerRef)

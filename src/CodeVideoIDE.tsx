@@ -36,6 +36,7 @@ import { EmbedOverlay } from './EmbedOverlay/EmbedOverlay';
 import { getNewMousePosition } from './MouseOverlay/utils/getNewMousePosition';
 import { UnsavedChangesDialog } from './UnsavedChangesDialog/UnsavedChangesDialog';
 import { SlideViewer } from './SlideViewer/SlideViewer';
+import { EDITOR_ID } from './constants/CodeVideoDataIds';
 
 // Props!
 export interface ICodeVideoIDEProps {
@@ -218,6 +219,8 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     setCurrentHoveredFolderName(mouseSnapshot.currentHoveredFolderName);
     setNewFileParentPath(fileExplorerSnapshot.newFileParentPath);
     setNewFolderParentPath(fileExplorerSnapshot.newFolderParentPath);
+    setNewFileInputValue(fileExplorerSnapshot.newFileInputValue);
+    setNewFolderInputValue(fileExplorerSnapshot.newFolderInputValue);
     setCurrentHoveredEditorTabFileName(mouseSnapshot.currentHoveredEditorTabFileName);
     setIsUnsavedChangesDialogOpen(isUnsavedChangesDialogOpen);
     setUnsavedFileName(unsavedFileName);
@@ -270,7 +273,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
   //     }
   //   }
   // }, [currentActionIndex, project, currentLessonIndex]);
-  
+
   useEffect(() => {
     const actions = extractActionsFromProject(project, currentLessonIndex);
     const currentAction = currentActionIndex >= 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
@@ -644,7 +647,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
               <EditorTabs theme={theme} editors={editors || []} />
               {/* Editor */}
               <Box
-                data-codevideo-id="editor"
+                data-codevideo-id={EDITOR_ID}
                 style={{
                   flex: 1,
                   position: 'relative',

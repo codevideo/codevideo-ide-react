@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Box, Flex, Text } from '@radix-ui/themes';
 import { GUIMode } from '@fullstackcraftllc/codevideo-types';
+import { EXTERNAL_WEB_VIEWER_ID } from 'src/constants/CodeVideoDataIds';
 
 export interface IExternalWebViewerProps {
     url: string;
@@ -10,13 +11,13 @@ export interface IExternalWebViewerProps {
 }
 
 export const ExternalWebViewer = (props: IExternalWebViewerProps) => {
-    const { 
-        url, 
+    const {
+        url,
         mode,
         scrollPosition,
-        scrollDuration = 1000 
+        scrollDuration = 1000
     } = props;
-    
+
     const [hasError, setHasError] = useState(false);
     const [hasLoaded, setHasLoaded] = useState(false);
     const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -52,7 +53,7 @@ export const ExternalWebViewer = (props: IExternalWebViewerProps) => {
                 // Smooth scroll for replay mode
                 const startPosition = prevScrollPositionRef.current;
                 const startTime = performance.now();
-                
+
                 const animateScroll = (currentTime: number) => {
                     const elapsedTime = currentTime - startTime;
                     if (elapsedTime >= scrollDuration) {
@@ -62,25 +63,25 @@ export const ExternalWebViewer = (props: IExternalWebViewerProps) => {
                         });
                         return;
                     }
-                    
+
                     // Calculate scroll position using easeInOutCubic
                     const progress = elapsedTime / scrollDuration;
-                    const t = progress < 0.5 
-                        ? 4 * progress * progress * progress 
+                    const t = progress < 0.5
+                        ? 4 * progress * progress * progress
                         : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-                    
+
                     const newPosition = startPosition + (scrollPosition - startPosition) * t;
                     iframeWindow.scrollTo({
                         top: newPosition,
                         behavior: 'auto'
                     });
-                    
+
                     requestAnimationFrame(animateScroll);
                 };
-                
+
                 requestAnimationFrame(animateScroll);
             }
-            
+
             // Store current scroll position for next animation
             prevScrollPositionRef.current = scrollPosition;
         } catch (error) {
@@ -89,7 +90,9 @@ export const ExternalWebViewer = (props: IExternalWebViewerProps) => {
     }, [scrollPosition, mode, hasLoaded, scrollDuration]);
 
     return (
-        <Box style={{ width: '100%', height: '100vh' }}>
+        <Box
+            data-codevideo-id={EXTERNAL_WEB_VIEWER_ID}
+            style={{ width: '100%', height: '100vh' }}>
             {hasError ? (
                 <Flex align="center" justify="center" style={{ height: '100%' }}>
                     <Text size="5" style={{ color: 'var(--gray-10)' }}>
