@@ -36,7 +36,7 @@ import { EmbedOverlay } from './EmbedOverlay/EmbedOverlay';
 import { getNewMousePosition } from './MouseOverlay/utils/getNewMousePosition';
 import { UnsavedChangesDialog } from './UnsavedChangesDialog/UnsavedChangesDialog';
 import { SlideViewer } from './SlideViewer/SlideViewer';
-import { EDITOR_ID } from './constants/CodeVideoDataIds';
+import { EDITOR_AREA_ID, EDITOR_ID } from './constants/CodeVideoDataIds';
 
 // Props!
 export interface ICodeVideoIDEProps {
@@ -643,7 +643,10 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
               newFolderParentPath={newFolderParentPath}
             />}
             {/* Editor Tabs, Main Editor, and Terminal stack on top of eachother */}
-            <Flex direction="column" width="100%">
+            <Flex 
+            data-codevideo-id={EDITOR_AREA_ID}
+            direction="column" 
+            width="100%">
               <EditorTabs theme={theme} editors={editors || []} />
               {/* Editor */}
               <Box
@@ -772,10 +775,11 @@ const simulateHumanTypingInMonaco = (
         //   column: selection?.endColumn || 1
         // });
 
-        // editor.revealPositionInCenter({
-        //   lineNumber: selection?.endLineNumber || 1,
-        //   column: selection?.endColumn || 1
-        // });
+        // this keeps the line we are currently typing in the center of the screen
+        editor.revealPositionInCenter({
+          lineNumber: selection?.endLineNumber || 1,
+          column: selection?.endColumn || 1
+        });
 
         // trigger a focus to actually highlight where the caret is
         editor.focus();
