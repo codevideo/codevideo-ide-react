@@ -16,8 +16,8 @@
     "test": "echo \"Write tests! -> https://gatsby.dev/unit-testing\" && exit 1"
   },
   "dependencies": {
-    "@fullstackcraftllc/codevideo-ide-react": "^0.0.81",
-    "@fullstackcraftllc/codevideo-types": "^2.1.14",
+    "@fullstackcraftllc/codevideo-ide-react": "^0.0.84",
+    "@fullstackcraftllc/codevideo-types": "^2.1.18",
     "@radix-ui/themes": "^3.2.1",
     "gatsby": "^5.14.1",
     "puppeteer-stream": "^3.0.19",

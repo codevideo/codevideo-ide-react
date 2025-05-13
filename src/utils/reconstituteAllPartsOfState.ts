@@ -15,6 +15,7 @@ export const reconstituteAllPartsOfState = (project: Project, currentActionIndex
     }
     const actionsToApply = actions.slice(0, sanitizedCurrentActionIndex + 1)
     // activate verbose to true if debugging is needed
+    // the constructor should also handle if the project is a lesson with initial snapshot
     const virtualIDE = new VirtualIDE(project, undefined, false);
     virtualIDE.applyActions(actionsToApply);
     const courseSnapshot = virtualIDE.getCourseSnapshot();

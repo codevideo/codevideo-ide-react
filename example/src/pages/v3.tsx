@@ -1,5 +1,5 @@
 import * as React from "react"
-import { GUIMode, IAction, IAudioItem, ICodeVideoManifest } from "@fullstackcraftllc/codevideo-types"
+import { extractActionsFromProject, GUIMode, IAction, IAudioItem, ICodeVideoManifest, Project } from "@fullstackcraftllc/codevideo-types"
 import { CodeVideoIDE } from "@fullstackcraftllc/codevideo-ide-react"
 import { Box, Flex, Theme } from "@radix-ui/themes";
 import { useEffect, useState } from "react";
@@ -9,13 +9,17 @@ import { useEffect, useState } from "react";
 export default function Puppeteer() {
   const [mode, setMode] = useState<GUIMode>('step')
   const [currentActionIndex, setCurrentActionIndex] = useState(0)
-  const [actions, setActions] = useState<Array<IAction>>([])
+  const [project, setProject] = useState<Project>([])
+  const [actions, setActions] = useState<IAction[]>([])
+  const [currentLessonIndex, setCurrentLessonIndex] = useState<number | null>(null)
   const [audioItems, setAudioItems] = useState<Array<IAudioItem>>([])
   const [isSoundOn, setIsSoundOn] = useState<boolean>(false)
   const [monacoLoaded, setMonacoLoaded] = useState<boolean>(false)
 
   // on user interaction, set mode to 'replay' and reset the current action index
   const [readyToReplay, setReadyToReplay] = useState(false)
+
+  
 
   // Expose the __startRecording function globally.
   useEffect(() => {
@@ -50,7 +54,21 @@ export default function Puppeteer() {
       const response = await fetch(`http://localhost:7000/get-manifest-v3?uuid=${uuid}`)
       const data: ICodeVideoManifest = await response.json()
       console.log("Manifest data: ", data)
-      setActions(data.actions)
+
+      // if data.actions is defined, set the actions
+      let project: Project | undefined
+      if (data && data.actions) {
+        project = data.actions
+      } else if (data.lesson) {
+        project = data.lesson
+      }
+
+      if (data.currentLessonIndex !== undefined) {
+        setCurrentLessonIndex(data.currentLessonIndex)
+      }
+
+      const actions = extractActionsFromProject(project, data.currentLessonIndex)
+      setActions(actions)
       setAudioItems(data.audioItems)
     } catch (error) {
       console.error("Error getting manifest: ", error)
@@ -120,13 +138,13 @@ export default function Puppeteer() {
         >
           <CodeVideoIDE
             theme='dark'
-            project={actions}
+            project={project}
+            currentLessonIndex={currentLessonIndex}
             mode={mode}
             allowFocusInEditor={false}
             defaultLanguage={'python'}
             isExternalBrowserStepUrl={null}
             currentActionIndex={currentActionIndex}
-            currentLessonIndex={0}
             isSoundOn={isSoundOn}
             // if you're using CodeVideo to record a video for something like youtube, captions may not be a good idea
             // if you're exporting a video to your own site, captions might be really nice!

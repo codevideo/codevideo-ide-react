@@ -383,8 +383,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
         column: currentCaretPosition.col
       });
 
-      // trigger a focus to actually highlight where the caret is
-      // TODO: need to prevent this when they are typing elsewhere!!!!
+      // trigger a focus to actually highlight where the caret is - if allowFocusInEditor is true
       if (allowFocusInEditor) {
         monacoEditorRef.current.focus();
       }

@@ -13,118 +13,1435 @@ const speakActionAudios =  [];
 const actions: Array<IAction> = [
   {
     "name": "author-speak-before",
-    "value": "Hi everyone! In this tutorial, I'll guide you through creating your first Model Context Protocol (MCP) server. MCP allows you to build tools that Claude can use - think of it as creating custom plugins for Claude to enhance its capabilities!"
-  },
-  {
-    "name": "external-browser",
-    "value": "https://hackteam.io/blog/build-your-first-mcp-server-with-typescript-in-under-10-minutes/"
-  },
-  {
-    "name": "external-browser",
-    "value": "https://hackteam.io/blog/build-your-first-mcp-server-with-typescript-in-under-10-minutes/"
+    "value": "Hi everyone! Today we're going to build two incredibly powerful MCP tools that will transform how you work with Claude Desktop. These tools essentially give you Claude Code functionality for free. We'll be creating 'list_repo_locations' - a smart repository finder using fuzzy matching, and 'issue_terminal_command' - a controlled terminal execution tool. By the end of this lesson, you'll have your own customizable versions of these game-changing tools!"
   },
   {
     "name": "author-speak-before",
-    "value": "This post was heavily inspired by our friends over at hackteam.io - I've just updated it with the latest types as well as some other fun tidbits I've discovered along the way."
+    "value": "Let's start by creating our project structure. We'll need a directory for our MCP tools with separate folders for tools and utilities."
+  },
+  {
+    "name": "file-explorer-create-folder",
+    "value": "src"
+  },
+  {
+    "name": "file-explorer-create-folder",
+    "value": "src/tools"
+  },
+  {
+    "name": "file-explorer-create-folder",
+    "value": "src/utils"
   },
   {
     "name": "author-speak-before",
-    "value": "Let's create our first file - the package.json which will define our project dependencies."
+    "value": "Let's create our first MCP tool - the repository location finder. This tool will use fuzzy matching to help Claude intelligently navigate your codebases."
   },
   {
-    "name": "mouse-move-file-explorer",
-    "value": "1"
+    "name": "file-explorer-create-file",
+    "value": "src/tools/list_repo_locations.ts"
   },
   {
-    "name": "mouse-right-click",
-    "value": "1"
-  },
-  {
-    "name": "mouse-move-file-explorer-context-menu-new-file",
-    "value": "1"
-  },
-  {
-    "name": "mouse-left-click",
-    "value": "1"
-  },
-  {
-    "name": "file-explorer-type-new-file-input",
-    "value": "package.json"
-  },
-  {
-    "name": "file-explorer-enter-new-file-input",
-    "value": "1"
-  },
-  {
-    "name": "mouse-move-file-explorer-file",
-    "value": "package.json"
-  },
-  {
-    "name": "mouse-left-click",
-    "value": "1"
+    "name": "file-explorer-open-file",
+    "value": "src/tools/list_repo_locations.ts"
   },
   {
     "name": "editor-type",
-    "value": "{\n  \"name\": \"mcp-server\",\n  \"version\": \"0.1.0\",\n  \"description\": \"A Model Context Protocol server example\",\n  \"private\": true,\n  \"type\": \"module\",\n  \"bin\": {\n    \"mcp-server\": \"./build/index.js\"\n  },\n  \"files\": [\n    \"build\"\n  ],\n  \"scripts\": {\n    \"build\": \"tsc && node -e \\\"require('fs').chmodSync('build/index.js', '755')\\\"\",\n    \"prepare\": \"npm run build\",\n    \"watch\": \"tsc --watch\",\n    \"inspector\": \"npx @modelcontextprotocol/inspector build/index.js\"\n  },\n  \"dependencies\": {\n    \"@modelcontextprotocol/sdk\": \"0.6.0\"\n  },\n  \"devDependencies\": {\n    \"@types/node\": \"^20.11.24\",\n    \"typescript\": \"^5.3.3\"\n  }\n}"
-  },
-  {
-    "name": "editor-save",
-    "value": "1"
-  },
-  {
-    "name": "author-speak-before",
-    "value": "Our package.json file specifies the project dependencies, including the MCP SDK and TypeScript. Next, let's create our TypeScript configuration file."
-  },
-  {
-    "name": "mouse-move-file-explorer",
-    "value": "1"
-  },
-  {
-    "name": "mouse-right-click",
-    "value": "1"
-  },
-  {
-    "name": "mouse-move-file-explorer-context-menu-new-file",
-    "value": "1"
-  },
-  {
-    "name": "mouse-left-click",
-    "value": "1"
-  },
-  {
-    "name": "file-explorer-type-new-file-input",
-    "value": "tsconfig.json"
-  },
-  {
-    "name": "file-explorer-enter-new-file-input",
-    "value": "1"
-  },
-  {
-    "name": "mouse-move-file-explorer-file",
-    "value": "tsconfig.json"
-  },
-  {
-    "name": "mouse-left-click",
-    "value": "1"
+    "value": `// We'll organize repos by environment for different projects
+`
   },
   {
     "name": "editor-type",
-    "value": "{\n  \"compilerOptions\": {\n    \"target\": \"ES2022\",\n    \"module\": \"Node16\",\n    \"moduleResolution\": \"Node16\",\n    \"outDir\": \"./build\",\n    \"rootDir\": \"./src\",\n    \"strict\": true,\n    \"esModuleInterop\": true,\n    \"skipLibCheck\": true,\n    \"forceConsistentCasingInFileNames\": true\n  },\n  \"include\": [\"src/**/*\"],\n  \"exclude\": [\"node_modules\"]\n}"
+    "value": "const workRepoMap: Array<{ keywords: string[], repoPath: string}> = [\n"
   },
   {
-    "name": "editor-save",
-    "value": "1"
+    "name": "editor-type",
+    "value": "    {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        keywords: [\"main-project\", \"core\", \"backend\"],\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        repoPath: \"/Users/yourname/work/main-project\"\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    },\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        keywords: [\"documentation\", \"docs\", \"wiki\"],\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        repoPath: \"/Users/yourname/work/documentation\"\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    },\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        keywords: [\"frontend\", \"ui\", \"client\"],\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        repoPath: \"/Users/yourname/work/frontend\"\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    }\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "];\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "const personalRepoMap: Array<{ keywords: string[], repoPath: string}> = [\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        keywords: [\"blog\", \"website\", \"personal-site\"],\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        repoPath: \"/Users/yourname/personal/blog\"\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    },\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        keywords: [\"side-project\", \"experiment\"],\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        repoPath: \"/Users/yourname/personal/side-project\"\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    }\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "];\n\n"
   },
   {
     "name": "author-speak-before",
-    "value": "Now let's install our dependencies using npm."
+    "value": "Now let's implement the main function that does the fuzzy matching. Notice how we provide helpful hints and suggestions when exact matches aren't found - this makes the tool much more conversational and user-friendly."
   },
   {
-    "name": "mouse-move-terminal",
-    "value": "1"
+    "name": "editor-type",
+    "value": "export const listRepoLocations = async (environment: string, keyword: string) => {\n"
   },
   {
-    "name": "mouse-left-click",
+    "name": "editor-type",
+    "value": "    const keywordLower = keyword.toLowerCase();\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    let keywordRepoMap: Array<{ keywords: string[], repoPath: string}> = [];\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    // Select the right environment\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    if (environment === \"work\") {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        keywordRepoMap = workRepoMap;\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    } else if (environment === \"personal\") {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        keywordRepoMap = personalRepoMap;\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    }\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    // First, try exact or substring matches\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    const exactMatches = keywordRepoMap.filter(repo => \n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        repo.keywords.some(kw => kw.toLowerCase().includes(keywordLower))\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    );\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    if (exactMatches.length > 0) {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        return {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            content: [{\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                type: \"text\",\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                text: `Found matching repo(s): ${exactMatches.map(repo => repo.repoPath).join(\", \")}`\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            }],\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            isError: false\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        };\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    }\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    // If no exact matches, use fuzzy matching\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    const DISTANCE_THRESHOLD = 3; // This is where the NLP magic happens!\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    const fuzzyMatches: Array<{repo: typeof keywordRepoMap[0], keyword: string, distance: number}> = [];\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    for (const repo of keywordRepoMap) {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        for (const kw of repo.keywords) {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            const distance = levenshteinDistance(keywordLower, kw.toLowerCase());\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            if (distance <= DISTANCE_THRESHOLD) {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                fuzzyMatches.push({repo, keyword: kw, distance});\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            }\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        }\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    }\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    // Sort by distance (closest matches first)\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    fuzzyMatches.sort((a, b) => a.distance - b.distance);\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    if (fuzzyMatches.length > 0) {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        const suggestions = fuzzyMatches\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            .slice(0, 5)\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            .map(match => `${match.keyword} (${match.repo.repoPath})`)\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            .join(\", \");\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        return {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            content: [{\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                type: \"text\",\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                text: `No exact matches found for '${keyword}'. Did you mean: ${suggestions}?`\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            }],\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            isError: true\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        };\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    }\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    // Final fallback with full context - still being helpful!\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    return {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        content: [{\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            type: \"text\",\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            text: `No matching repo found for '${keyword}'. Available keywords: ${keywordRepoMap.map(repo => repo.keywords.join(\", \")).join(\"; \")}`\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        }],\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        isError: true\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    };\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "};"
+  },
+  {
+    "name": "author-speak-before",
+    "value": "Let's go back up to the top of this file and import our levenshteinDistance function that we'll need."
+  },
+  {
+    "name": "editor-arrow-up",
+    "value": "1000"
+  },
+  {
+    "name": "editor-type",
+    "value": "import { levenshteinDistance } from \"../utils/levenshteinDistance.js\";\n\n"
+  },
+  {
+    "name": "editor-save",
+    "value": "true"
+  },
+  {
+    "name": "author-speak-before",
+    "value": "Let's create our utility function for fuzzy matching. We'll implement the Levenshtein distance algorithm which is crucial for making our tools feel more natural and human-friendly."
+  },
+  {
+    "name": "file-explorer-create-file",
+    "value": "src/utils/levenshteinDistance.ts"
+  },
+  {
+    "name": "file-explorer-open-file",
+    "value": "src/utils/levenshteinDistance.ts"
+  },
+  {
+    "name": "editor-type",
+    "value": "// This algorithm calculates the minimum number of edits to transform one string to another\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "export function levenshteinDistance(str1: string, str2: string): number {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    const m = str1.length;\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    const n = str2.length;\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    const matrix: number[][] = [];\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    // Initialize matrix\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    for (let i = 0; i <= m; i++) {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        matrix[i] = [i];\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        for (let j = 1; j <= n; j++) {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            matrix[0][j] = j;\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        }\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    }\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    // Calculate distance\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    for (let i = 1; i <= m; i++) {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        for (let j = 1; j <= n; j++) {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            const cost = str1[i - 1] === str2[j - 1] ? 0 : 1;\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            matrix[i][j] = Math.min(\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                matrix[i - 1][j] + 1,     // deletion\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                matrix[i][j - 1] + 1,     // insertion\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                matrix[i - 1][j - 1] + cost // substitution\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            );\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        }\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    }\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    return matrix[m][n];\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "}"
+  },
+  {
+    "name": "editor-save",
+    "value": "true"
+  },
+  {
+    "name": "author-speak-before",
+    "value": "Excellent! Now let's create our second tool - the terminal command executor. This tool provides a safe way for Claude to execute terminal commands with proper security guardrails."
+  },
+  {
+    "name": "file-explorer-create-file",
+    "value": "issue_terminal_command.ts"
+  },
+  {
+    "name": "file-explorer-open-file",
+    "value": "issue_terminal_command.ts"
+  },
+  {
+    "name": "editor-type",
+    "value": "import { exec } from 'child_process';\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "import { promisify } from 'util';\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "// Safety first - toggle this to control read-only mode\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "const READ_ONLY_MODE = true;\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "// List of allowed commands (read-only operations)\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "const ALLOWED_COMMANDS = [\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    'ls', 'dir', 'cat', 'head', 'tail', 'grep',\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    'pwd', 'echo', 'date', 'whoami', 'df', 'du', 'ps',\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    'wc', 'which', 'whereis', 'type', 'file', 'uname',\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    'history', 'env', 'printenv', 'git', 'cd', 'find'\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "];\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "export const issueTerminalCommand = async (command: string) => {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    // Extract the base command (first word)\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    const baseCommand = command.trim().split(/\\s+/)[0];\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    // Special handling for problematic commands\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    if (baseCommand === 'find') {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        return {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            content: [{\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                type: \"text\",\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                text: `Warning: The 'find' command can be slow on large directories. Consider using 'ls' or 'tree' for specific directories instead.`\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            }],\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            isError: false\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        };\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    }\n\n"
+  },
+  {
+    "name": "author-speak-before",
+    "value": "Notice how we're implementing security checks that still provide helpful feedback. Instead of just saying 'no', we're explaining why and suggesting alternatives."
+  },
+  {
+    "name": "editor-type",
+    "value": "    // Security check with helpful error messages\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    if (READ_ONLY_MODE && !ALLOWED_COMMANDS.includes(baseCommand)) {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        return {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            content: [{\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                type: \"text\",\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                text: `Error: Command '${baseCommand}' is not allowed in read-only mode. Allowed commands: ${ALLOWED_COMMANDS.join(', ')}`\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            }],\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            isError: true\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        };\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    }\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    // Execute the command\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    try {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        const execPromise = promisify(exec);\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        const { stdout, stderr } = await execPromise(command);\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        if (stderr) {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            return {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                content: [{\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                    type: \"text\",\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                    text: `Error: ${stderr}`\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                }],\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                isError: true\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            };\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        }\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        return {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            content: [{\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                type: \"text\",\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                text: stdout\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            }],\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            isError: false\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        };\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    } catch (error: any) {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        return {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            content: [{\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                type: \"text\",\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                text: `Error executing command: ${error.message}`\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            }],\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            isError: true\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        };\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    }\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "};"
+  },
+  {
+    "name": "editor-save",
+    "value": "true"
+  },
+  {
+    "name": "author-speak-before",
+    "value": "Now let's create the main MCP server file that registers our tools and handles the requests. This is where we wire everything together."
+  },
+  {
+    "name": "file-explorer-set-present-working-directory",
+    "value": "/Users/dev/mcp-tools/src"
+  },
+  {
+    "name": "file-explorer-create-file",
+    "value": "index.ts"
+  },
+  {
+    "name": "file-explorer-open-file",
+    "value": "index.ts"
+  },
+  {
+    "name": "editor-type",
+    "value": "import { Server } from '@modelcontextprotocol/sdk/server/index.js';\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "import {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    ListToolsRequestSchema,\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    CallToolRequestSchema,\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    McpError,\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    ErrorCode\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "} from '@modelcontextprotocol/sdk/types.js';\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "import { listRepoLocations } from './tools/list_repo_locations.js';\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "import { issueTerminalCommand } from './tools/issue_terminal_command.js';\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "const server = new Server(\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        name: 'mcp-dev-tools',\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        version: '0.1.0',\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    },\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        capabilities: {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            tools: {},\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        },\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    }\n"
+  },
+  {
+    "name": "editor-type",
+    "value": ");\n\n"
+  },
+  {
+    "name": "author-speak-before",
+    "value": "Let's set up the tool registration. This is where we define the interface that Claude will use to interact with our tools."
+  },
+  {
+    "name": "editor-type",
+    "value": "server.setRequestHandler(ListToolsRequestSchema, async () => {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    return {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        tools: [\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                name: \"list_repo_locations\",\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                description: \"Given a keyword, returns the relevant repo path based on the keyword provided. If no matching keyword is found, it gives context of the nearest matches.\",\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                inputSchema: {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                    type: \"object\",\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                    properties: {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                        keyword: { type: \"string\" },\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                    },\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                    required: [\"keyword\"]\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                }\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            },\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                name: \"issue_terminal_command\",\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                description: \"Executes a terminal command and returns the result.\",\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                inputSchema: {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                    type: \"object\",\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                    properties: {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                        command: { type: \"string\" },\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                    },\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                    required: [\"command\"]\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "                }\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "            }\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        ]\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    };\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "});\n\n"
+  },
+  {
+    "name": "author-speak-before",
+    "value": "Now let's implement the tool call handler. This is the brain of our MCP server that routes tool calls to the appropriate functions."
+  },
+  {
+    "name": "editor-type",
+    "value": "server.setRequestHandler(CallToolRequestSchema, async (request) => {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    if (request.params.name === \"list_repo_locations\") {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        const args = request.params.arguments as { keyword: string };\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        const { keyword } = args;\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        // You can configure environment via process.env\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        const environment = process.env.MCP_ENVIRONMENT || \"work\";\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        return { toolResult: await listRepoLocations(environment, keyword) };\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    }\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    else if (request.params.name === \"issue_terminal_command\") {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        const args = request.params.arguments as { command: string };\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        const { command } = args;\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "        return { toolResult: await issueTerminalCommand(command) };\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    }\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    throw new McpError(ErrorCode.MethodNotFound, \"Tool not found\");\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "});\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "// Start the server\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "async function main() {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    const transport = new StdioServerTransport();\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    await server.connect(transport);\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    console.error('MCP dev tools server running on stdio');\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "}\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "main().catch((error) => {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    console.error('Server error:', error);\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    process.exit(1);\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "});"
+  },
+  {
+    "name": "editor-save",
+    "value": "true"
+  },
+  {
+    "name": "author-speak-before",
+    "value": "Let's create a package.json file to manage our dependencies and scripts."
+  },
+  {
+    "name": "file-explorer-set-present-working-directory",
+    "value": "/Users/dev/mcp-tools"
+  },
+  {
+    "name": "file-explorer-create-file",
+    "value": "package.json"
+  },
+  {
+    "name": "file-explorer-open-file",
+    "value": "package.json"
+  },
+  {
+    "name": "editor-type",
+    "value": "{\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "  \"name\": \"mcp-dev-tools\",\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "  \"version\": \"0.1.0\",\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "  \"description\": \"Custom MCP tools for repository navigation and terminal commands\",\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "  \"type\": \"module\",\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "  \"main\": \"dist/index.js\",\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "  \"scripts\": {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    \"build\": \"tsc\",\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    \"start\": \"node dist/index.js\",\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    \"dev\": \"tsc --watch\"\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "  },\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "  \"dependencies\": {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    \"@modelcontextprotocol/sdk\": \"^0.1.0\"\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "  },\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "  \"devDependencies\": {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    \"@types/node\": \"^20.10.0\",\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    \"typescript\": \"^5.3.2\"\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "  }\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "}"
+  },
+  {
+    "name": "editor-save",
+    "value": "true"
+  },
+  {
+    "name": "author-speak-before",
+    "value": "Now let's create a TypeScript configuration file."
+  },
+  {
+    "name": "file-explorer-create-file",
+    "value": "tsconfig.json"
+  },
+  {
+    "name": "file-explorer-open-file",
+    "value": "tsconfig.json"
+  },
+  {
+    "name": "editor-type",
+    "value": "{\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "  \"compilerOptions\": {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    \"target\": \"ES2022\",\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    \"module\": \"ESNext\",\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    \"moduleResolution\": \"node\",\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    \"outDir\": \"./dist\",\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    \"rootDir\": \"./src\",\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    \"strict\": true,\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    \"esModuleInterop\": true,\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    \"resolveJsonModule\": true,\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    \"skipLibCheck\": true\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "  },\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "  \"include\": [\"src/**/*\"],\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "  \"exclude\": [\"node_modules\"]\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "}"
+  },
+  {
+    "name": "editor-save",
+    "value": "true"
+  },
+  {
+    "name": "author-speak-before",
+    "value": "Let's create a README file to document how to use these tools."
+  },
+  {
+    "name": "file-explorer-create-file",
+    "value": "README.md"
+  },
+  {
+    "name": "file-explorer-open-file",
+    "value": "README.md"
+  },
+  {
+    "name": "editor-type",
+    "value": "# MCP Dev Tools\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "Two powerful MCP tools that unlock fully agentic workflows with Claude Desktop.\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "## Tools\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "### 1. list_repo_locations\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "A smart repository finder with fuzzy matching and helpful hints.\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "### 2. issue_terminal_command\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "A controlled terminal execution tool with safety guardrails.\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "## Setup\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "1. Install dependencies:\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "```bash\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "npm install\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "```\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "2. Build the project:\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "```bash\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "npm run build\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "```\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "3. Configure in Claude Desktop:\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "Add to your `claude_desktop_config.json`:\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "```json\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "{\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "  \"mcpServers\": {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    \"mcp-dev-tools\": {\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "      \"command\": \"node\",\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "      \"args\": [\"/path/to/mcp-tools/dist/index.js\"]\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "    }\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "  }\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "}\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "```\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "## Customization\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "Customize the repository maps in `src/tools/list_repo_locations.ts` to match your project structure.\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "Adjust command permissions in `src/tools/issue_terminal_command.ts` as needed.\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "## Safety\n\n"
+  },
+  {
+    "name": "editor-type",
+    "value": "Always use READ_ONLY_MODE unless you absolutely trust the environment!\n"
+  },
+  {
+    "name": "editor-save",
+    "value": "true"
+  },
+  {
+    "name": "author-speak-before",
+    "value": "Perfect! Let's now run the build to make sure everything compiles correctly."
+  },
+  {
+    "name": "terminal-open",
+    "value": "true"
+  },
+  {
+    "name": "terminal-type",
+    "value": "cd /Users/dev/mcp-tools"
+  },
+  {
+    "name": "terminal-enter",
     "value": "1"
   },
   {
@@ -137,151 +1454,7 @@ const actions: Array<IAction> = [
   },
   {
     "name": "terminal-set-output",
-    "value": "added 147 packages, and audited 148 packages in 3s\n\n32 packages are looking for funding\n  run `npm fund` for details\n\nfound 0 vulnerabilities"
-  },
-  {
-    "name": "terminal-enter",
-    "value": "1"
-  },
-  {
-    "name": "author-speak-before",
-    "value": "Great! Now we need to create our source directory and our main index.ts file that will contain our MCP server code."
-  },
-  {
-    "name": "mouse-move-file-explorer",
-    "value": "1"
-  },
-  {
-    "name": "mouse-right-click",
-    "value": "1"
-  },
-  {
-    "name": "mouse-move-file-explorer-context-menu-new-folder",
-    "value": "1"
-  },
-  {
-    "name": "mouse-left-click",
-    "value": "1"
-  },
-  {
-    "name": "file-explorer-type-new-folder-input",
-    "value": "src"
-  },
-  {
-    "name": "file-explorer-enter-new-folder-input",
-    "value": "1"
-  },
-  {
-    "name": "mouse-move-file-explorer-folder",
-    "value": "src"
-  },
-  {
-    "name": "mouse-right-click",
-    "value": "1"
-  },
-  {
-    "name": "mouse-move-file-explorer-folder-context-menu-new-file",
-    "value": "1"
-  },
-  {
-    "name": "mouse-left-click",
-    "value": "1"
-  },
-  {
-    "name": "file-explorer-type-new-file-input",
-    "value": "index.ts"
-  },
-  {
-    "name": "file-explorer-enter-new-file-input",
-    "value": "1"
-  },
-  {
-    "name": "mouse-move-file-explorer-file",
-    "value": "src/index.ts"
-  },
-  {
-    "name": "mouse-left-click",
-    "value": "1"
-  },
-  {
-    "name": "author-speak-before",
-    "value": "Now let's add our boilerplate code to create a basic MCP server."
-  },
-  {
-    "name": "editor-type",
-    "value": "import { Server } from \"@modelcontextprotocol/sdk/server/index.js\";\nimport { StdioServerTransport } from \"@modelcontextprotocol/sdk/server/stdio.js\";\nimport {\n  CallToolRequestSchema,\n  ErrorCode,\n  ListToolsRequestSchema,\n  McpError,\n} from \"@modelcontextprotocol/sdk/types.js\";\n\nconst server = new Server({\n  name: \"mcp-server\",\n  version: \"1.0.0\",\n}, {\n  capabilities: {\n    tools: {}\n  }\n});\n\nserver.setRequestHandler(ListToolsRequestSchema, async () => {\n  return { tools: [] };\n});\n\nserver.setRequestHandler(CallToolRequestSchema, async (request) => {\n  if (request.params.name === \"name_of_tool\") {\n    return {};\n  }\n  throw new McpError(ErrorCode.MethodNotFound, \"Tool not found\");\n});\n\nconst transport = new StdioServerTransport();\nawait server.connect(transport);"
-  },
-  {
-    "name": "editor-save",
-    "value": "1"
-  },
-  {
-    "name": "author-speak-before",
-    "value": "This is the basic structure of an MCP server. Notice that we've used the correct ErrorCode.MethodNotFound instead of the deprecated ErrorCode.ToolNotFound. Next, let's implement a real tool that calculates the sum of two numbers."
-  },
-  {
-    "name": "editor-command-left",
-    "value": "1"
-  },
-  {
-    "name": "editor-arrow-up",
-    "value": "10"
-  },
-  {
-    "name": "editor-arrow-down",
-    "value": "4"
-  },
-  {
-    "name": "editor-command-left",
-    "value": "1"
-  },
-  {
-    "name": "editor-shift+arrow-right",
-    "value": "30"
-  },
-  {
-    "name": "editor-delete-line",
-    "value": "1"
-  },
-  {
-    "name": "editor-type",
-    "value": "server.setRequestHandler(ListToolsRequestSchema, async () => {\n  return {\n    tools: [{\n      name: \"calculate_sum\",\n      description: \"Add two numbers together\",\n      inputSchema: {\n        type: \"object\",\n        properties: {\n          a: { type: \"number\" },\n          b: { type: \"number\" }\n        },\n        required: [\"a\", \"b\"]\n      }\n    }]\n  };\n});"
-  },
-  {
-    "name": "editor-arrow-down",
-    "value": "2"
-  },
-  {
-    "name": "editor-command-left",
-    "value": "1"
-  },
-  {
-    "name": "editor-shift+arrow-right",
-    "value": "100"
-  },
-  {
-    "name": "editor-delete-line",
-    "value": "1"
-  },
-  {
-    "name": "editor-type",
-    "value": "server.setRequestHandler(CallToolRequestSchema, async (request) => {\n  if (request.params.name === \"calculate_sum\") {\n    const args = request.params.arguments as { a: number; b: number };\n    const { a, b } = args;\n    return { toolResult: a + b };\n  }\n  throw new McpError(ErrorCode.MethodNotFound, \"Tool not found\");\n});"
-  },
-  {
-    "name": "editor-save",
-    "value": "1"
-  },
-  {
-    "name": "author-speak-before",
-    "value": "Perfect! Now let's build our MCP server to make sure everything compiles correctly."
-  },
-  {
-    "name": "mouse-move-terminal",
-    "value": "1"
-  },
-  {
-    "name": "mouse-left-click",
-    "value": "1"
+    "value": "added 156 packages from 342 contributors and audited 157 packages in 3.245s\nfound 0 vulnerabilities"
   },
   {
     "name": "terminal-type",
@@ -293,175 +1466,11 @@ const actions: Array<IAction> = [
   },
   {
     "name": "terminal-set-output",
-    "value": "> mcp-server@0.1.0 build\n> tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"\n\nExecutable build/index.js is now ready for use."
+    "value": "Built successfully! Your MCP tools are ready to use."
   },
   {
     "name": "author-speak-before",
-    "value": "Great! Our MCP server has been built successfully. Now we need to tell Claude Desktop about our MCP server by updating the configuration file. Let's create a helpful alias to make this easier in the future."
-  },
-  {
-    "name": "mouse-move-file-explorer",
-    "value": "1"
-  },
-  {
-    "name": "mouse-right-click",
-    "value": "1"
-  },
-  {
-    "name": "mouse-move-file-explorer-context-menu-new-file",
-    "value": "1"
-  },
-  {
-    "name": "mouse-left-click",
-    "value": "1"
-  },
-  {
-    "name": "file-explorer-type-new-file-input",
-    "value": ".zprofile"
-  },
-  {
-    "name": "file-explorer-enter-new-file-input",
-    "value": "1"
-  },
-  {
-    "name": "mouse-move-file-explorer-file",
-    "value": ".zprofile"
-  },
-  {
-    "name": "mouse-left-click",
-    "value": "1"
-  },
-  {
-    "name": "editor-type",
-    "value": "alias claudedesktopconfig='code /Users/chris/Library/Application\\ Support/Claude/claude_desktop_config.json'"
-  },
-  {
-    "name": "editor-save",
-    "value": "1"
-  },
-  {
-    "name": "author-speak-before",
-    "value": "We've created an alias that lets us easily open the Claude Desktop config file. Now just for illustration, let's create a sample config file that we'd use to integrate our MCP server with Claude Desktop."
-  },
-  {
-    "name": "mouse-move-file-explorer",
-    "value": "1"
-  },
-  {
-    "name": "mouse-right-click",
-    "value": "1"
-  },
-  {
-    "name": "mouse-move-file-explorer-context-menu-new-file",
-    "value": "1"
-  },
-  {
-    "name": "mouse-left-click",
-    "value": "1"
-  },
-  {
-    "name": "file-explorer-type-new-file-input",
-    "value": "claude_desktop_config.json"
-  },
-  {
-    "name": "file-explorer-enter-new-file-input",
-    "value": "1"
-  },
-  {
-    "name": "mouse-move-file-explorer-file",
-    "value": "claude_desktop_config.json"
-  },
-  {
-    "name": "mouse-left-click",
-    "value": "1"
-  },
-  {
-    "name": "editor-type",
-    "value": "{\n  \"mcpServers\": {\n    \"mcp-server\": {\n      \"command\": \"node\",\n      \"args\": [\n        \"/Users/chris/playground/mcp-servermcp-server/build/index.js\"\n      ]\n    }\n  }\n}"
-  },
-  {
-    "name": "editor-save",
-    "value": "1"
-  },
-  {
-    "name": "author-speak-before",
-    "value": "This configuration file tells Claude Desktop about our MCP server. You'll need to replace 'YOUR_USER' with your actual username. With our .zprofile alias, we can easily update this configuration whenever needed."
-  },
-  {
-    "name": "author-speak-before",
-    "value": "Let's see what happens when we open the Claude Desktop configuration file using our alias."
-  },
-  {
-    "name": "mouse-move-terminal",
-    "value": "1"
-  },
-  {
-    "name": "mouse-left-click",
-    "value": "1"
-  },
-  {
-    "name": "terminal-type",
-    "value": "source ~/.zprofile"
-  },
-  {
-    "name": "terminal-enter",
-    "value": "1"
-  },
-  {
-    "name": "terminal-type",
-    "value": "claudedesktopconfig"
-  },
-  {
-    "name": "terminal-enter",
-    "value": "1"
-  },
-  {
-    "name": "terminal-set-output",
-    "value": "Opening Claude Desktop configuration in VS Code..."
-  },
-  {
-    "name": "author-speak-before",
-    "value": "Perfect! Now whenever we need to update our Claude Desktop configuration, we can just use this alias to quickly open the file in VS Code."
-  },
-  {
-    "name": "author-speak-before",
-    "value": "Once you've restarted Claude Desktop, you'll be able to see your MCP tool. When you ask a question like 'What is the sum of 9999 + 1?', Claude will find your tool and ask for permission to use it."
-  },
-  {
-    "name": "external-browser",
-    "value": "{\"title\": \"Claude Desktop - Calculate Sum Tool\", \"content\": \"<div style='font-family: sans-serif; padding: 20px;'><h2>Tool Use Confirmation</h2><p>Claude wants to use the 'calculate_sum' tool from 'mcp-server'.</p><p>Arguments: { a: 9999, b: 1 }</p><div style='display: flex; gap: 10px; margin-top: 20px;'><button style='padding: 8px 16px; background: #5555ff; color: white; border: none; border-radius: 4px;'>Allow</button><button style='padding: 8px 16px; border: 1px solid #ccc; background: white; border-radius: 4px;'>Deny</button></div></div>\"}"
-  },
-  {
-    "name": "author-speak-after",
-    "value": "After you grant permission, Claude will use your tool to calculate the sum and provide the answer (10000) in the chat."
-  },
-  {
-    "name": "author-speak-before",
-    "value": "And that's it! You've successfully created your first MCP server with a custom tool that Claude can use. You can expand on this by adding more tools with different capabilities."
-  },
-  {
-    "name": "author-speak-before",
-    "value": "Some ideas for tools you might want to implement:"
-  },
-  {
-    "name": "author-speak-before",
-    "value": "1. A weather tool that fetches current weather data for a given location"
-  },
-  {
-    "name": "author-speak-before",
-    "value": "2. A currency converter that converts between different currencies"
-  },
-  {
-    "name": "author-speak-before",
-    "value": "3. A database query tool that can fetch or store information"
-  },
-  {
-    "name": "author-speak-before",
-    "value": "4. A file system tool that can read or write files on your computer"
-  },
-  {
-    "name": "author-speak-before",
-    "value": "Remember, MCP is a powerful way to extend Claude's capabilities with custom tools. Happy coding!"
+    "value": "Congratulations! We've successfully built two powerful MCP tools that will transform how you work with Claude Desktop. These tools give you the core functionality of Claude Code without the subscription cost. The repository finder eliminates navigation friction with its smart fuzzy matching, while the controlled terminal executor provides Claude with real power to help with development tasks - all with proper safety guardrails. Remember to customize the repository maps to match your project structure, and always be mindful of security when using the terminal command tool. With these tools, you now have a truly agentic development workflow at your fingertips. Happy coding!"
   }
 ]
 
@@ -544,7 +1553,7 @@ export default function Home() {
             theme='dark'
             project={project}
             mode={mode}
-            allowFocusInEditor={false}
+            allowFocusInEditor={false} // so arrow keys work for navigation, not for typing
             defaultLanguage={'python'}
             isExternalBrowserStepUrl={null}
             currentActionIndex={currentActionIndex}
