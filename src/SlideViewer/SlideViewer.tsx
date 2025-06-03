@@ -27,6 +27,7 @@ export interface SlideViewerProps {
     slideMarkdown: string;
     hljsTheme?: string;
     fontSize?: string;
+    fontSizePx?: number;
     fontFamily?: string;
     color?: string;
     backgroundColor?: string;
@@ -41,6 +42,7 @@ export const SlideViewer: React.FC<SlideViewerProps> = ({
     slideMarkdown,
     hljsTheme = 'github',
     fontSize = '1rem',
+    fontSizePx,
     fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI (Custom)", Roboto, "Helvetica Neue", "Open Sans (Custom)", system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"',
     color = 'black',
     backgroundColor = 'white',
@@ -76,7 +78,7 @@ export const SlideViewer: React.FC<SlideViewerProps> = ({
     }, [slideMarkdown]);
 
     const slideContainerStyle: React.CSSProperties = {
-        fontSize,
+        fontSize: fontSizePx ? `${fontSizePx}px` : fontSize,
         fontFamily,
         color,
         backgroundColor,

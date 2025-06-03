@@ -9,6 +9,7 @@ import {
     Js,
     License,
     Markdown,
+    PDF,
     Python,
     Reactjs,
     Reactts,
@@ -72,6 +73,10 @@ export function FileIcon(props: IFileIconProps) {
             return <Rust height="20" />;
         case "txt":
             return <Text height="20" />;
+        case "md":
+            return <Markdown height="20" />;
+        case "pdf":
+            return <PDF height="20" />;
         default:
             return <CodeGray height="20" />;
     }

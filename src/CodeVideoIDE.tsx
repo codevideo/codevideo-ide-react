@@ -6,7 +6,7 @@ import * as monaco from 'monaco-editor';
 // import Monokai from "monaco-themes/themes/Monokai.json";
 
 // types
-import { extractActionsFromProject, GUIMode, IAction, IEditor, IEditorPosition, IFileStructure, IPoint, Project } from '@fullstackcraftllc/codevideo-types';
+import { extractActionsFromProject, ICodeVideoIDEProps, IAction, IEditor, IEditorPosition, IFileStructure, IPoint, Project, isRepeatableAction } from '@fullstackcraftllc/codevideo-types';
 
 // editor tabs
 import { EditorTabs } from './Editor/EditorTabs';
@@ -30,46 +30,23 @@ import { MouseOverlay } from './MouseOverlay/MouseOverlay';
 
 // CaptionOverlay
 import { CaptionOverlay } from './CaptionOverlay/CaptionOverlay';
-import { reconstituteAllPartsOfState } from './utils/reconstituteAllPartsOfState';
-import { CODEVIDEO_IDE_ID, DEFAULT_CARET_POSITION, DEFAULT_MOUSE_POSITION, KEYBOARD_TYPING_PAUSE_MS, LONG_PAUSE_MS, STANDARD_PAUSE_MS } from './constants/CodeVideoIDEConstants';
-import { EmbedOverlay } from './EmbedOverlay/EmbedOverlay';
-import { getNewMousePosition } from './MouseOverlay/utils/getNewMousePosition';
-import { UnsavedChangesDialog } from './UnsavedChangesDialog/UnsavedChangesDialog';
-import { SlideViewer } from './SlideViewer/SlideViewer';
-import { EDITOR_AREA_ID, EDITOR_ID } from './constants/CodeVideoDataIds';
 
-// Props!
-export interface ICodeVideoIDEProps {
-  theme: 'light' | 'dark';
-  project: Project;
-  mode: GUIMode;
-  allowFocusInEditor: boolean;
-  currentActionIndex: number;
-  currentLessonIndex: number | null
-  defaultLanguage: string;
-  isExternalBrowserStepUrl: string | null;
-  isSoundOn: boolean;
-  withCaptions: boolean;
-  actionFinishedCallback?: () => void;
-  playBackCompleteCallback?: () => void;
-  // an array of audio elements to play when an action is spoken - if a speak action is not found by matching text, it will not play
-  speakActionAudios: Array<{
-    text: string,
-    mp3Url: string
-  }>;
-  fileExplorerWidth?: number;
-  terminalHeight?: number;
-  mouseColor?: string;
-  fontSizePx?: number;
-  monacoLoadedCallback?: () => void;
-  isEmbedMode?: boolean;
-  requestStepModeCallback?: (mode: GUIMode) => void;
-  requestNextActionCallback?: () => void;
-  requestPreviousActionCallback?: () => void;
-  requestPlaybackStartCallback?: () => void;
-  isFileExplorerVisible?: boolean
-  isTerminalVisible?: boolean;
-}
+// embed overlay
+import { EmbedOverlay } from './EmbedOverlay/EmbedOverlay';
+
+// unsaved changes dialog
+import { UnsavedChangesDialog } from './UnsavedChangesDialog/UnsavedChangesDialog';
+
+// slide viewer
+import { SlideViewer } from './SlideViewer/SlideViewer';
+
+// util functions
+import { reconstituteAllPartsOfState } from './utils/reconstituteAllPartsOfState';
+import { getNewMousePosition } from './MouseOverlay/utils/getNewMousePosition';
+
+// ids and constants
+import { CODEVIDEO_IDE_ID, DEFAULT_CARET_POSITION, DEFAULT_MOUSE_POSITION, KEYBOARD_TYPING_PAUSE_MS, LONG_PAUSE_MS, STANDARD_PAUSE_MS } from './constants/CodeVideoIDEConstants';
+import { EDITOR_AREA_ID, EDITOR_ID } from './constants/CodeVideoDataIds';
 
 /**
  * Represents a powerful IDE with file explorer, multiple editors, and terminal
@@ -103,6 +80,10 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     requestPlaybackStartCallback,
     isFileExplorerVisible = true,
     isTerminalVisible = true,
+    keyboardTypingPauseMs = KEYBOARD_TYPING_PAUSE_MS,
+    standardPauseMs = STANDARD_PAUSE_MS,
+    longPauseMs = LONG_PAUSE_MS,
+    resolution = '1080p'
   } = props;
   const isRecording = mode === 'record'
   const [editors, setEditors] = useState<Array<IEditor>>();
@@ -138,6 +119,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
   const [isSlideDisplayStep, setIsSlideDisplayStep] = useState<boolean>(false);
   const [slideMarkdown, setSlideMarkdown] = useState<string>("");
   const [prevActionIndex, setPrevActionIndex] = useState<number>(-1);
+  const [showBlockCaret, setShowBlockCaret] = useState<boolean>(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const monacoEditorRef = useRef<monaco.editor.IStandaloneCodeEditor | undefined>(undefined);
@@ -178,7 +160,10 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
         setNewFileInputValue,
         setNewFolderInputValue,
         setRenameFileInputValue,
-        setRenameFolderInputValue
+        setRenameFolderInputValue,
+        keyboardTypingPauseMs,
+        standardPauseMs,
+        longPauseMs
       );
     }
     updateState();
@@ -219,8 +204,13 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     setCurrentHoveredFolderName(mouseSnapshot.currentHoveredFolderName);
     setNewFileParentPath(fileExplorerSnapshot.newFileParentPath);
     setNewFolderParentPath(fileExplorerSnapshot.newFolderParentPath);
-    setNewFileInputValue(fileExplorerSnapshot.newFileInputValue);
-    setNewFolderInputValue(fileExplorerSnapshot.newFolderInputValue);
+    
+    // Only set input values in step mode, not replay mode where animation handles it
+    if (mode !== 'replay') {
+      setNewFileInputValue(fileExplorerSnapshot.newFileInputValue);
+      setNewFolderInputValue(fileExplorerSnapshot.newFolderInputValue);
+    }
+    
     setCurrentHoveredEditorTabFileName(mouseSnapshot.currentHoveredEditorTabFileName);
     setIsUnsavedChangesDialogOpen(isUnsavedChangesDialogOpen);
     setUnsavedFileName(unsavedFileName);
@@ -305,9 +295,31 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
       setSlideMarkdown("");
     }
     
-    // Update the previous action index for next comparison
-    setPrevActionIndex(currentActionIndex);
+    // Update the previous action index for next comparison - moved to end and add dependency check
+    if (mode === 'step' || currentActionIndex > 0) {
+      setPrevActionIndex(currentActionIndex);
+    }
+  }, [currentActionIndex, project, currentLessonIndex, mode]);
+
+  // Effect to handle terminal caret based on current action
+  useEffect(() => {
+    const actions = extractActionsFromProject(project, currentLessonIndex);
+    const currentAction = currentActionIndex >= 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
+    
+    if (currentAction && currentAction.name.startsWith('terminal-')) {
+      setShowBlockCaret(true);
+      
+      // Keep block caret for 2 seconds after terminal action
+      const timer = setTimeout(() => {
+        setShowBlockCaret(false);
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    } else {
+      setShowBlockCaret(false);
+    }
   }, [currentActionIndex, project, currentLessonIndex]);
+
 
   // whenever issoundon changes or currentActionIndex, and we are in step mode, and the current action includes 'speak', we should speak
   useEffect(() => {
@@ -575,13 +587,16 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
   // console.log("isUnsavedChangesDialogOpen", isUnsavedChangesDialogOpen)
   // console.log("unsavedFileName", unsavedFileName)
 
+  // if we are in 4k mode, double the fontsize
+  const renderFontSizePx = fontSizePx && resolution === "4K" ? fontSizePx * 2 : fontSizePx
+
   return (
     <Flex
       direction="column"
       style={{
         height: '100%',
         width: '100%',
-        fontSize: fontSizePx ? `${fontSizePx}px` : undefined,
+        fontSize: renderFontSizePx ? `${renderFontSizePx}px` : undefined,
         // necessary so embed overlay can be positioned absolutely
         position: 'relative'
       }}
@@ -600,7 +615,8 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
         {isSlideDisplayStep ? (
           <SlideViewer 
             hljsTheme='monokai'
-            slideMarkdown={slideMarkdown} />
+            slideMarkdown={slideMarkdown}
+            fontSizePx={renderFontSizePx} />
         ) : isExternalBrowserStepUrl !== null ? (
           <Flex direction="row"
             style={{
@@ -682,7 +698,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
                       automaticLayout: true,
                       minimap: { enabled: true },
                       scrollBeyondLastLine: true,
-                      fontSize: fontSizePx ? fontSizePx : 14,
+                      fontSize: renderFontSizePx ? renderFontSizePx : 14,
                       fontFamily: 'Fira Code, monospace',
                       fontLigatures: true,
                       readOnly: mode === 'step',
@@ -704,7 +720,9 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
               {isTerminalVisible && <Terminal
                 theme={theme}
                 terminalBuffer={terminalBuffer}
-                terminalHeight={terminalHeight} />}
+                terminalHeight={terminalHeight}
+                fontSizePx={renderFontSizePx}
+                showBlockCaret={showBlockCaret} />}
             </Flex>
           </>
         )}
@@ -725,7 +743,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
         mouseColor={mouseColor} />}
 
       {/* Caption Overlay */}
-      {!showEmbedOverlay && withCaptions && <CaptionOverlay captionText={captionText} fontSizePx={fontSizePx} />}
+      {!showEmbedOverlay && withCaptions && <CaptionOverlay captionText={captionText} fontSizePx={renderFontSizePx} />}
 
       {/* Embed start overlay */}
       {showEmbedOverlay && <EmbedOverlay />}
@@ -735,22 +753,24 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
 
 const simulateHumanTypingWithReactSetterCallback = async (
   setter: React.Dispatch<React.SetStateAction<string>>,
-  text: string
+  text: string,
+  typingPauseMs: number = KEYBOARD_TYPING_PAUSE_MS
 ) => {
   const characters = text.split("");
   for (var i = 0; i < characters.length; i++) {
     setter((prev: string) => prev + characters[i]);
-    await sleep(KEYBOARD_TYPING_PAUSE_MS);
+    await sleep(typingPauseMs);
   }
 }
 
 // define the human typing here in the puppeteer environment
 const simulateHumanTypingInMonaco = (
   editor: monaco.editor.IStandaloneCodeEditor,
-  code: string
+  charactersToType: string,
+  typingPauseMs: number = KEYBOARD_TYPING_PAUSE_MS
 ) => {
   return new Promise<void>((resolve) => {
-    const characters: string[] = code.split("");
+    const characters: string[] = charactersToType.split("");
     let index: number = 0;
 
     function typeNextCharacter(): void {
@@ -783,7 +803,7 @@ const simulateHumanTypingInMonaco = (
         // trigger a focus to actually highlight where the caret is
         editor.focus();
         index++;
-        setTimeout(typeNextCharacter, KEYBOARD_TYPING_PAUSE_MS);
+        setTimeout(typeNextCharacter, typingPauseMs);
       } else {
         resolve();
       }
@@ -816,6 +836,9 @@ export const executeActionPlaybackForMonacoInstance = async (
   setNewFolderInputValue: React.Dispatch<React.SetStateAction<string>>,
   setRenameFileInputValue: React.Dispatch<React.SetStateAction<string>>,
   setRenameFolderInputValue: React.Dispatch<React.SetStateAction<string>>,
+  keyboardTypingPauseMs: number = KEYBOARD_TYPING_PAUSE_MS,
+  standardPauseMs: number = STANDARD_PAUSE_MS,
+  longPauseMs: number = LONG_PAUSE_MS,
 ) => {
   let startTime = -1;
 
@@ -832,13 +855,13 @@ export const executeActionPlaybackForMonacoInstance = async (
       setEditors(editors);
       setCurrentEditor(currentEditor);
       setCurrentFileName(currentFilename);
-      await sleep(STANDARD_PAUSE_MS);
+      await sleep(standardPauseMs);
       setCurrentCaretPosition(currentCaretPosition);
       break;
   }
 
   // before continuing, wait a little bit so file explorer can update the DOM
-  await sleep(STANDARD_PAUSE_MS);
+  await sleep(standardPauseMs);
 
   // MOUSE MOVEMENT ANIMATIONS, PASS THROUGH AND CONTINUE BELOW
   // 
@@ -896,9 +919,9 @@ export const executeActionPlaybackForMonacoInstance = async (
   // }
   // };
 
-  // try to parse the 'times' value as an integer, if it fails, default to 1
-  // the times doesn't always apply to some actions, so we do that action just once
-  const times = parseInt(action.value) || 1;
+  // try to parse the 'times' value as an integer for repeatable actions, if it fails, default to 1
+  // the "times" doesn't always apply to most actions, so we do that action just once
+  const times = isRepeatableAction(action.name) ? parseInt(action.value) : 1;
   const pos = editor.getPosition();
   // const lineNumber = pos?.lineNumber;
   for (let i = 0; i < times; i++) {
@@ -907,37 +930,43 @@ export const executeActionPlaybackForMonacoInstance = async (
       case action.name.startsWith("external-"):
       case action.name.startsWith("slides-"):
         // no op - but do a long pause
-        await sleep(LONG_PAUSE_MS);
+        await sleep(longPauseMs);
         break;
       case action.name.startsWith("author-"):
         setCaptionText(action.value);
         // try to find a matching mp3 url by matching the text of it to action.value in the speakActionAudios array
         const mp3Url = speakActionAudios.find((audio) => audio.text === action.value)?.mp3Url;
 
-        // if an mp3 url was not found, it is undefined and we default to the speech synthesis
-        await speakText(action.value, isSoundOn ? 1 : 0, mp3Url);
+        // Handle different types of author actions
+        if (action.name === "author-speak-during") {
+          // Fire and forget - don't await
+          speakText(action.value, isSoundOn ? 1 : 0, mp3Url);
+        } else {
+          // Default behavior for author-speak-before and other author actions - await completion
+          await speakText(action.value, isSoundOn ? 1 : 0, mp3Url);
+        }
         break;
       // BEGIN FILE EXPLORER TYPING ACTIONS
       case action.name === "file-explorer-type-new-file-input":
-        simulateHumanTypingWithReactSetterCallback(setNewFileInputValue, action.value)
+        simulateHumanTypingWithReactSetterCallback(setNewFileInputValue, action.value, keyboardTypingPauseMs)
         break;
       case action.name === "file-explorer-enter-new-file-input":
         setNewFileInputValue("")
         break;
       case action.name === "file-explorer-type-new-folder-input":
-        simulateHumanTypingWithReactSetterCallback(setNewFolderInputValue, action.value)
+        simulateHumanTypingWithReactSetterCallback(setNewFolderInputValue, action.value, keyboardTypingPauseMs)
         break;
       case action.name === "file-explorer-enter-new-folder-input":
         setNewFolderInputValue("")
         break;
       case action.name === "file-explorer-type-rename-file-input":
-        simulateHumanTypingWithReactSetterCallback(setRenameFileInputValue, action.value)
+        simulateHumanTypingWithReactSetterCallback(setRenameFileInputValue, action.value, keyboardTypingPauseMs)
         break;
       case action.name === "file-explorer-enter-rename-file-input":
         setRenameFileInputValue("")
         break;
       case action.name === "file-explorer-type-rename-folder-input":
-        simulateHumanTypingWithReactSetterCallback(setRenameFolderInputValue, action.value)
+        simulateHumanTypingWithReactSetterCallback(setRenameFolderInputValue, action.value, keyboardTypingPauseMs)
         break;
       case action.name === "file-explorer-enter-rename-folder-input":
         setRenameFolderInputValue("")
@@ -951,7 +980,7 @@ export const executeActionPlaybackForMonacoInstance = async (
           // loop at character level to simulate typing
           for (let i = 0; i < latestLine.length; i++) {
             setTerminalBuffer((prev: string) => prev + latestLine[i]);
-            await sleep(100)
+            await sleep(keyboardTypingPauseMs)
           }
         }
         break;
@@ -960,31 +989,31 @@ export const executeActionPlaybackForMonacoInstance = async (
         // @ts-ignore
         pos.lineNumber = pos.lineNumber + 1;
         editor.setPosition(pos);
-        await sleep(KEYBOARD_TYPING_PAUSE_MS)
+        await sleep(keyboardTypingPauseMs)
         break;
       case action.name === "editor-arrow-up" && pos !== null:
         // @ts-ignore
         pos.lineNumber = pos.lineNumber - 1;
         editor.setPosition(pos);
-        await sleep(KEYBOARD_TYPING_PAUSE_MS)
+        await sleep(keyboardTypingPauseMs)
         break;
       case action.name === "editor-tab" && pos !== null:
         // @ts-ignore
         pos.lineNumber = pos.lineNumber + 2;
         editor.setPosition(pos);
-        await sleep(KEYBOARD_TYPING_PAUSE_MS)
+        await sleep(keyboardTypingPauseMs)
         break;
       case action.name === "editor-arrow-left" && pos !== null:
         // @ts-ignore
         pos.column = pos.column - 1;
         editor.setPosition(pos);
-        await sleep(KEYBOARD_TYPING_PAUSE_MS)
+        await sleep(keyboardTypingPauseMs)
         break;
       case action.name === "editor-arrow-right" && pos !== null:
         // @ts-ignore
         pos.column = pos.column + 1;
         editor.setPosition(pos);
-        await sleep(KEYBOARD_TYPING_PAUSE_MS)
+        await sleep(keyboardTypingPauseMs)
         break;
       case action.name === "editor-enter":
         await simulateHumanTypingInMonaco(editor, "\n");
@@ -996,14 +1025,14 @@ export const executeActionPlaybackForMonacoInstance = async (
       //     // @ts-ignore
       //     { range: new monaco.Range(lineNumber, 1, lineNumber + 1, 1), text: null },
       //   ]);
-      //   await sleep(KEYBOARD_TYPING_PAUSE_MS)
+      //   await sleep(keyboardTypingPauseMs)
       //   break;
       case action.name === "editor-command-right" && pos !== null:
         // simulate moving to the end of the current line
         // @ts-ignore
         pos.column = 100000;
         editor.setPosition(pos);
-        await sleep(KEYBOARD_TYPING_PAUSE_MS)
+        await sleep(keyboardTypingPauseMs)
         break;
       //   // highlight breaks SSR
       // // case action.name === "editor-highlight-code":
@@ -1015,14 +1044,14 @@ export const executeActionPlaybackForMonacoInstance = async (
       case action.name === "editor-backspace":
         // @ts-ignore - this also breaks SSR
         typeof window !== "undefined" && editor.trigger(1, "deleteLeft");
-        await sleep(KEYBOARD_TYPING_PAUSE_MS)
+        await sleep(keyboardTypingPauseMs)
         break;
       case action.name === "editor-type":
         await simulateHumanTypingInMonaco(editor, action.value);
         break;
       default:
         // no op - but still do default delay
-        await sleep(STANDARD_PAUSE_MS);
+        await sleep(standardPauseMs);
         console.warn("Unable to apply action", JSON.stringify(action));
         break;
     }

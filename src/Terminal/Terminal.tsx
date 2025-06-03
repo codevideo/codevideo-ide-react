@@ -5,11 +5,13 @@ import { TERMINAL_ID } from 'src/constants/CodeVideoDataIds';
 export interface ITerminalProps {
     theme?: 'light' | 'dark';
     terminalBuffer: string;
+    fontSizePx?: number;
     terminalHeight?: number;
+    showBlockCaret?: boolean;
 }
 
 export function Terminal(props: ITerminalProps) {
-    const { theme, terminalBuffer, terminalHeight } = props;
+    const { theme, terminalBuffer, terminalHeight, fontSizePx = 14, showBlockCaret = false } = props;
     const terminalRef = useRef<HTMLDivElement>(null);
 
     // always auto-scroll to the bottom whenever the terminal buffer changes
@@ -40,27 +42,29 @@ export function Terminal(props: ITerminalProps) {
                 height: terminalHeight ? `${terminalHeight}px` : '150px',
                 backgroundColor: theme === 'light' ? 'var(--gray-5)' : 'var(--gray-4)',
                 fontFamily: 'Fira Code, monospace',
+                fontSize: `${fontSizePx}px`,
                 padding: '8px',
                 position: 'relative',
-                overflow: 'auto', // Changed from 'hidden' to 'auto' to enable scrolling
-                scrollBehavior: 'smooth', // Add smooth scrolling effect
+                overflow: 'auto',
+                scrollBehavior: 'smooth',
             }}
         >
             <Box style={{
-                whiteSpace: 'pre-wrap',  // This enables text wrapping
-                wordBreak: 'break-word', // This ensures words break properly
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
                 fontWeight: 'bold',
-                width: '100%',           // Ensure the content takes full width of container
+                width: '100%',
             }}>
                 {terminalBuffer}
                 <Box
                     style={{
                         display: 'inline-block',
-                        width: '2px',
-                        height: '19px',
-                        marginBottom: '-4px',
-                        backgroundColor: 'var(--gray-12)',
-                        animation: 'blink 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                        width: `${fontSizePx * 0.6}px`,
+                        height: `${fontSizePx}px`,
+                        marginBottom: '-2px',
+                        backgroundColor: showBlockCaret ? 'var(--gray-12)' : 'transparent',
+                        border: showBlockCaret ? 'none' : `1px solid var(--gray-12)`,
+                        boxSizing: 'border-box',
                     }}
                 />
             </Box>

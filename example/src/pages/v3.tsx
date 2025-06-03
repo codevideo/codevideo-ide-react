@@ -1,11 +1,12 @@
 import * as React from "react"
-import { extractActionsFromProject, GUIMode, IAction, IAudioItem, ICodeVideoManifest, Project } from "@fullstackcraftllc/codevideo-types"
+import { ICodeVideoIDEProps, GUIMode, IAction, IAudioItem, ICodeVideoManifest, Project } from "@fullstackcraftllc/codevideo-types"
 import { CodeVideoIDE } from "@fullstackcraftllc/codevideo-ide-react"
 import { Box, Flex, Theme } from "@radix-ui/themes";
 import { useEffect, useState } from "react";
 
 // this example is nearly the same as the record example, but with some puppeteer window injections
 // it also loads the manifest from the CodeVideo API running at localhost:7000
+// this is the static page used by the codevideo-cli
 export default function Puppeteer() {
   const [mode, setMode] = useState<GUIMode>('step')
   const [currentActionIndex, setCurrentActionIndex] = useState(0)
@@ -16,17 +17,59 @@ export default function Puppeteer() {
   const [isSoundOn, setIsSoundOn] = useState<boolean>(false)
   const [monacoLoaded, setMonacoLoaded] = useState<boolean>(false)
 
+  // CodeVideoIDE props state with defaults
+  const [ideProps, setIdeProps] = useState<ICodeVideoIDEProps>({
+    project: [],
+    mode: 'step',
+    currentLessonIndex: 0,
+    currentActionIndex: 0,
+    isSoundOn: false,
+    actionFinishedCallback: () => {},
+    speakActionAudios: [],
+    theme: 'dark',
+    allowFocusInEditor: false,
+    defaultLanguage: 'python',
+    isExternalBrowserStepUrl: null,
+    withCaptions: true,
+    fileExplorerWidth: 400,
+    terminalHeight: 350,
+    mouseColor: "black",
+    fontSizePx: 26,
+    keyboardTypingPauseMs: 30,
+    standardPauseMs: 400,
+    longPauseMs: 400,
+    resolution: '1080p'
+  })
+
   // on user interaction, set mode to 'replay' and reset the current action index
   const [readyToReplay, setReadyToReplay] = useState(false)
 
-  
-
   // Expose the __startRecording function globally.
+  // also log any error or unhandled rejection to the console
   useEffect(() => {
+    if (typeof window === 'undefined') {
+      console.error("This code is intended to run in a browser environment.");
+      return;
+    }
+    
     (window as any).__startRecording = () => {
       console.log("Recording triggered programmatically!");
       setReadyToReplay(true);
     };
+
+    (window as any).addEventListener('error', (event) => {
+        console.error('Global error caught:', {
+            message: event.message,
+            filename: event.filename,
+            lineno: event.lineno,
+            colno: event.colno,
+            error: event.error?.stack
+        });
+    });
+
+    (window as any).addEventListener('unhandledrejection', (event) => {
+        console.error('Unhandled promise rejection:', event.reason);
+    });
   }, []);
 
   useEffect(() => {
@@ -56,20 +99,28 @@ export default function Puppeteer() {
       console.log("Manifest data: ", data)
 
       // if data.actions is defined, set the actions
-      let project: Project | undefined
-      if (data && data.actions) {
-        project = data.actions
-      } else if (data.lesson) {
-        project = data.lesson
-      }
+      // let project: Project | undefined
+      // if (data && data.actions) {
+      //   project = data.actions
+      // } else if (data.lesson) {
+      //   project = data.lesson
+      // }
 
-      if (data.currentLessonIndex !== undefined) {
-        setCurrentLessonIndex(data.currentLessonIndex)
-      }
+      // if (data.currentLessonIndex !== undefined) {
+      //   setCurrentLessonIndex(data.currentLessonIndex)
+      // }
 
-      const actions = extractActionsFromProject(project, data.currentLessonIndex)
-      setActions(actions)
+      // const actions = extractActionsFromProject(project, data.currentLessonIndex)
+      setActions(data.actions || [])
       setAudioItems(data.audioItems)
+
+      // Apply codeVideoIDEProps from manifest if they exist
+      if (data.codeVideoIDEProps) {
+        setIdeProps(prevProps => ({
+          ...prevProps,
+          ...data.codeVideoIDEProps
+        }))
+      }
     } catch (error) {
       console.error("Error getting manifest: ", error)
     }
@@ -85,7 +136,7 @@ export default function Puppeteer() {
     }
   }, [])
 
-  // to continue to next action in replay mode, you need to implementation a function for the actionFinishedCallback prop
+  // NOTE HERE: to continue to the next action in replay mode, you need to implementation a function for the actionFinishedCallback prop
   const goToNextAction = () => {
     console.log("Going to next action...")
     const nextIndex = currentActionIndex + 1
@@ -137,27 +188,18 @@ export default function Puppeteer() {
           }}
         >
           <CodeVideoIDE
-            theme='dark'
-            project={project}
-            currentLessonIndex={currentLessonIndex}
+            {...ideProps}
+            // should be project, but something seems broken - just use the actions for now
+            project={actions}
+            // should be currentLessonIndex, but something seems broken
+            currentLessonIndex={0}
             mode={mode}
-            allowFocusInEditor={false}
-            defaultLanguage={'python'}
-            isExternalBrowserStepUrl={null}
             currentActionIndex={currentActionIndex}
             isSoundOn={isSoundOn}
-            // if you're using CodeVideo to record a video for something like youtube, captions may not be a good idea
-            // if you're exporting a video to your own site, captions might be really nice!
-            // for this example, since the user gets directly in their email, captions are nice
-            withCaptions={true}
             actionFinishedCallback={goToNextAction}
             playBackCompleteCallback={playBackCompleteCallback}
             // this example has audios! see codevideo-backend-engine, command: `npm run generate-audio-manifest <your actions json or ts file here> elevenlabs`
             speakActionAudios={audioItems}
-            fileExplorerWidth={400}
-            terminalHeight={250}
-            mouseColor="black"
-            fontSizePx={24}
             monacoLoadedCallback={() => setMonacoLoaded(true)}
           />
         </Box>
