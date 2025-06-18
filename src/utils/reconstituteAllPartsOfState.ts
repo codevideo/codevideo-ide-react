@@ -1,6 +1,6 @@
 import { Project, extractActionsFromProject } from "@fullstackcraftllc/codevideo-types";
 import { VirtualIDE } from "@fullstackcraftllc/codevideo-virtual-ide";
-import { DEFAULT_CARET_POSITION } from "../constants/CodeVideoIDEConstants";
+import { DEFAULT_CARET_POSITION } from "../constants/CodeVideoIDEConstants.js";
 
 export const reconstituteAllPartsOfState = (project: Project, currentActionIndex: number, currentLessonIndex: number | null) => {
     const actions = extractActionsFromProject(project, currentLessonIndex)
@@ -31,7 +31,7 @@ export const reconstituteAllPartsOfState = (project: Project, currentActionIndex
     const currentFilename = currentEditor.filename;
     const fileExplorerSnapshot = courseSnapshot.fileExplorerSnapshot;
     const currentCode = currentEditor ? currentEditor.content : '';
-    const currentCaretPosition = virtualIDE.virtualEditors && virtualIDE.virtualEditors.length > 0 ? virtualIDE.virtualEditors[0]?.virtualEditor.getCurrentCaretPosition() || DEFAULT_CARET_POSITION : DEFAULT_CARET_POSITION;
+    const currentCaretPosition = currentEditor.caretPosition;
     const currentTerminalBuffer = virtualIDE.virtualTerminals.length > 0 ? virtualIDE.virtualTerminals[0]?.getBuffer().join('\n') || '' : '';
     const captionText = courseSnapshot?.authorSnapshot.authors[0]?.currentSpeechCaption || '';
     const mouseSnapshot = courseSnapshot?.mouseSnapshot;

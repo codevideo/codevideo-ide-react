@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Box, Flex, Text } from '@radix-ui/themes';
 import { GUIMode } from '@fullstackcraftllc/codevideo-types';
-import { EXTERNAL_WEB_VIEWER_ID } from 'src/constants/CodeVideoDataIds';
+import { EXTERNAL_WEB_VIEWER_ID } from 'src/constants/CodeVideoDataIds.js';
 
 export interface IExternalWebViewerProps {
     url: string;
@@ -85,13 +85,14 @@ export const ExternalWebViewer = (props: IExternalWebViewerProps) => {
             // Store current scroll position for next animation
             prevScrollPositionRef.current = scrollPosition;
         } catch (error) {
-            console.error("Failed to scroll iframe content:", error);
+            console.error("Failed to scroll iframe content:", JSON.stringify(error));
         }
     }, [scrollPosition, mode, hasLoaded, scrollDuration]);
 
     return (
         <Box
             data-codevideo-id={EXTERNAL_WEB_VIEWER_ID}
+            data-testid="external-web-viewer"
             style={{ width: '100%', height: '100vh' }}>
             {hasError ? (
                 <Flex align="center" justify="center" style={{ height: '100%' }}>

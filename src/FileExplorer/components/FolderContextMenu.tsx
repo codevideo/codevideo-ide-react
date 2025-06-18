@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Box, Flex, Text } from '@radix-ui/themes';
 import { IPoint } from '@fullstackcraftllc/codevideo-types';
-import { DEFAULT_MOUSE_POSITION } from 'src/constants/CodeVideoIDEConstants';
+import { DEFAULT_MOUSE_POSITION } from 'src/constants/CodeVideoIDEConstants.js';
 
 export interface IFolderContextMenu {
   isVisible: boolean;
@@ -24,7 +24,8 @@ export const FolderContextMenu = (props: IFolderContextMenu) => {
 
   // Set the menu position when it becomes visible
   useEffect(() => {
-    if (isVisible) {
+    if (isVisible && currentMousePosition && 
+        currentMousePosition.x !== undefined && currentMousePosition.y !== undefined) {
       setMenuPosition({
         x: currentMousePosition.x,
         y: currentMousePosition.y
@@ -33,7 +34,8 @@ export const FolderContextMenu = (props: IFolderContextMenu) => {
   }, [isVisible]);
 
   useEffect(() => {
-    if (!isVisible) return;
+    if (!isVisible || !currentMousePosition || 
+        currentMousePosition.x === undefined || currentMousePosition.y === undefined) return;
     
     // Check if mouse coordinates intersect with menu items
     const checkIntersection = () => {

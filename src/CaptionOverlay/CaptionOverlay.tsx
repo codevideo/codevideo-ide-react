@@ -12,6 +12,7 @@ export function CaptionOverlay(props: ICaptionOverlayProps) {
         <>
             {captionText && (
                 <Box
+                    data-testid="caption-overlay"
                     style={{
                         width: '100%',
                         color: 'white',

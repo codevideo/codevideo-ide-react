@@ -1,12 +1,132 @@
+// import { KokoroTTS } from "kokoro-js";
+const model_id = "onnx-community/Kokoro-82M-v1.0-ONNX";
+
+// use singleton pattern with tts
+// let tts: KokoroTTS | null = null;
+
 // Keep track of the current utterance
 let currentUtterance: SpeechSynthesisUtterance | null = null;
+
+/**
+ * Speaks the text using the local koroko speech at localhost:3000
+ * @param text 
+ * @param volume 
+ */
+export const speakText = async (text: string, volume: number, mp3Url?: string): Promise<void> => {
+
+  // // Initialize the TTS instance if it doesn't exist
+  // if (!tts) {
+  //   tts = await KokoroTTS.from_pretrained(model_id, {
+  //     dtype: "fp32", // Options: "fp32", "fp16", "q8", "q4", "q4f16"
+  //     device: "webgpu", // Options: "wasm", "webgpu" (web) or "cpu" (node). If using "webgpu", we recommend using dtype="fp32".
+  //   });
+  // }
+
+  // if there is an mp3Url, use the fallback method
+  if (mp3Url) {
+    return speakTextFallback(text, volume, mp3Url);
+  }
+
+  // const audio = await tts.generate(text, {
+  //   voice: "af_sky",
+  // });
+
+  // // First, stop any ongoing speech
+  // stopSpeaking();
+  // // Convert RawAudio to Blob
+  // const audioBlob = new Blob([audio.audio], { type: 'audio/wav' });
+  // // Create an audio URL from the generated audio
+  // const audioUrl = URL.createObjectURL(audioBlob);
+  // // Create and play the audio
+  // const audioElement = new Audio(audioUrl);
+  // audioElement.volume = volume;
+  // // Set up event listeners
+  // return new Promise<void>((resolve, reject) => {
+  //   audioElement.onended = () => {
+  //     URL.revokeObjectURL(audioUrl); // Clean up the object URL
+  //     resolve();
+  //   };
+  //   audioElement.onerror = (event) => {
+  //     URL.revokeObjectURL(audioUrl); // Clean up the object URL
+  //     reject(new Error(`Audio playback error: ${event}`));
+  //   };
+  //   // Play the audio
+  //   audioElement.play().catch(error => {
+  //     console.error("Failed to play audio:", error);
+  //     reject(error);
+  //   });
+  // });
+
+  // if no mp3Url is provided, use the local koroko speech API
+  return new Promise<void>(async (resolve, reject) => {
+    try {
+      // First, stop any ongoing speech
+      stopSpeaking();
+
+      // Make the API call to localhost:3000
+      const response = await fetch('http://localhost:3000/api/v1/audio/speech', {
+        method: 'POST',
+        headers: {
+          'accept': '*/*',
+          'Authorization': 'Bearer 123456',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: "model",
+          voice: "af_sky",
+          input: text,
+          response_format: "mp3",
+          speed: 1.1
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Get the audio data as a blob
+      const audioBlob = await response.blob();
+
+      // Create an audio URL from the blob
+      const audioUrl = URL.createObjectURL(audioBlob);
+
+      // Create and play the audio
+      const audio = new Audio(audioUrl);
+      audio.volume = volume;
+
+      // Set up event listeners
+      audio.onended = () => {
+        URL.revokeObjectURL(audioUrl); // Clean up the object URL
+        resolve();
+      };
+
+      audio.onerror = (event) => {
+        URL.revokeObjectURL(audioUrl); // Clean up the object URL
+        reject(new Error(`Audio playback error: ${event}`));
+      };
+
+      // Play the audio
+      await audio.play();
+
+    } catch (error) {
+      // If the API call fails, fall back to the browser's speech synthesis
+      console.warn('Local speech API failed, falling back to browser speech synthesis:', error);
+      try {
+        await speakTextFallback(text, volume);
+        resolve();
+      } catch (fallbackError) {
+        reject(fallbackError);
+      }
+    }
+  });
+}
 
 /**
  * Speaks the given text, canceling any currently playing speech first
  * @param text The text to speak
  * @returns A promise that resolves when speech is finished
  */
-export const speakText = async (text: string, volume: number, mp3Url?: string): Promise<void> => {
+export const speakTextFallback = async (text: string, volume: number, mp3Url?: string): Promise<void> => {
   return new Promise<void>((resolve, reject) => {
     // First, cancel any ongoing speech or audio playback
     stopSpeaking();
@@ -120,14 +240,14 @@ export const isSpeaking = (): boolean => {
 export const playAudio = async (url: string) => {
   try {
     const dataURL = await fetchAudioAsDataURL(url);
-    
+
     // Create and play audio with the data URL
     const audio = new Audio(dataURL);
     audio.addEventListener("error", (e) => {
       console.error("Audio error event:", e.type);
       console.error("Error details:", audio.error);
     });
-    
+
     console.log("Playing audio from data URL...");
     audio.play().catch(err => {
       console.error("Play error:", err);
@@ -141,15 +261,15 @@ export const fetchAudioAsDataURL = async (url: string): Promise<string> => {
     // Fetch the audio file
     console.log(`Fetching audio from: ${url}`);
     const response = await fetch(url);
-    
+
     if (!response.ok) {
       throw new Error(`Failed to fetch audio: ${response.status} ${response.statusText}`);
     }
-    
+
     // Get the blob from the response
     const blob = await response.blob();
     console.log(`Received blob of type: ${blob.type}, size: ${blob.size} bytes`);
-    
+
     // Convert blob to base64 data URL
     return new Promise((resolve, reject) => {
       const reader = new FileReader();

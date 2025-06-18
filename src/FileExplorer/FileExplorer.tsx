@@ -1,12 +1,12 @@
 import React, { JSX, useEffect, useRef, useState } from 'react';
 import { IFileStructure, IPoint } from '@fullstackcraftllc/codevideo-types';
 import { Box, Flex, Text, TextField } from '@radix-ui/themes';
-import { FileIcon } from './components/FileIcons/FileIcon';
+import { FileIcon } from './components/FileIcons/FileIcon.jsx';
 import { Text as TextIcon, Folder } from '@react-symbols/icons';
-import { FileExplorerContextMenu } from './components/FileExplorerContextMenu';
-import { FileContextMenu } from './components/FileContextMenu';
-import { FolderContextMenu } from './components/FolderContextMenu';
-import { FILE_EXPLORER_ID } from 'src/constants/CodeVideoDataIds';
+import { FileExplorerContextMenu } from './components/FileExplorerContextMenu.jsx';
+import { FileContextMenu } from './components/FileContextMenu.jsx';
+import { FolderContextMenu } from './components/FolderContextMenu.jsx';
+import { FILE_EXPLORER_ID } from 'src/constants/CodeVideoDataIds.js';
 
 export interface IFileExplorerProps {
     theme: 'light' | 'dark'
@@ -56,13 +56,13 @@ export function FileExplorer(props: IFileExplorerProps) {
     } = props;
 
     // For debugging
-    console.log('[FileExplorer] Props state:');
-    console.log('- isNewFileInputVisible:', isNewFileInputVisible);
-    console.log('- isNewFolderInputVisible:', isNewFolderInputVisible);
-    console.log('- newFileInputValue:', newFileInputValue);
-    console.log('- newFolderInputValue:', newFolderInputValue);
-    console.log('- newFileParentPath:', newFileParentPath);
-    console.log('- newFolderParentPath:', newFolderParentPath);
+    // console.log('[FileExplorer] Props state:');
+    // console.log('- isNewFileInputVisible:', isNewFileInputVisible);
+    // console.log('- isNewFolderInputVisible:', isNewFolderInputVisible);
+    // console.log('- newFileInputValue:', newFileInputValue);
+    // console.log('- newFolderInputValue:', newFolderInputValue);
+    // console.log('- newFileParentPath:', newFileParentPath);
+    // console.log('- newFolderParentPath:', newFolderParentPath);
 
     const getEffectiveParentPath = (inputType: 'file' | 'folder'): string => {
         if (inputType === 'file') {
@@ -186,7 +186,13 @@ export function FileExplorer(props: IFileExplorerProps) {
             const isDirectory = item.type === 'directory';
             const leftMargin = level === 0 ? "0" : "4";
             const nextLevel = level + 1;
-            const isHighlight = currentFileName === fullPath || currentHoveredFileName === fullPath || currentHoveredFolderName === fullPath;
+            
+            // Fix highlighting logic to properly distinguish between files and folders
+            // Prioritize hover states over selected/active states to prevent overlap during transitions
+            const isHovered = (isDirectory && currentHoveredFolderName === fullPath) || 
+                             (!isDirectory && currentHoveredFileName === fullPath);
+            const isSelected = currentFileName === fullPath;
+            const isHighlight = isHovered || (isSelected && !currentHoveredFileName && !currentHoveredFolderName);
 
             // Check if this directory should show the new file/folder inputs
             const effectiveFileParentPath = getEffectiveParentPath('file');
@@ -208,8 +214,12 @@ export function FileExplorer(props: IFileExplorerProps) {
                         align="center"
                         gap="2"
                         style={{
-                            backgroundColor: isHighlight ? 'var(--mint-2)' : 'transparent',
-                            width: isHighlight ? '100%' : 'auto',
+                            backgroundColor: isHighlight 
+                                ? (theme === 'light' ? 'var(--gray-3)' : 'var(--gray-6)') 
+                                : 'transparent',
+                            width: '100%',
+                            padding: '2px 4px',
+                            borderRadius: '4px',
                         }}
                     >
                         {isDirectory ? <Folder height="20" /> : <FileIcon filename={name} />}
@@ -266,6 +276,7 @@ export function FileExplorer(props: IFileExplorerProps) {
     return (
         <Box
             p="1"
+            data-testid="file-explorer"
             style={{
                 height: '100%',
                 width: fileExplorerWidth ? `${fileExplorerWidth}px` : '250px',

@@ -4,6 +4,7 @@ import { Kbd, Text, Box, Flex, Link } from '@radix-ui/themes';
 export function EmbedOverlay() {
     return (
         <Box
+            data-testid="embed-overlay"
             style={{
                 zIndex: 10000000000,
                 position: 'absolute',

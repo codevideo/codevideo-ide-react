@@ -1,9 +1,9 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom/client';
-import { CodeVideoIDE, ICodeVideoIDEProps } from './CodeVideoIDE';
-import { Box, Flex, Theme } from '@radix-ui/themes';
+import { CodeVideoIDE } from './CodeVideoIDE.jsx';
+import { Theme } from '@radix-ui/themes';
 import { useState } from 'react';
-import { extractActionsFromProject, GUIMode } from '@fullstackcraftllc/codevideo-types';
+import { extractActionsFromProject, GUIMode, ICodeVideoIDEProps } from '@fullstackcraftllc/codevideo-types';
 
 export function mountEmbeddableCodeVideoIDE(props: any, containerId: string) {
     const container = document.getElementById(containerId);
@@ -86,6 +86,7 @@ export function EmbeddableCodeVideoIDE({
                 requestNextActionCallback={goToNextAction}
                 requestPreviousActionCallback={goToPreviousAction}
                 requestPlaybackStartCallback={startPlayback}
+                resolution='1080p'
             />
         </Theme>
     );

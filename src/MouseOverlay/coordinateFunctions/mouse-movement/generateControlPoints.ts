@@ -44,9 +44,13 @@ export const generateControlPoints = (
             const dy = end.x - start.x;
             const len = Math.hypot(dx, dy);
 
-            const controlPoint: IPoint = {
+            // Prevent division by zero when start and end points are the same
+            const controlPoint: IPoint = len > 0 ? {
                 x: baseX + (dx / len) * baseDistance * arcHeight * direction * perpFactor,
                 y: baseY + (dy / len) * baseDistance * arcHeight * direction * perpFactor
+            } : {
+                x: baseX,
+                y: baseY
             };
 
             points.push(controlPoint);

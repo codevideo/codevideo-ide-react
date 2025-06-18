@@ -1,5 +1,5 @@
 import { IPoint } from "@fullstackcraftllc/codevideo-types";
-import { calculateCubicBezierPoint } from "./calculateCubicBezierPoint";
+import { calculateCubicBezierPoint } from "./calculateCubicBezierPoint.js";
 
 // Function to sample points along a complex path for animation
 export const samplePathPoints = (
@@ -31,9 +31,19 @@ export const samplePathPoints = (
         
         for (let j = 1; j < n; j++) {
           for (let k = 0; k < n - j; k++) {
+            // Safety check to prevent NaN values from propagating
+            const currentPoint = tmp[k];
+            const nextPoint = tmp[k + 1];
+            
+            if (isNaN(currentPoint.x) || isNaN(currentPoint.y) || 
+                isNaN(nextPoint.x) || isNaN(nextPoint.y)) {
+              console.warn('NaN values detected in control points, skipping interpolation');
+              continue;
+            }
+            
             tmp[k] = {
-              x: (1 - t) * tmp[k].x + t * tmp[k + 1].x,
-              y: (1 - t) * tmp[k].y + t * tmp[k + 1].y
+              x: (1 - t) * currentPoint.x + t * nextPoint.x,
+              y: (1 - t) * currentPoint.y + t * nextPoint.y
             };
           }
         }

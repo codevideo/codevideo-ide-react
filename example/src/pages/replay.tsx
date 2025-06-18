@@ -318,8 +318,10 @@ export default function Replay() {
   // to continue to next action in replay mode, you need to implementation a function for the actionFinishedCallback prop
   // to continue to next action in replay mode
   const goToNextAction = () => {
+    console.log('goToNextAction called, currentActionIndex:', currentActionIndex)
     if (currentActionIndex < actions.length - 1) {
       const nextIndex = currentActionIndex + 1
+      console.log('Going to next action:', nextIndex)
       setCurrentActionIndex(nextIndex)
     }
   }
@@ -352,13 +354,14 @@ export default function Replay() {
             // if you're using CodeVideo to record a video for something like youtube, captions may not be a good idea
             // if you're exporting a video to your own site, captions might be really nice!
             // for this example we assume the youtube use case
-            withCaptions={false}
+            withCaptions={true}
             actionFinishedCallback={goToNextAction}
             // this example has audios! see codevideo-backend-engine, command: `npm run generate-audio-manifest <your actions json or ts file here> elevenlabs`
             speakActionAudios={audioItems}
             fileExplorerWidth={400}
             terminalHeight={250}
             mouseColor="green"
+            resolution="1080p"
           />
         </Box>
       </Flex>

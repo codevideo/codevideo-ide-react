@@ -1,52 +1,62 @@
 import React, { useEffect, useRef, useState } from 'react';
-import Editor, { Monaco } from '@monaco-editor/react';
+import { Editor, Monaco } from '@monaco-editor/react';
 import { Box, Flex } from '@radix-ui/themes';
 import * as monaco from 'monaco-editor';
 // TODO: add multiple theme support later
 // import Monokai from "monaco-themes/themes/Monokai.json";
 
 // types
-import { extractActionsFromProject, ICodeVideoIDEProps, IAction, IEditor, IEditorPosition, IFileStructure, IPoint, Project, isRepeatableAction } from '@fullstackcraftllc/codevideo-types';
+import { extractActionsFromProject, ICodeVideoIDEProps, IAction, IEditor, IEditorPosition, IFileStructure, IPoint, IFileEntry } from '@fullstackcraftllc/codevideo-types';
 
 // editor tabs
-import { EditorTabs } from './Editor/EditorTabs';
+import { EditorTabs } from './Editor/EditorTabs.jsx';
 
 // external web viewer
-import { ExternalWebViewer } from './ExternalWebViewer/ExternalWebViewer';
+import { ExternalWebViewer } from './ExternalWebViewer/ExternalWebViewer.jsx';
 
 // utils
-import { sleep } from './utils/sleep';
-import { speakText, stopSpeaking } from './utils/speakText';
-import { getLanguageFromFilename } from './utils/getLanguageFromFilename';
+import { sleep } from './utils/sleep.js';
+import { speakText, stopSpeaking } from './utils/speakText.js';
+import { getLanguageFromFilename } from './utils/getLanguageFromFilename.js';
 
 // File explorer
-import { FileExplorer } from './FileExplorer/FileExplorer';
+import { FileExplorer } from './FileExplorer/FileExplorer.jsx';
 
 // Terminal
-import { Terminal } from './Terminal/Terminal';
+import { Terminal } from './Terminal/Terminal.jsx';
 
 // MouseOverlay
-import { MouseOverlay } from './MouseOverlay/MouseOverlay';
+import { MouseOverlay } from './MouseOverlay/MouseOverlay.jsx';
 
 // CaptionOverlay
-import { CaptionOverlay } from './CaptionOverlay/CaptionOverlay';
+import { CaptionOverlay } from './CaptionOverlay/CaptionOverlay.jsx';
 
 // embed overlay
-import { EmbedOverlay } from './EmbedOverlay/EmbedOverlay';
+import { EmbedOverlay } from './EmbedOverlay/EmbedOverlay.jsx';
 
 // unsaved changes dialog
-import { UnsavedChangesDialog } from './UnsavedChangesDialog/UnsavedChangesDialog';
+import { UnsavedChangesDialog } from './UnsavedChangesDialog/UnsavedChangesDialog.jsx';
+
+// dev box
+import { DevBox } from './DevBox/DevBox.jsx';
 
 // slide viewer
-import { SlideViewer } from './SlideViewer/SlideViewer';
+import { SlideViewer } from './SlideViewer/SlideViewer.jsx';
+
+// web preview
+import { WebPreview } from './WebPreview/WebPreview.jsx';
 
 // util functions
-import { reconstituteAllPartsOfState } from './utils/reconstituteAllPartsOfState';
-import { getNewMousePosition } from './MouseOverlay/utils/getNewMousePosition';
+import { reconstituteAllPartsOfState } from './utils/reconstituteAllPartsOfState.js';
+import { getNewMousePosition } from './MouseOverlay/utils/getNewMousePosition.js';
 
 // ids and constants
-import { CODEVIDEO_IDE_ID, DEFAULT_CARET_POSITION, DEFAULT_MOUSE_POSITION, KEYBOARD_TYPING_PAUSE_MS, LONG_PAUSE_MS, STANDARD_PAUSE_MS } from './constants/CodeVideoIDEConstants';
-import { EDITOR_AREA_ID, EDITOR_ID } from './constants/CodeVideoDataIds';
+import { CODEVIDEO_IDE_ID, DEFAULT_CARET_POSITION, DEFAULT_MOUSE_POSITION, KEYBOARD_TYPING_PAUSE_MS, LONG_PAUSE_MS, STANDARD_PAUSE_MS } from './constants/CodeVideoIDEConstants.js';
+import { EDITOR_AREA_ID, EDITOR_ID } from './constants/CodeVideoDataIds.js';
+
+// last but not least - the Virtual IDE!
+import { VirtualIDE } from '@fullstackcraftllc/codevideo-virtual-ide';
+import { executeActionPlaybackForMonacoInstance } from './utils/executeActionPlaybackForMonacoInstance.js';
 
 /**
  * Represents a powerful IDE with file explorer, multiple editors, and terminal
@@ -60,7 +70,6 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     mode,
     allowFocusInEditor,
     defaultLanguage,
-    isExternalBrowserStepUrl,
     currentActionIndex,
     currentLessonIndex,
     isSoundOn,
@@ -83,7 +92,8 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     keyboardTypingPauseMs = KEYBOARD_TYPING_PAUSE_MS,
     standardPauseMs = STANDARD_PAUSE_MS,
     longPauseMs = LONG_PAUSE_MS,
-    resolution = '1080p'
+    resolution = '1080p',
+    showDevBox = false
   } = props;
   const isRecording = mode === 'record'
   const [editors, setEditors] = useState<Array<IEditor>>();
@@ -118,12 +128,21 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
   const [unsavedFileName, setUnsavedFileName] = useState<string>("");
   const [isSlideDisplayStep, setIsSlideDisplayStep] = useState<boolean>(false);
   const [slideMarkdown, setSlideMarkdown] = useState<string>("");
+  const [isExternalWebPreviewDisplayStep, setIsExternalWebPreviewDisplayStep] = useState<boolean>(false);
+  const [webPreviewFilesState, setWebPreviewFilesState] = useState<Array<IFileEntry>>([]);
+  const [isExternalBrowserDisplayStep, setIsExternalBrowserDisplayStep] = useState<boolean>(false);
+  const [externalBrowserStepUrlState, setExternalBrowserStepUrlState] = useState<string | null>(null);
   const [prevActionIndex, setPrevActionIndex] = useState<number>(-1);
   const [showBlockCaret, setShowBlockCaret] = useState<boolean>(false);
+  const [currentExternalBrowserScrollPosition, setCurrentExternalBrowserScrollPosition] = useState<number>(0);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const monacoEditorRef = useRef<monaco.editor.IStandaloneCodeEditor | undefined>(undefined);
   const globalMonacoRef = useRef<Monaco | undefined>(undefined);
+
+  // Store editor view state to preserve caret position when overlays are shown/hidden
+  const editorViewStateRef = useRef<monaco.editor.ICodeEditorViewState | null>(null);
+  const isRestoringViewStateRef = useRef<boolean>(false);
 
   // for cleanup TODO
   // const modelUrisRef = useRef<Set<string>>(new Set());
@@ -150,6 +169,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
         setEditors,
         setCurrentEditor,
         setCurrentFileName,
+        setCurrentCode,
         setCurrentCaretPosition,
         setTerminalBuffer,
         targetMousePosition,
@@ -165,10 +185,53 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
         standardPauseMs,
         longPauseMs
       );
+
+      // Handle external browser scroll actions in replay mode
+      if (currentAction.name === "external-browser-scroll") {
+        const scrollPosition = parseInt(currentAction.value) || 0;
+        setCurrentExternalBrowserScrollPosition(scrollPosition);
+        await sleep(standardPauseMs);
+      }
     }
     updateState();
     actionFinishedCallback && actionFinishedCallback();
   }
+
+  // Handle scroll actions for step mode
+  const handleStepModeScrollActions = () => {
+    const actions = extractActionsFromProject(project, currentLessonIndex);
+    const currentAction = currentActionIndex >= 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
+
+    if (!currentAction) {
+      return;
+    }
+
+    switch (currentAction.name) {
+      case "editor-scroll-up":
+        if (monacoEditorRef.current) {
+          const scrollUpDistance = parseInt(currentAction.value) || 3; // Default to 3 lines
+          const currentPosition = monacoEditorRef.current.getPosition();
+          const currentLine = currentPosition?.lineNumber || 1;
+          monacoEditorRef.current.revealLineInCenter(Math.max(1, currentLine - scrollUpDistance));
+        }
+        break;
+      case "editor-scroll-down":
+        if (monacoEditorRef.current) {
+          const scrollDownDistance = parseInt(currentAction.value) || 3; // Default to 3 lines
+          const currentPositionDown = monacoEditorRef.current.getPosition();
+          const currentLineDown = currentPositionDown?.lineNumber || 1;
+          monacoEditorRef.current.revealLineInCenter(currentLineDown + scrollDownDistance);
+        }
+        break;
+      case "external-browser-scroll":
+        const scrollPosition = parseInt(currentAction.value) || 0;
+        setCurrentExternalBrowserScrollPosition(scrollPosition);
+        break;
+      default:
+        // No scroll action to handle
+        break;
+    }
+  };
 
   const updateState = () => {
     const {
@@ -189,8 +252,29 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     setCurrentEditor(currentEditor);
     setCurrentFileName(currentFilename);
     setCurrentFileStructure(fileExplorerSnapshot.fileStructure);
-    setCurrentCode(currentCode);
-    setCurrentCaretPosition(currentCaretPosition);
+
+    // In step mode, update code first, then caret position after a brief delay
+    if (mode === 'step') {
+      setCurrentCode(currentCode);
+      // Use setTimeout to ensure caret is set after Monaco processes the content change
+      setTimeout(() => {
+        setCurrentCaretPosition(currentCaretPosition);
+      }, 0);
+
+      // Only set input values in step mode, not replay mode where animation handles it
+      setNewFileInputValue(fileExplorerSnapshot.newFileInputValue);
+      setNewFolderInputValue(fileExplorerSnapshot.newFolderInputValue);
+
+      // Handle scroll actions for step mode after state update
+      setTimeout(() => {
+        handleStepModeScrollActions();
+      }, 0); // Execute on next tick to ensure editor is ready
+
+      // Only update mouse position in step mode, not in replay mode
+      // This prevents double mouse movement animations in replay mode
+      updateMouseStateAndSideEffects(actions);
+    }
+
     setTerminalBuffer(currentTerminalBuffer);
     setCaptionText(captionText);
     setIsFileExplorerContextMenuVisible(fileExplorerSnapshot.isFileExplorerContextMenuOpen);
@@ -204,26 +288,13 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     setCurrentHoveredFolderName(mouseSnapshot.currentHoveredFolderName);
     setNewFileParentPath(fileExplorerSnapshot.newFileParentPath);
     setNewFolderParentPath(fileExplorerSnapshot.newFolderParentPath);
-    
-    // Only set input values in step mode, not replay mode where animation handles it
-    if (mode !== 'replay') {
-      setNewFileInputValue(fileExplorerSnapshot.newFileInputValue);
-      setNewFolderInputValue(fileExplorerSnapshot.newFolderInputValue);
-    }
-    
     setCurrentHoveredEditorTabFileName(mouseSnapshot.currentHoveredEditorTabFileName);
     setIsUnsavedChangesDialogOpen(isUnsavedChangesDialogOpen);
     setUnsavedFileName(unsavedFileName);
-
-    // Only update mouse position in step mode, not in replay mode
-    // This prevents double mouse movement animations in replay mode
-    if (mode !== 'replay') {
-      updateMouseStateAndSideEffects(actions);
-    }
   }
 
   // This is copied basically in animation way down logic below, could be refactored
-  const updateMouseStateAndSideEffects = async (actions: Array<IAction>) => {
+  const updateMouseStateAndSideEffects = (actions: Array<IAction>) => {
     if (currentActionIndex === 0 && mode === 'step') {
       if (!containerRef?.current) {
         return;
@@ -238,63 +309,83 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     const currentAction = currentActionIndex >= 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
     if (!currentAction) return;
 
-    const newPosition = await getNewMousePosition(targetMousePosition, currentAction, containerRef);
+    const newPosition = getNewMousePosition(targetMousePosition, currentAction, containerRef);
+    
+    // Safety check to prevent undefined coordinates
+    if (!newPosition || isNaN(newPosition.x) || isNaN(newPosition.y) || 
+        newPosition.x === undefined || newPosition.y === undefined) {
+      console.warn('Invalid mouse position detected, keeping current position:', newPosition);
+      return;
+    }
+    
     console.log(`Action: ${currentAction.name}, New position: x=${newPosition.x}, y=${newPosition.y}`);
 
     setTargetMousePosition(newPosition);
   }
 
-  // whenever current action changes, determine if we are still isSlideDisplayStep
-  // basically any starts with 'slides-' or 'author-' we keep displaying the slides
-  // useEffect(() => {
-  //   const actions = extractActionsFromProject(project, currentLessonIndex)
-  //   const currentAction = currentActionIndex >= 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
-  //   if (currentAction) {
-  //     if (currentAction.name === 'slide-display') {
-  //       // when the current action is a slide, we show the slide and set the slide markdown
-  //       setIsSlideDisplayStep(true);
-  //       setSlideMarkdown(currentAction.value);
-  //     } else if (isSlideDisplayStep && currentAction.name.startsWith('author-')) {
-  //       // if we're already on a slide but speaking, we keep displaying the slide
-  //     } else {
-  //       // we've moved away from a slide, so we hide it
-  //       setIsSlideDisplayStep(false);
-  //       setSlideMarkdown("");
-  //     }
-  //   }
-  // }, [currentActionIndex, project, currentLessonIndex]);
 
+  // current code update in replay mode - now handled by Monaco model management effect
+  // to prevent conflicts with typing animations
+  useEffect(() => {
+    // This effect is now mostly handled by the Monaco model management effect above
+    // to prevent conflicts between typing animations and content updates
+  }, [currentCode, mode]);
+
+  // this effect handles the logic for displaying slides, web previews, and external browser steps
+  // we want to continue display those even if followed by an author action
   useEffect(() => {
     const actions = extractActionsFromProject(project, currentLessonIndex);
     const currentAction = currentActionIndex >= 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
-    
+
     // Determine if we're moving forward or backward through actions
     const isSteppingForward = currentActionIndex > prevActionIndex;
-    
+
     if (currentAction) {
       if (currentAction.name === 'slide-display') {
         // When current action is a slide-display, always show it
         setIsSlideDisplayStep(true);
         setSlideMarkdown(currentAction.value);
+      } else if (currentAction.name === 'external-web-preview') {
+        // When current action is external-web-preview, always show it
+        setIsExternalWebPreviewDisplayStep(true);
+        const virtualIDE = new VirtualIDE(project);
+        virtualIDE.applyActions(actions.slice(0, currentActionIndex + 1));
+        setWebPreviewFilesState(virtualIDE.getFullFilePathsAndContents());
+      } else if (currentAction.name === 'external-browser' || currentAction.name === 'external-browser-scroll') {
+        // When current action is external-browser, always show it
+        setIsExternalBrowserDisplayStep(true);
+        setExternalBrowserStepUrlState(currentAction.value);
       } else if (currentAction.name.startsWith('author-')) {
-        // For author actions, maintain slide state when stepping forward
-        // but hide slide when stepping backward
+        // For author actions, maintain slide/web preview state when stepping forward
+        // but hide them when stepping backward
         if (!isSteppingForward) {
           setIsSlideDisplayStep(false);
           setSlideMarkdown("");
+          setIsExternalWebPreviewDisplayStep(false);
+          setWebPreviewFilesState([]);
+          setIsExternalBrowserDisplayStep(false);
+          setExternalBrowserStepUrlState(null);
         }
-        // When stepping forward, keep any currently displayed slide
+        // When stepping forward, keep any currently displayed slide/web preview
       } else {
-        // For any other action, always hide the slide
+        // For any other action, always hide slides and web previews
         setIsSlideDisplayStep(false);
         setSlideMarkdown("");
+        setIsExternalWebPreviewDisplayStep(false);
+        setWebPreviewFilesState([]);
+        setIsExternalBrowserDisplayStep(false);
+        setExternalBrowserStepUrlState(null);
       }
     } else {
-      // No action at this index, hide the slide
+      // No action at this index, hide everything
       setIsSlideDisplayStep(false);
       setSlideMarkdown("");
+      setIsExternalWebPreviewDisplayStep(false);
+      setWebPreviewFilesState([]);
+      setIsExternalBrowserDisplayStep(false);
+      setExternalBrowserStepUrlState(null);
     }
-    
+
     // Update the previous action index for next comparison - moved to end and add dependency check
     if (mode === 'step' || currentActionIndex > 0) {
       setPrevActionIndex(currentActionIndex);
@@ -305,21 +396,20 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
   useEffect(() => {
     const actions = extractActionsFromProject(project, currentLessonIndex);
     const currentAction = currentActionIndex >= 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
-    
+
     if (currentAction && currentAction.name.startsWith('terminal-')) {
       setShowBlockCaret(true);
-      
+
       // Keep block caret for 2 seconds after terminal action
       const timer = setTimeout(() => {
         setShowBlockCaret(false);
       }, 2000);
-      
+
       return () => clearTimeout(timer);
     } else {
       setShowBlockCaret(false);
     }
   }, [currentActionIndex, project, currentLessonIndex]);
-
 
   // whenever issoundon changes or currentActionIndex, and we are in step mode, and the current action includes 'speak', we should speak
   useEffect(() => {
@@ -362,14 +452,9 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     monacoEditorRef.current = monacoEditor;
     globalMonacoRef.current = monaco;
 
-    // Set the model with the current code and language
-    // TODO could probably be looped for all files?
-    const model = monaco.editor.createModel(
-      currentCode,
-      currentEditorLanguage
-    );
-    monacoEditor.setModel(model);
-
+    // Don't create a model here - let the model management useEffect handle it
+    // This ensures proper file switching behavior in replay mode
+    
     // Ensure theme is applied after a short delay
     // monaco.editor.defineTheme(
     //   "Monokai",
@@ -381,26 +466,118 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     monacoLoadedCallback && monacoLoadedCallback();
   };
 
-  // caret position effect - we don't use in replay mode because it is handled in the animation
-  // works fine for step by step mode though!
+  // caret position effect - now works for both replay and step modes since Monaco editor is always rendered
   useEffect(() => {
-    if (monacoEditorRef.current && mode === 'step') {
-      monacoEditorRef.current.setPosition({
-        lineNumber: currentCaretPosition.row,
-        column: currentCaretPosition.col
-      });
+    // Don't interfere if we're in the middle of restoring view state
+    if (isRestoringViewStateRef.current) {
+      return;
+    }
 
-      monacoEditorRef.current.revealPositionInCenter({
-        lineNumber: currentCaretPosition.row,
-        column: currentCaretPosition.col
-      });
+    if (monacoEditorRef.current && (mode === 'step' || mode === 'replay')) {
+      // Use setTimeout to ensure caret positioning happens after Monaco has finished updating content
+      // This is especially important in step mode where content can change significantly
+      const timer = setTimeout(() => {
+        if (monacoEditorRef.current) {
+          monacoEditorRef.current.setPosition({
+            lineNumber: currentCaretPosition.row,
+            column: currentCaretPosition.col
+          });
 
-      // trigger a focus to actually highlight where the caret is - if allowFocusInEditor is true
-      if (allowFocusInEditor) {
-        monacoEditorRef.current.focus();
+          // This only scrolls if the position is not already visible.
+          monacoEditorRef.current.revealPosition({
+            lineNumber: currentCaretPosition.row,
+            column: currentCaretPosition.col
+          });
+
+          // trigger a focus to actually highlight where the caret is - if allowFocusInEditor is true
+          if (allowFocusInEditor) {
+            monacoEditorRef.current.focus();
+          }
+        }
+      }, 0); // Execute on next tick to ensure Monaco has finished content updates
+
+      return () => clearTimeout(timer);
+    }
+  }, [currentCaretPosition, allowFocusInEditor, mode]);
+
+  // Additional effect to handle caret positioning after content changes in step mode
+  useEffect(() => {
+    if (mode === 'step' && monacoEditorRef.current && !isRestoringViewStateRef.current) {
+      // Use a longer timeout for content changes to ensure Monaco has finished all updates
+      const timer = setTimeout(() => {
+        if (monacoEditorRef.current) {
+          monacoEditorRef.current.setPosition({
+            lineNumber: currentCaretPosition.row,
+            column: currentCaretPosition.col
+          });
+
+          monacoEditorRef.current.revealPositionInCenter({
+            lineNumber: currentCaretPosition.row,
+            column: currentCaretPosition.col
+          });
+
+          if (allowFocusInEditor) {
+            monacoEditorRef.current.focus();
+          }
+        }
+      }, 10); // Slightly longer delay for content changes
+
+      return () => clearTimeout(timer);
+    }
+  }, [currentCode, mode, currentCaretPosition, allowFocusInEditor]);
+
+  // Save/restore editor view state when overlays are shown/hidden to prevent caret position regression
+  useEffect(() => {
+    const isOverlayActive = isSlideDisplayStep || isExternalWebPreviewDisplayStep || isExternalBrowserDisplayStep;
+
+    if (monacoEditorRef.current) {
+      if (isOverlayActive && !editorViewStateRef.current) {
+        // Save view state before showing overlay (only if not already saved)
+        console.log('Saving editor view state before overlay, current position:', monacoEditorRef.current.getPosition());
+        editorViewStateRef.current = monacoEditorRef.current.saveViewState();
+      } else if (!isOverlayActive && editorViewStateRef.current) {
+        // Restore view state after hiding overlay
+        const savedState = editorViewStateRef.current;
+        console.log('Restoring editor view state after overlay');
+
+        // Clear the saved state first to prevent re-triggering
+        editorViewStateRef.current = null;
+
+        // Set flag to prevent caret position effect from interfering
+        isRestoringViewStateRef.current = true;
+
+        // Use setTimeout to ensure the editor has finished any re-rendering
+        setTimeout(() => {
+          if (monacoEditorRef.current && savedState) {
+            console.log('Actually restoring view state, current position before restore:', monacoEditorRef.current.getPosition());
+
+            // First restore the view state to get scroll position and other state
+            monacoEditorRef.current.restoreViewState(savedState);
+
+            console.log('Position after restore:', monacoEditorRef.current.getPosition());
+            console.log('Expected position:', { row: currentCaretPosition.row, col: currentCaretPosition.col });
+
+            // Then set the current caret position to ensure it's at the right place
+            monacoEditorRef.current.setPosition({
+              lineNumber: currentCaretPosition.row,
+              column: currentCaretPosition.col
+            });
+
+            // Reveal the position to ensure it's visible
+            monacoEditorRef.current.revealPositionInCenter({
+              lineNumber: currentCaretPosition.row,
+              column: currentCaretPosition.col
+            });
+
+            console.log('Final position after manual set:', monacoEditorRef.current.getPosition());
+
+            // Clear the flag after restoration is complete
+            isRestoringViewStateRef.current = false;
+          }
+        }, 0);
       }
     }
-  }, [currentCaretPosition, allowFocusInEditor]);
+  }, [isSlideDisplayStep, isExternalWebPreviewDisplayStep, isExternalBrowserDisplayStep, currentCaretPosition]);
 
   // TODO: figure out highlights! (breaks due to SSR)
   // const currentHighlightCoordinates = currentFile ? currentFile.highlightCoordinates : null;
@@ -429,13 +606,69 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
   //   // }
   // }, [currentHighlightCoordinates]);
 
+  // Gemini says this is not needed: let's see:
   // always auto-scroll to line in center when the caret row position changes
-  useEffect(() => {
-    if (monacoEditorRef.current) {
-      monacoEditorRef.current.revealLineInCenter(currentCaretPosition.row);
-    }
-  }, [currentCaretPosition.row]);
+  // useEffect(() => {
+  //   if (monacoEditorRef.current) {
+  //     monacoEditorRef.current.revealLineInCenter(currentCaretPosition.row);
+  //   }
+  // }, [currentCaretPosition.row]);
 
+  // Monaco model management for proper file switching
+  // this useEffect FROM CLAUDE:
+  useEffect(() => {
+    if (monacoEditorRef.current && globalMonacoRef.current) {
+      const monaco = globalMonacoRef.current;
+      const editor = monacoEditorRef.current;
+      
+      // If there's no current editor or no editors at all, clear the model
+      if (!currentEditor?.filename || !editors || editors.length === 0) {
+        if (editor.getModel()) {
+          editor.setModel(null);
+          console.log('Cleared Monaco editor model - no active editors');
+        }
+        return;
+      }
+      
+      // Handle normal file switching when there are editors
+      if (currentCode !== null) {
+        const filename = currentEditor.filename;
+        
+        // Create a unique URI for this file
+        const uri = monaco.Uri.file(filename);
+        
+        // Check if a model already exists for this file
+        let model = monaco.editor.getModel(uri);
+        
+        if (!model) {
+          // Create a new model for this file
+          const language = getLanguageFromFilename(filename);
+          model = monaco.editor.createModel(currentCode, language, uri);
+          console.log(`Created new Monaco model for file: ${filename} with language: ${language}`);
+        } else {
+          // In replay mode, don't update model content here since executeActionPlaybackForMonacoInstance
+          // handles the typing animation. Only update in step mode or when file content changes significantly.
+          if (mode === 'step' && model.getValue() !== currentCode) {
+            model.setValue(currentCode);
+            console.log(`Updated Monaco model content for file: ${filename} (step mode)`);
+          } else if (mode === 'replay') {
+            // In replay mode, only update if the model is completely empty or if we're switching files
+            // This prevents overriding the typing animation from executeActionPlaybackForMonacoInstance
+            if (model.getValue() === '' && currentCode !== '') {
+              model.setValue(currentCode);
+              console.log(`Initialized Monaco model content for file: ${filename} (replay mode)`);
+            }
+          }
+        }
+        
+        // Set the model on the editor if it's not already set
+        if (editor.getModel() !== model) {
+          editor.setModel(model);
+          console.log(`Switched Monaco editor to model for file: ${filename}`);
+        }
+      }
+    }
+  }, [currentEditor?.filename, currentCode, editors, mode]);
 
   // update the language of the editor based on the current filename every time it changes
   useEffect(() => {
@@ -477,95 +710,6 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     }
   }, [isEmbedMode]);
 
-  // monaco cleanup - whenever replay ends, clear all models
-  // useEffect(() => {
-  //   if (mode !== 'replay' && monacoEditorRef.current) {
-  //     monacoEditorRef.current.setModel(null);
-  //   }
-  // }, [mode]);
-
-  // Comprehensive cleanup function
-  // TODO this doesn't fix the playback bug and causes SSR issues anyway
-  // const cleanupMonacoState = () => {
-  //   console.log('Cleaning up Monaco state');
-
-  //   // 1. Dispose specific tracked models by URI
-  //   modelUrisRef.current.forEach(uriString => {
-  //     try {
-  //       const model = monaco.editor.getModel(monaco.Uri.parse(uriString));
-  //       if (model) {
-  //         model.dispose();
-  //       }
-  //     } catch (e) {
-  //       console.error('Error disposing model:', e);
-  //     }
-  //   });
-
-  //   // Reset tracking
-  //   modelUrisRef.current.clear();
-
-  //   // 2. Safety check: dispose any remaining models
-  //   monaco.editor.getModels().forEach(model => {
-  //     try {
-  //       console.log('Disposing model:', model.uri.toString());
-  //       model.dispose();
-  //       console.log('Disposed.');
-  //     } catch (e) {
-  //       console.error('Error disposing leftover model:', e);
-  //     }
-  //   });
-
-  //   // 3. Reset editor state but preserve the instance
-  //   if (monacoEditorRef.current) {
-  //     try {
-  //       // Create a temporary empty model with a unique URI
-  //       const tempUri = monaco.Uri.parse(`temp-${Date.now()}`);
-  //       const emptyModel = monaco.editor.createModel('', defaultLanguage, tempUri);
-  //       monacoEditorRef.current.setModel(emptyModel);
-
-  //       // Reset editor viewstate
-  //       monacoEditorRef.current.restoreViewState(null);
-
-  //       // Reset cursor and selection
-  //       monacoEditorRef.current.setPosition({ lineNumber: 1, column: 1 });
-  //       monacoEditorRef.current.setSelection({ startLineNumber: 1, startColumn: 1, endLineNumber: 1, endColumn: 1 });
-  //     } catch (e) {
-  //       console.error('Error resetting editor state:', e);
-  //     }
-  //   }
-
-  //   console.log('Cleaning up complete');
-  // };
-
-  // // Add this effect to handle mode changes
-  // useEffect(() => {
-  //   // Skip on initial mount
-  //   if (isInitialMount.current) {
-  //     isInitialMount.current = false;
-  //     return;
-  //   }
-
-  //   // Cleanup when exiting replay mode
-  //   if (mode !== 'replay' && prevMode.current === 'replay') {
-  //     cleanupMonacoState();
-
-  //     // Explicitly update state after cleanup
-  //     // updateState();
-  //   }
-
-  //   // Store current mode for next comparison
-  //   prevMode.current = mode;
-  // }, [mode]);
-
-  // Add cleanup on component unmount
-  // TODO this doesn't fix the playback bug and causes SSR issues anyway
-  // useEffect(() => {
-  //   return () => {
-  //     cleanupMonacoState();
-  //   };
-  // }, []);
-
-
   // useful for debugging
   // // before rendering log out all relevant stuff
   // // current file
@@ -573,7 +717,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
   // // current file structure
   // console.log('currentFileStructure', currentFileStructure);
   // // current code
-  // console.log('currentCode', currentCode);
+  console.log('currentCode', currentCode);
   // // terminal buffer
   // console.log('terminalBuffer', terminalBuffer);
   // // mouse position
@@ -589,6 +733,13 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
 
   // if we are in 4k mode, double the fontsize
   const renderFontSizePx = fontSizePx && resolution === "4K" ? fontSizePx * 2 : fontSizePx
+
+  // Use state variables for web preview and external browser display
+  // These are now managed by the useEffect above to support continuation during author actions
+  const webPreviewFiles = webPreviewFilesState;
+  const externalBrowserStepUrl = externalBrowserStepUrlState;
+  const actions = extractActionsFromProject(project, currentLessonIndex);
+  const currentAction = currentActionIndex >= 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
 
   return (
     <Flex
@@ -612,119 +763,159 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
         }}
         ref={containerRef}
       >
-        {isSlideDisplayStep ? (
-          <SlideViewer 
-            hljsTheme='monokai'
-            slideMarkdown={slideMarkdown}
-            fontSizePx={renderFontSizePx} />
-        ) : isExternalBrowserStepUrl !== null ? (
-          <Flex direction="row"
+        {/* Always render the IDE components */}
+        {isFileExplorerVisible && <FileExplorer
+          theme={theme}
+          currentFileName={currentFileName}
+          fileStructure={currentFileStructure}
+          fileExplorerWidth={fileExplorerWidth}
+          currentMousePosition={currentMousePosition}
+          isFileExplorerContextMenuVisible={isFileExplorerContextMenuVisible}
+          isFileContextMenuVisible={isFileContextMenuVisible}
+          isFolderContextMenuVisible={isFolderContextMenuVisible}
+          isNewFileInputVisible={isNewFileInputVisible}
+          isNewFolderInputVisible={isNewFolderInputVisible}
+          newFileInputValue={newFileInputValue}
+          newFolderInputValue={newFolderInputValue}
+          originalFileBeingRenamed={originalFileBeingRenamed}
+          originalFolderBeingRenamed={originalFolderBeingRenamed}
+          renameFileInputValue={renameFileInputValue}
+          renameFolderInputValue={renameFolderInputValue}
+          currentHoveredFileName={currentHoveredFileName}
+          currentHoveredFolderName={currentHoveredFolderName}
+          newFileParentPath={newFileParentPath}
+          newFolderParentPath={newFolderParentPath}
+        />}
+
+        {/* Editor Tabs, Main Editor, and Terminal stack on top of each other */}
+        <Flex
+          data-codevideo-id={EDITOR_AREA_ID}
+          data-testid="editor-area"
+          direction="column"
+          width="100%">
+          <EditorTabs
+            theme={theme}
+            editors={editors || []}
+            currentEditor={currentEditor}
+          />
+          {/* Editor */}
+          <Box
+            data-codevideo-id={EDITOR_ID}
             style={{
+              flex: 1,
+              position: 'relative',
+              userSelect: isRecording ? 'auto' : 'none'
+            }}
+          >
+            <Box style={{
+              display: editors && editors.length === 0 ? 'block' : 'none',
+              backgroundColor: theme === 'light' ? 'var(--gray-5)' : 'var(--gray-4)',
+              height: '100%',
+              width: '100%'
+            }} />
+            <Box style={{
+              display: editors && editors.length === 0 ? 'none' : 'block',
+              backgroundColor: theme === 'light' ? 'var(--gray-5)' : 'var(--gray-4)',
               height: '100%',
               width: '100%',
-              borderRadius: 'var(--radius-3)',
-              position: 'relative'
+              pointerEvents: isRecording ? 'auto' : 'none',
+              cursor: isRecording ? 'auto' : 'none',
+              userSelect: isRecording ? 'auto' : 'none',
+            }}>
+              <Editor
+                path={currentEditor?.filename}
+                theme={theme === 'light' ? 'vs' : 'vs-dark'}
+                className={`no-mouse ${editors && editors.length === 0 ? 'display-none' : 'display-block'}`}
+                // value in replay mode is handled by setting the model value directly
+                // in step mode, we use the currentCode state variable
+                value={isRecording || mode === 'replay' ? undefined : currentCode}
+                defaultValue={isRecording ? currentCode : undefined}
+                defaultLanguage={defaultLanguage}
+                options={{
+                  automaticLayout: true,
+                  minimap: { enabled: true },
+                  scrollBeyondLastLine: true,
+                  fontSize: renderFontSizePx ? renderFontSizePx : 14,
+                  fontFamily: 'Fira Code, monospace',
+                  fontLigatures: true,
+                  readOnly: mode === 'step',
+                  lineNumbers: 'on',
+                  renderWhitespace: 'selection',
+                  wrappingStrategy: 'advanced',
+                  wordWrap: 'on',
+                  wordWrapColumn: 80,
+                  bracketPairColorization: { enabled: true },
+                  matchBrackets: 'never',
+                  formatOnPaste: true,
+                  formatOnType: true,
+                }}
+                onMount={handleEditorDidMount}
+              />
+            </Box>
+          </Box>
+          {/* Terminal - TODO: add support for multiple terminals in the future */}
+          {isTerminalVisible && <Terminal
+            theme={theme}
+            terminalBuffer={terminalBuffer}
+            terminalHeight={terminalHeight}
+            fontSizePx={renderFontSizePx}
+            showBlockCaret={showBlockCaret} />}
+        </Flex>
+
+        {/* OVERLAY COMPONENTS - These render on top of the IDE when needed */}
+        {isSlideDisplayStep && (
+          <Box
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              zIndex: 1000,
+              backgroundColor: 'var(--gray-1)' // Ensure solid background
             }}
-            ref={containerRef}
+          >
+            <SlideViewer
+              hljsTheme='monokai'
+              slideMarkdown={slideMarkdown}
+              fontSizePx={renderFontSizePx} />
+          </Box>
+        )}
+
+        {isExternalBrowserDisplayStep && externalBrowserStepUrl && (
+          <Box
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              zIndex: 1000,
+              backgroundColor: 'var(--gray-1)' // Ensure solid background
+            }}
           >
             <ExternalWebViewer
-              url={isExternalBrowserStepUrl}
+              url={externalBrowserStepUrl}
               mode={mode}
-              scrollPosition={0} // TODO: implement external-browser-scroll!
+              scrollPosition={currentExternalBrowserScrollPosition}
             />
-          </Flex>
-        ) : (
-          <>
-            {isFileExplorerVisible && <FileExplorer
-              theme={theme}
-              currentFileName={currentFileName}
-              fileStructure={currentFileStructure}
-              fileExplorerWidth={fileExplorerWidth}
-              currentMousePosition={currentMousePosition}
-              isFileExplorerContextMenuVisible={isFileExplorerContextMenuVisible}
-              isFileContextMenuVisible={isFileContextMenuVisible}
-              isFolderContextMenuVisible={isFolderContextMenuVisible}
-              isNewFileInputVisible={isNewFileInputVisible}
-              isNewFolderInputVisible={isNewFolderInputVisible}
-              newFileInputValue={newFileInputValue}
-              newFolderInputValue={newFolderInputValue}
-              originalFileBeingRenamed={originalFileBeingRenamed}
-              originalFolderBeingRenamed={originalFolderBeingRenamed}
-              renameFileInputValue={renameFileInputValue}
-              renameFolderInputValue={renameFolderInputValue}
-              currentHoveredFileName={currentHoveredFileName}
-              currentHoveredFolderName={currentHoveredFolderName}
-              newFileParentPath={newFileParentPath}
-              newFolderParentPath={newFolderParentPath}
-            />}
-            {/* Editor Tabs, Main Editor, and Terminal stack on top of eachother */}
-            <Flex 
-            data-codevideo-id={EDITOR_AREA_ID}
-            direction="column" 
-            width="100%">
-              <EditorTabs theme={theme} editors={editors || []} />
-              {/* Editor */}
-              <Box
-                data-codevideo-id={EDITOR_ID}
-                style={{
-                  flex: 1,
-                  position: 'relative',
-                  userSelect: isRecording ? 'auto' : 'none'
-                }}
-              >
-                <Box style={{
-                  display: editors && editors.length === 0 ? 'block' : 'none',
-                  backgroundColor: theme === 'light' ? 'var(--gray-5)' : 'var(--gray-4)',
-                  height: '100%',
-                  width: '100%'
-                }} />
-                <Box style={{
-                  display: editors && editors.length === 0 ? 'none' : 'block',
-                  backgroundColor: theme === 'light' ? 'var(--gray-5)' : 'var(--gray-4)',
-                  height: '100%',
-                  width: '100%',
-                  pointerEvents: isRecording ? 'auto' : 'none',
-                  cursor: isRecording ? 'auto' : 'none',
-                  userSelect: isRecording ? 'auto' : 'none',
-                }}>
-                  <Editor
-                    path={currentEditor?.filename}
-                    theme={theme === 'light' ? 'vs' : 'vs-dark'}
-                    className={`no-mouse ${editors && editors.length === 0 ? 'display-none' : 'display-block'}`}
-                    value={isRecording || mode === 'replay' ? undefined : currentCode}
-                    defaultValue={isRecording ? currentCode : undefined}
-                    defaultLanguage={defaultLanguage}
-                    options={{
-                      automaticLayout: true,
-                      minimap: { enabled: true },
-                      scrollBeyondLastLine: true,
-                      fontSize: renderFontSizePx ? renderFontSizePx : 14,
-                      fontFamily: 'Fira Code, monospace',
-                      fontLigatures: true,
-                      readOnly: mode === 'step',
-                      lineNumbers: 'on',
-                      renderWhitespace: 'selection',
-                      wrappingStrategy: 'advanced',
-                      wordWrap: 'on',
-                      wordWrapColumn: 80,
-                      bracketPairColorization: { enabled: true },
-                      matchBrackets: 'never',
-                      formatOnPaste: true,
-                      formatOnType: true,
-                    }}
-                    onMount={handleEditorDidMount}
-                  />
-                </Box>
-              </Box>
-              {/* Terminal - TODO: add support for multiple terminals in the future */}
-              {isTerminalVisible && <Terminal
-                theme={theme}
-                terminalBuffer={terminalBuffer}
-                terminalHeight={terminalHeight}
-                fontSizePx={renderFontSizePx}
-                showBlockCaret={showBlockCaret} />}
-            </Flex>
-          </>
+          </Box>
+        )}
+
+        {isExternalWebPreviewDisplayStep && (
+          <Box
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              zIndex: 1000,
+              backgroundColor: 'var(--gray-1)' // Ensure solid background
+            }}
+          >
+            <WebPreview files={webPreviewFiles} />
+          </Box>
         )}
       </Flex>
 
@@ -736,325 +927,35 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
         mode={mode}
         mouseVisible={true}
         targetMousePosition={targetMousePosition}
+        maximumAnimationDuration={standardPauseMs}
         onCurrentPositionChange={setCurrentMousePosition}
         onAnimationFinished={() => {
-          // TODO ...
+          // TOOD?
         }}
         mouseColor={mouseColor} />}
 
       {/* Caption Overlay */}
       {!showEmbedOverlay && withCaptions && <CaptionOverlay captionText={captionText} fontSizePx={renderFontSizePx} />}
 
+      {/* Dev Box - positioned after captions to appear above them */}
+      {showDevBox && <DevBox variables={{
+        // currentCode,
+        // terminalBuffer,
+        currentMousePosition,
+        currentCaretPosition,
+        // captionText,
+        currentFileName,
+        currentCode: currentCode.substring(0, 50) + '...',
+        actionLength: actions.length,
+        currentActionIndex,
+        currentAction
+        // isUnsavedChangesDialogOpen,
+        // unsavedFileName,
+        // currentFileStructure
+      }} />}
+
       {/* Embed start overlay */}
       {showEmbedOverlay && <EmbedOverlay />}
     </Flex>
   );
 }
-
-const simulateHumanTypingWithReactSetterCallback = async (
-  setter: React.Dispatch<React.SetStateAction<string>>,
-  text: string,
-  typingPauseMs: number = KEYBOARD_TYPING_PAUSE_MS
-) => {
-  const characters = text.split("");
-  for (var i = 0; i < characters.length; i++) {
-    setter((prev: string) => prev + characters[i]);
-    await sleep(typingPauseMs);
-  }
-}
-
-// define the human typing here in the puppeteer environment
-const simulateHumanTypingInMonaco = (
-  editor: monaco.editor.IStandaloneCodeEditor,
-  charactersToType: string,
-  typingPauseMs: number = KEYBOARD_TYPING_PAUSE_MS
-) => {
-  return new Promise<void>((resolve) => {
-    const characters: string[] = charactersToType.split("");
-    let index: number = 0;
-
-    function typeNextCharacter(): void {
-      if (index < characters.length) {
-        const char = characters[index];
-        const selection = editor.getSelection();
-        editor.executeEdits("simulateTyping", [
-          {
-            range: {
-              startLineNumber: selection?.selectionStartLineNumber || 1,
-              startColumn: selection?.selectionStartColumn || 1,
-              endLineNumber: selection?.endLineNumber || 1,
-              endColumn: selection?.endColumn || 1,
-            },
-            text: char || "",
-            forceMoveMarkers: true,
-          },
-        ]);
-        // editor.setPosition({
-        //   lineNumber: selection?.endLineNumber || 1,
-        //   column: selection?.endColumn || 1
-        // });
-
-        // this keeps the line we are currently typing in the center of the screen
-        editor.revealPositionInCenter({
-          lineNumber: selection?.endLineNumber || 1,
-          column: selection?.endColumn || 1
-        });
-
-        // trigger a focus to actually highlight where the caret is
-        editor.focus();
-        index++;
-        setTimeout(typeNextCharacter, typingPauseMs);
-      } else {
-        resolve();
-      }
-    }
-
-    typeNextCharacter();
-  });
-};
-
-// TODO: copied the EDITOR parts mostly from the backend single editor endpoint from codevideo-backend-engine... can we generalize this?
-// the speaking and terminal stuff is new
-export const executeActionPlaybackForMonacoInstance = async (
-  editor: monaco.editor.IStandaloneCodeEditor,
-  project: Project,
-  currentActionIndex: number,
-  currentLessonIndex: number | null,
-  action: IAction,
-  isSoundOn: boolean,
-  setEditors: (value: any) => void,
-  setCurrentEditor: (value: any) => void,
-  setCurrentFileName: (value: any) => void,
-  setCurrentCaretPosition: (value: any) => void,
-  setTerminalBuffer: (value: any) => void,
-  mousePosition: IPoint,
-  containerRef: React.RefObject<HTMLDivElement | null>,
-  setMousePosition: (value: any) => void,
-  setCaptionText: (value: any) => void,
-  speakActionAudios: Array<{ text: string, mp3Url: string }>,
-  setNewFileInputValue: React.Dispatch<React.SetStateAction<string>>,
-  setNewFolderInputValue: React.Dispatch<React.SetStateAction<string>>,
-  setRenameFileInputValue: React.Dispatch<React.SetStateAction<string>>,
-  setRenameFolderInputValue: React.Dispatch<React.SetStateAction<string>>,
-  keyboardTypingPauseMs: number = KEYBOARD_TYPING_PAUSE_MS,
-  standardPauseMs: number = STANDARD_PAUSE_MS,
-  longPauseMs: number = LONG_PAUSE_MS,
-) => {
-  let startTime = -1;
-
-  // helpful for debugging
-  // editor.getSupportedActions().forEach((value) => {
-  //   console.log(value);
-  // });
-
-  // OPEN FILE ANIMATION, STATE NEEDS TO BE SET HERE BEFORE TYPING OR WE ALWAYS TYPE ONE CHARACTER TOO LATE
-  switch (action.name) {
-    case 'file-explorer-open-file':
-      console.log("SET CURRENT FILE to ", action.value)
-      const { editors, currentEditor, currentFilename, currentCaretPosition } = reconstituteAllPartsOfState(project, currentActionIndex, currentLessonIndex);
-      setEditors(editors);
-      setCurrentEditor(currentEditor);
-      setCurrentFileName(currentFilename);
-      await sleep(standardPauseMs);
-      setCurrentCaretPosition(currentCaretPosition);
-      break;
-  }
-
-  // before continuing, wait a little bit so file explorer can update the DOM
-  await sleep(standardPauseMs);
-
-  // MOUSE MOVEMENT ANIMATIONS, PASS THROUGH AND CONTINUE BELOW
-  // 
-  const newPosition = await getNewMousePosition(mousePosition, action, containerRef)
-
-  setMousePosition(newPosition);
-
-  // const highlightText = (
-  //   editor: monaco.editor.IStandaloneCodeEditor,
-  //   searchText: string
-  // ) => {
-  //   const model = editor.getModel();
-
-  // findNextMatch BREAKS SSR
-  // Find the position of the searchText in the model
-  // @ts-ignore
-  // const searchTextPosition = model.findNextMatch(
-  //   searchText,
-  //   // @ts-ignore
-  //   new monaco.Position(1, 1)
-  // );
-
-
-  // this ALSO BREAKS SSR
-  // const searchTextPosition: monaco.editor.FindMatch = {
-  //   range: new monaco.Range(1, 1, 1, 1),
-  // }
-
-  // If searchText is found
-  // if (searchTextPosition) {
-  //   const line = searchTextPosition.range.startLineNumber;
-  //   const column = searchTextPosition.range.startColumn;
-
-  //   // Move the cursor to the beginning of the searchText
-  //   editor.setPosition({ lineNumber: line, column });
-
-  //   // Reveal the line in the center
-  //   editor.revealLineInCenter(line);
-
-  //   // Calculate the range of the searchText
-  //   const searchTextLength = searchText.length;
-  //   // @ts-ignore
-  //   const range = new monaco.Range(
-  //     line,
-  //     column,
-  //     line,
-  //     column + searchTextLength
-  //   );
-
-  //   // Set the selection to highlight the searchText
-  //   editor.setSelection(range);
-
-  //   // Reveal the range in the center
-  //   editor.revealRangeInCenter(range);
-  // }
-  // };
-
-  // try to parse the 'times' value as an integer for repeatable actions, if it fails, default to 1
-  // the "times" doesn't always apply to most actions, so we do that action just once
-  const times = isRepeatableAction(action.name) ? parseInt(action.value) : 1;
-  const pos = editor.getPosition();
-  // const lineNumber = pos?.lineNumber;
-  for (let i = 0; i < times; i++) {
-    // actual logic
-    switch (true) {
-      case action.name.startsWith("external-"):
-      case action.name.startsWith("slides-"):
-        // no op - but do a long pause
-        await sleep(longPauseMs);
-        break;
-      case action.name.startsWith("author-"):
-        setCaptionText(action.value);
-        // try to find a matching mp3 url by matching the text of it to action.value in the speakActionAudios array
-        const mp3Url = speakActionAudios.find((audio) => audio.text === action.value)?.mp3Url;
-
-        // Handle different types of author actions
-        if (action.name === "author-speak-during") {
-          // Fire and forget - don't await
-          speakText(action.value, isSoundOn ? 1 : 0, mp3Url);
-        } else {
-          // Default behavior for author-speak-before and other author actions - await completion
-          await speakText(action.value, isSoundOn ? 1 : 0, mp3Url);
-        }
-        break;
-      // BEGIN FILE EXPLORER TYPING ACTIONS
-      case action.name === "file-explorer-type-new-file-input":
-        simulateHumanTypingWithReactSetterCallback(setNewFileInputValue, action.value, keyboardTypingPauseMs)
-        break;
-      case action.name === "file-explorer-enter-new-file-input":
-        setNewFileInputValue("")
-        break;
-      case action.name === "file-explorer-type-new-folder-input":
-        simulateHumanTypingWithReactSetterCallback(setNewFolderInputValue, action.value, keyboardTypingPauseMs)
-        break;
-      case action.name === "file-explorer-enter-new-folder-input":
-        setNewFolderInputValue("")
-        break;
-      case action.name === "file-explorer-type-rename-file-input":
-        simulateHumanTypingWithReactSetterCallback(setRenameFileInputValue, action.value, keyboardTypingPauseMs)
-        break;
-      case action.name === "file-explorer-enter-rename-file-input":
-        setRenameFileInputValue("")
-        break;
-      case action.name === "file-explorer-type-rename-folder-input":
-        simulateHumanTypingWithReactSetterCallback(setRenameFolderInputValue, action.value, keyboardTypingPauseMs)
-        break;
-      case action.name === "file-explorer-enter-rename-folder-input":
-        setRenameFolderInputValue("")
-        break;
-      // BEGIN TERMINAL ACTIONS
-      case action.name === 'terminal-type':
-        const terminalOutput = action.value;
-        const terminalLines = terminalOutput.split('\n');
-        const latestLine = terminalLines[terminalLines.length - 1];
-        if (latestLine) {
-          // loop at character level to simulate typing
-          for (let i = 0; i < latestLine.length; i++) {
-            setTerminalBuffer((prev: string) => prev + latestLine[i]);
-            await sleep(keyboardTypingPauseMs)
-          }
-        }
-        break;
-      // BEGIN EDITOR ACTIONS
-      case action.name === "editor-arrow-down" && pos !== null:
-        // @ts-ignore
-        pos.lineNumber = pos.lineNumber + 1;
-        editor.setPosition(pos);
-        await sleep(keyboardTypingPauseMs)
-        break;
-      case action.name === "editor-arrow-up" && pos !== null:
-        // @ts-ignore
-        pos.lineNumber = pos.lineNumber - 1;
-        editor.setPosition(pos);
-        await sleep(keyboardTypingPauseMs)
-        break;
-      case action.name === "editor-tab" && pos !== null:
-        // @ts-ignore
-        pos.lineNumber = pos.lineNumber + 2;
-        editor.setPosition(pos);
-        await sleep(keyboardTypingPauseMs)
-        break;
-      case action.name === "editor-arrow-left" && pos !== null:
-        // @ts-ignore
-        pos.column = pos.column - 1;
-        editor.setPosition(pos);
-        await sleep(keyboardTypingPauseMs)
-        break;
-      case action.name === "editor-arrow-right" && pos !== null:
-        // @ts-ignore
-        pos.column = pos.column + 1;
-        editor.setPosition(pos);
-        await sleep(keyboardTypingPauseMs)
-        break;
-      case action.name === "editor-enter":
-        await simulateHumanTypingInMonaco(editor, "\n");
-        break;
-      // case action.name === "editor-delete-line" && lineNumber !== null:
-      //   console.log("deleting line");
-      //   // @ts-ignore - this also breaks SSR
-      //   editor.executeEdits("", [
-      //     // @ts-ignore
-      //     { range: new monaco.Range(lineNumber, 1, lineNumber + 1, 1), text: null },
-      //   ]);
-      //   await sleep(keyboardTypingPauseMs)
-      //   break;
-      case action.name === "editor-command-right" && pos !== null:
-        // simulate moving to the end of the current line
-        // @ts-ignore
-        pos.column = 100000;
-        editor.setPosition(pos);
-        await sleep(keyboardTypingPauseMs)
-        break;
-      //   // highlight breaks SSR
-      // // case action.name === "editor-highlight-code":
-      // //   highlightText(editor, action.value);
-      // //   break;
-      case action.name === "editor-space":
-        await simulateHumanTypingInMonaco(editor, " ");
-        break;
-      case action.name === "editor-backspace":
-        // @ts-ignore - this also breaks SSR
-        typeof window !== "undefined" && editor.trigger(1, "deleteLeft");
-        await sleep(keyboardTypingPauseMs)
-        break;
-      case action.name === "editor-type":
-        await simulateHumanTypingInMonaco(editor, action.value);
-        break;
-      default:
-        // no op - but still do default delay
-        await sleep(standardPauseMs);
-        console.warn("Unable to apply action", JSON.stringify(action));
-        break;
-    }
-  }
-  return startTime;
-};

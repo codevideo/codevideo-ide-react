@@ -1,6 +1,6 @@
 import { IPoint } from "@fullstackcraftllc/codevideo-types";
-import { convertToContainerCoordinates } from "./convertToContainerCoordinates";
-import { DEFAULT_MOUSE_POSITION } from "src/constants/CodeVideoIDEConstants";
+import { convertToContainerCoordinates } from "./convertToContainerCoordinates.js";
+import { DEFAULT_MOUSE_POSITION } from "../../constants/CodeVideoIDEConstants.js";
 
 export const getCoordinatesOfEditor = (containerRef: React.RefObject<HTMLDivElement | null>): IPoint => {
   if (!containerRef) return DEFAULT_MOUSE_POSITION;

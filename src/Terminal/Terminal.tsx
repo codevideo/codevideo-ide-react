@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Box } from '@radix-ui/themes';
-import { TERMINAL_ID } from 'src/constants/CodeVideoDataIds';
+import { TERMINAL_ID } from 'src/constants/CodeVideoDataIds.js';
 
 export interface ITerminalProps {
     theme?: 'light' | 'dark';
@@ -36,6 +36,7 @@ export function Terminal(props: ITerminalProps) {
     return (
         <Box
             data-codevideo-id={TERMINAL_ID}
+            data-testid="terminal"
             ref={terminalRef}
             style={{
                 borderTop: '1px solid var(--gray-7)',

@@ -20,6 +20,8 @@ const external = [
   "marked-highlight",
   "highlight.js",
   "dompurify",
+  "esbuild-wasm",
+  "kokoro-js"
 ];
 
 export default  [

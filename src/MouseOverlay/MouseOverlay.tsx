@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { GUIMode, IPoint } from '@fullstackcraftllc/codevideo-types';
 import { Box } from '@radix-ui/themes';
-import { samplePathPoints } from './coordinateFunctions/mouse-movement/samplePathPoints';
-import { generateControlPoints } from './coordinateFunctions/mouse-movement/generateControlPoints';
+import { samplePathPoints } from './coordinateFunctions/mouse-movement/samplePathPoints.js';
+import { generateControlPoints } from './coordinateFunctions/mouse-movement/generateControlPoints.js';
 
 interface IMouseOverlayProps {
   mode: GUIMode;
   targetMousePosition: IPoint;
+  maximumAnimationDuration: number;
   mouseVisible: boolean;
   mouseColor?: string;
   previousPosition?: IPoint;
@@ -21,6 +22,7 @@ export const MouseOverlay = (props: IMouseOverlayProps) => {
     mode,
     mouseVisible,
     targetMousePosition,
+    maximumAnimationDuration,
     mouseColor,
     arcHeight = 0.3,
     numberOfCurves = 1,
@@ -29,12 +31,19 @@ export const MouseOverlay = (props: IMouseOverlayProps) => {
   } = props;
 
   const overlayRef = useRef<HTMLDivElement>(null);
-  const [currentPosition, setCurrentPosition] = useState<IPoint>(targetMousePosition);
-  const [prevPosition, setPrevPosition] = useState<IPoint>(targetMousePosition);
+  
+  // Safe initialization with fallback to default position
+  const safeTargetPosition = targetMousePosition && 
+    targetMousePosition.x !== undefined && targetMousePosition.y !== undefined 
+    ? targetMousePosition 
+    : { x: 0, y: 0 };
+    
+  const [currentPosition, setCurrentPosition] = useState<IPoint>(safeTargetPosition);
+  const [prevPosition, setPrevPosition] = useState<IPoint>(safeTargetPosition);
   const [isAnimating, setIsAnimating] = useState<boolean>(false);
   const [pathPoints, setPathPoints] = useState<IPoint[]>([]);
   const animationRef = useRef<number | null>(null);
-  const lastTargetPositionRef = useRef<IPoint>(targetMousePosition);
+  const lastTargetPositionRef = useRef<IPoint>(safeTargetPosition);
 
   // Call the position change callback whenever currentPosition changes
   useEffect(() => {
@@ -44,14 +53,21 @@ export const MouseOverlay = (props: IMouseOverlayProps) => {
   }, [currentPosition, onCurrentPositionChange]);
 
   useEffect(() => {
+    // Safety check: ensure targetMousePosition is valid
+    if (!targetMousePosition || targetMousePosition.x === undefined || targetMousePosition.y === undefined) {
+      console.warn('Invalid targetMousePosition provided to MouseOverlay:', targetMousePosition);
+      return;
+    }
+
     // Skip if we're already animating to avoid double animations
     if (isAnimating) {
       return;
     }
 
     // Skip if target position hasn't changed
-    if (targetMousePosition.x === lastTargetPositionRef.current.x &&
-      targetMousePosition.y === lastTargetPositionRef.current.y) {
+    if (targetMousePosition && lastTargetPositionRef.current &&
+        targetMousePosition.x === lastTargetPositionRef.current.x &&
+        targetMousePosition.y === lastTargetPositionRef.current.y) {
       return;
     }
 
@@ -66,7 +82,8 @@ export const MouseOverlay = (props: IMouseOverlayProps) => {
     }
 
     // Skip animation if positions are the same
-    if (prevPosition.x === targetMousePosition.x && prevPosition.y === targetMousePosition.y) {
+    if (prevPosition && targetMousePosition && 
+        prevPosition.x === targetMousePosition.x && prevPosition.y === targetMousePosition.y) {
       setCurrentPosition(targetMousePosition);
       setPrevPosition(targetMousePosition);
       return;
@@ -75,6 +92,14 @@ export const MouseOverlay = (props: IMouseOverlayProps) => {
     // Always use the current position as the starting point for animation
     // This ensures we start from where the mouse actually is
     const startPosition = currentPosition;
+
+    // Safety check: ensure we have valid positions before generating control points
+    if (!startPosition || !targetMousePosition || 
+        startPosition.x === undefined || startPosition.y === undefined ||
+        targetMousePosition.x === undefined || targetMousePosition.y === undefined) {
+      console.warn('Invalid positions for animation, skipping:', { startPosition, targetMousePosition });
+      return;
+    }
 
     // Only animate in replay mode
     const curvesToUse = numberOfCurves === 1 ?
@@ -93,16 +118,59 @@ export const MouseOverlay = (props: IMouseOverlayProps) => {
     setPrevPosition(startPosition);
 
     // Pre-calculate points along the path for smoother animation
-    const animationPoints = samplePathPoints(controlPoints, 60);
-    setPathPoints(animationPoints);
+    // Safety check: ensure control points are valid
+    if (!controlPoints || controlPoints.length === 0) {
+      console.warn('No valid control points generated, skipping animation');
+      return;
+    }
+
+    // Calculate distance-based animation parameters for consistent velocity
+    const distance = Math.hypot(targetMousePosition.x - startPosition.x, targetMousePosition.y - startPosition.y);
+    
+    // Define consistent mouse velocity (pixels per second)
+    const MOUSE_VELOCITY = 600; // pixels per second - adjust for desired speed
+    const MIN_DURATION = 300;   // minimum animation time in ms
+    const MAX_DURATION = maximumAnimationDuration; // respect the maximum limit
+    
+    // Calculate duration based on distance and velocity
+    const calculatedDuration = Math.max(MIN_DURATION, Math.min(MAX_DURATION, (distance / MOUSE_VELOCITY) * 1000));
+    
+    // Calculate dynamic point count based on duration for smooth animation
+    // Target ~120 fps for optimal smoothness, but scale with duration
+    const targetFps = 120;
+    const dynamicPointCount = Math.max(30, Math.min(240, Math.floor((calculatedDuration / 1000) * targetFps)));
+
+    const animationPoints = samplePathPoints(controlPoints, dynamicPointCount);
+
+    // Safety check: ensure animation points are valid
+    if (!animationPoints || animationPoints.length === 0) {
+      console.warn('No valid animation points generated, skipping animation');
+      return;
+    }
+
+    // Validate all animation points
+    const validAnimationPoints = animationPoints.filter(point => 
+      point && 
+      typeof point.x === 'number' && !isNaN(point.x) && isFinite(point.x) &&
+      typeof point.y === 'number' && !isNaN(point.y) && isFinite(point.y)
+    );
+
+    if (validAnimationPoints.length === 0) {
+      console.warn('No valid animation points after filtering, skipping animation');
+      return;
+    }
+
+    console.log(`🎬 Distance: ${distance.toFixed(1)}px, Duration: ${calculatedDuration}ms, Points: ${validAnimationPoints.length}, Velocity: ${(distance / (calculatedDuration / 1000)).toFixed(1)}px/s`);
+
+    setPathPoints(validAnimationPoints);
 
     setIsAnimating(true);
 
     // Animate along the pre-calculated path
     let startTime: number | null = null;
-
-    // random duration from 750 to 1000
-    const duration = Math.floor(Math.random() * 250) + 750;
+    
+    // Use calculated duration for consistent velocity
+    const duration = calculatedDuration;
 
     const animateFrame = (timestamp: number) => {
       if (!startTime) startTime = timestamp;
@@ -111,11 +179,22 @@ export const MouseOverlay = (props: IMouseOverlayProps) => {
 
       // Get the point at the current progress
       const frameIndex = Math.min(
-        Math.floor(progress * (animationPoints.length - 1)),
-        animationPoints.length - 1
+        Math.floor(progress * (validAnimationPoints.length - 1)),
+        validAnimationPoints.length - 1
       );
 
-      const newPosition = animationPoints[frameIndex];
+      const newPosition = validAnimationPoints[frameIndex]; // Use validAnimationPoints instead
+      
+      // Safety check: ensure the new position is valid
+      if (!newPosition || newPosition.x === undefined || newPosition.y === undefined) {
+        console.warn('Invalid animation position detected, ending animation:', newPosition);
+        setIsAnimating(false);
+        if (onAnimationFinished) {
+          onAnimationFinished();
+        }
+        return;
+      }
+      
       setCurrentPosition(newPosition);
 
       if (progress < 1) {
@@ -137,11 +216,12 @@ export const MouseOverlay = (props: IMouseOverlayProps) => {
       }
     };
 
-  }, [targetMousePosition.x, targetMousePosition.y, mode]);
+  }, [targetMousePosition?.x, targetMousePosition?.y, mode]);
 
   // For step mode, always update position immediately
   useEffect(() => {
-    if (mode === 'step') {
+    if (mode === 'step' && targetMousePosition && 
+        targetMousePosition.x !== undefined && targetMousePosition.y !== undefined) {
       setCurrentPosition(targetMousePosition);
       setPrevPosition(targetMousePosition);
       setIsAnimating(false);
@@ -153,12 +233,19 @@ export const MouseOverlay = (props: IMouseOverlayProps) => {
     return <></>;
   }
 
+  // Safety check to prevent undefined coordinates from causing transform errors
+  const safeCurrentPosition = {
+    x: isNaN(currentPosition.x) || currentPosition.x === undefined ? 0 : currentPosition.x,
+    y: isNaN(currentPosition.y) || currentPosition.y === undefined ? 0 : currentPosition.y
+  };
+
   return (
     <Box
       id="mouse-overlay"
+      data-testid="mouse-overlay"
       ref={overlayRef}
       style={{
-        transform: `translate(${currentPosition.x}px, ${currentPosition.y}px) scale(0.8)`,
+        transform: `translate(${safeCurrentPosition.x}px, ${safeCurrentPosition.y}px) scale(0.8)`,
         transition: isAnimating ? undefined : (mode === 'replay' ? 'transform 0.05s linear' : undefined),
         zIndex: 10000,
         position: 'absolute',

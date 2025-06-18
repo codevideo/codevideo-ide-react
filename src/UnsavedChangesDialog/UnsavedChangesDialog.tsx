@@ -17,6 +17,7 @@ export function UnsavedChangesDialog(props: IUnsavedChangesDialogProps) {
 
     return (
         <Box
+            data-testid="unsaved-changes-dialog"
             style={{
                 zIndex: 9999,
                 position: 'absolute',

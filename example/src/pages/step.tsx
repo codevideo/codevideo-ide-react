@@ -293,6 +293,8 @@ export default function Step() {
             fileExplorerWidth={400}
             terminalHeight={250}
             mouseColor="green"
+            resolution="1080p"
+            showDevBox={false}
           />
         </Box>
       </Flex>

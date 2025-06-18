@@ -4,7 +4,7 @@ import { markedHighlight } from "marked-highlight";
 import hljs from 'highlight.js';
 import DOMPurify from 'dompurify';
 import { Box } from '@radix-ui/themes';
-import { SLIDE_ID } from 'src/constants/CodeVideoDataIds';
+import { SLIDE_ID } from 'src/constants/CodeVideoDataIds.js';
 
 const marked = new Marked(
     markedHighlight({
@@ -104,6 +104,7 @@ export const SlideViewer: React.FC<SlideViewerProps> = ({
     return (
         <Box
             data-codevideo-id={SLIDE_ID}
+            data-testid="slide-viewer"
             style={{ width: '100%', height: '100vh' }}>
             <Box style={{
                 ...slideContainerStyle,

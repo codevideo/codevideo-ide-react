@@ -1,5 +1,5 @@
 import * as React from "react"
-import { ICodeVideoIDEProps, GUIMode, IAction, IAudioItem, ICodeVideoManifest, Project } from "@fullstackcraftllc/codevideo-types"
+import { ICodeVideoIDEProps, GUIMode, IAction, IAudioItem, ICodeVideoManifest, Project, extractActionsFromProject } from "@fullstackcraftllc/codevideo-types"
 import { CodeVideoIDE } from "@fullstackcraftllc/codevideo-ide-react"
 import { Box, Flex, Theme } from "@radix-ui/themes";
 import { useEffect, useState } from "react";
@@ -12,7 +12,7 @@ export default function Puppeteer() {
   const [currentActionIndex, setCurrentActionIndex] = useState(0)
   const [project, setProject] = useState<Project>([])
   const [actions, setActions] = useState<IAction[]>([])
-  const [currentLessonIndex, setCurrentLessonIndex] = useState<number | null>(null)
+  // const [currentLessonIndex, setCurrentLessonIndex] = useState<number | null>(null)
   const [audioItems, setAudioItems] = useState<Array<IAudioItem>>([])
   const [isSoundOn, setIsSoundOn] = useState<boolean>(false)
   const [monacoLoaded, setMonacoLoaded] = useState<boolean>(false)
@@ -27,7 +27,7 @@ export default function Puppeteer() {
     actionFinishedCallback: () => {},
     speakActionAudios: [],
     theme: 'dark',
-    allowFocusInEditor: false,
+    allowFocusInEditor: true,
     defaultLanguage: 'python',
     isExternalBrowserStepUrl: null,
     withCaptions: true,
@@ -35,10 +35,11 @@ export default function Puppeteer() {
     terminalHeight: 350,
     mouseColor: "black",
     fontSizePx: 26,
-    keyboardTypingPauseMs: 30,
-    standardPauseMs: 400,
-    longPauseMs: 400,
-    resolution: '1080p'
+    keyboardTypingPauseMs: 40,
+    standardPauseMs: 200,
+    longPauseMs: 200,
+    resolution: '1080p',
+    showDevBox: false,
   })
 
   // on user interaction, set mode to 'replay' and reset the current action index
@@ -58,17 +59,17 @@ export default function Puppeteer() {
     };
 
     (window as any).addEventListener('error', (event) => {
-        console.error('Global error caught:', {
+        console.error('Global error caught:', JSON.stringify({
             message: event.message,
             filename: event.filename,
             lineno: event.lineno,
             colno: event.colno,
             error: event.error?.stack
-        });
+        }));
     });
 
     (window as any).addEventListener('unhandledrejection', (event) => {
-        console.error('Unhandled promise rejection:', event.reason);
+        console.error('Unhandled promise rejection:', JSON.stringify(event));
     });
   }, []);
 
@@ -96,22 +97,20 @@ export default function Puppeteer() {
     try {
       const response = await fetch(`http://localhost:7000/get-manifest-v3?uuid=${uuid}`)
       const data: ICodeVideoManifest = await response.json()
-      console.log("Manifest data: ", data)
+      console.log("\n-------------------\n\n\nMANIFEST DATA:\n", JSON.stringify(data, null, 2), "\n\n-------------------\n")
 
       // if data.actions is defined, set the actions
-      // let project: Project | undefined
-      // if (data && data.actions) {
-      //   project = data.actions
-      // } else if (data.lesson) {
-      //   project = data.lesson
-      // }
-
-      // if (data.currentLessonIndex !== undefined) {
-      //   setCurrentLessonIndex(data.currentLessonIndex)
-      // }
-
-      // const actions = extractActionsFromProject(project, data.currentLessonIndex)
-      setActions(data.actions || [])
+      let project: Project | undefined
+      if (data && data.actions) {
+        project = data.actions
+        console.log(`FOUND ${data.actions.length} actions in manifest`)
+        setActions(data.actions)
+      } else if (data.lesson) {
+        project = data.lesson
+        console.log(`FOUND ${data.lesson.actions.length} actions in lesson`)
+        setActions(data.lesson.actions)
+      }
+      setProject(project || [])
       setAudioItems(data.audioItems)
 
       // Apply codeVideoIDEProps from manifest if they exist
@@ -122,7 +121,7 @@ export default function Puppeteer() {
         }))
       }
     } catch (error) {
-      console.error("Error getting manifest: ", error)
+      console.error("Error getting manifest: ", JSON.stringify(error));
     }
   }
 
@@ -190,7 +189,7 @@ export default function Puppeteer() {
           <CodeVideoIDE
             {...ideProps}
             // should be project, but something seems broken - just use the actions for now
-            project={actions}
+            project={project}
             // should be currentLessonIndex, but something seems broken
             currentLessonIndex={0}
             mode={mode}
@@ -201,6 +200,7 @@ export default function Puppeteer() {
             // this example has audios! see codevideo-backend-engine, command: `npm run generate-audio-manifest <your actions json or ts file here> elevenlabs`
             speakActionAudios={audioItems}
             monacoLoadedCallback={() => setMonacoLoaded(true)}
+            showDevBox={false} // set to 'true' to show a small dev box in the bottom left corner of the video
           />
         </Box>
       </Flex>
