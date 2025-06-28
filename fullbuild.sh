@@ -38,7 +38,7 @@ cd /Users/chris/enterprise/codevideo/codevideo-cli &&
 go build -o codevideo &&
 
 # then, run the example and open the video when done
-./codevideo --verbose --open -p "$(cat data/test-lesson.json)" &&
+./codevideo --verbose --open --debug -p "$(cat data/lesson.json)" > /Users/chris/enterprise/codevideo/codevideo-cli/test-lesson-2.log &&
 
 # return us back to the root of this project
 cd /Users/chris/enterprise/codevideo/codevideo-ide-react &&

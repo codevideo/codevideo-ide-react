@@ -6,7 +6,7 @@ import * as monaco from 'monaco-editor';
 // import Monokai from "monaco-themes/themes/Monokai.json";
 
 // types
-import { extractActionsFromProject, ICodeVideoIDEProps, IAction, IEditor, IEditorPosition, IFileStructure, IPoint, IFileEntry } from '@fullstackcraftllc/codevideo-types';
+import { ICodeVideoIDEProps, IAction, IEditor, IEditorPosition, IFileStructure, IPoint, IFileEntry, extractActionsFromProject } from '@fullstackcraftllc/codevideo-types';
 
 // editor tabs
 import { EditorTabs } from './Editor/EditorTabs.jsx';
@@ -144,19 +144,42 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
   const editorViewStateRef = useRef<monaco.editor.ICodeEditorViewState | null>(null);
   const isRestoringViewStateRef = useRef<boolean>(false);
 
+  // should be the single action extraction in the whole component
+  const actions =  extractActionsFromProject(project, currentLessonIndex);
+
   // for cleanup TODO
   // const modelUrisRef = useRef<Set<string>>(new Set());
   // const prevMode = useRef<GUIMode>(mode);
   // const isInitialMount = useRef(true);
 
   const applyAnimation = async () => {
-    const actions = extractActionsFromProject(project, currentLessonIndex)
+    console.log("[applyAnimation] Starting animation for action index:", currentActionIndex, "in lesson index:", currentLessonIndex);
+    console.log("[applyAnimation] Project type:", Array.isArray(project) ? 'actions array' : typeof project);
+    console.log("[applyAnimation] Project length/structure:", Array.isArray(project) ? project.length : Object.keys(project || {}).length);
+    
+    console.log("[applyAnimation] Extracted actions for current lesson:", actions.length, "actions.");
+    
+    if (actions.length > 0) {
+      console.log("[applyAnimation] First few actions:", actions.slice(0, 3).map(a => ({ name: a.name, value: a.value?.substring(0, 50) + '...' })));
+    }
+    
+    // If we don't have any actions, it likely means the project isn't fully loaded yet
+    if (actions.length === 0) {
+      console.log("[applyAnimation] No actions found - project may not be fully loaded yet. Skipping animation.");
+      console.log("[applyAnimation] Project data:", project);
+      return;
+    }
+    
     const currentAction = currentActionIndex >= 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
 
     if (!currentAction) {
+      console.log("[applyAnimation] No current action found, calling playback complete callback.");
+      console.log("[applyAnimation] currentActionIndex:", currentActionIndex, "actions.length:", actions.length);
       playBackCompleteCallback && playBackCompleteCallback();
       return;
     }
+    
+    console.log("[applyAnimation] About to execute action:", currentAction.name, "with value:", currentAction.value?.substring(0, 100) + '...');
 
     if (monacoEditorRef.current) {
       await executeActionPlaybackForMonacoInstance(
@@ -199,7 +222,11 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
 
   // Handle scroll actions for step mode
   const handleStepModeScrollActions = () => {
-    const actions = extractActionsFromProject(project, currentLessonIndex);
+    // Don't proceed if project is empty (not loaded yet)
+    if (!project || (Array.isArray(project) && project.length === 0)) {
+      return;
+    }
+    
     const currentAction = currentActionIndex >= 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
 
     if (!currentAction) {
@@ -234,6 +261,16 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
   };
 
   const updateState = () => {
+    // Don't proceed if project is empty (not loaded yet)
+    if (!project || (Array.isArray(project) && project.length === 0)) {
+      console.log("[updateState] Project is empty or not loaded yet, skipping state update");
+      console.log("[updateState] Project:", project);
+      return;
+    }
+    
+    console.log("[updateState] Updating state for action index:", currentActionIndex, "lesson index:", currentLessonIndex);
+    console.log("[updateState] Project type:", Array.isArray(project) ? 'actions array' : typeof project);
+    
     const {
       editors,
       currentEditor,
@@ -248,6 +285,12 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
       isUnsavedChangesDialogOpen,
       unsavedFileName
     } = reconstituteAllPartsOfState(project, currentActionIndex, currentLessonIndex);
+    
+    console.log("[updateState] Reconstituted state:");
+    console.log("  - editors count:", editors?.length || 0);
+    console.log("  - currentEditor:", currentEditor?.filename || 'none');
+    console.log("  - actions count:", actions?.length || 0);
+    console.log("  - fileStructure keys:", Object.keys(fileExplorerSnapshot?.fileStructure || {}));
     setEditors(editors)
     setCurrentEditor(currentEditor);
     setCurrentFileName(currentFilename);
@@ -323,18 +366,14 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     setTargetMousePosition(newPosition);
   }
 
-
-  // current code update in replay mode - now handled by Monaco model management effect
-  // to prevent conflicts with typing animations
-  useEffect(() => {
-    // This effect is now mostly handled by the Monaco model management effect above
-    // to prevent conflicts between typing animations and content updates
-  }, [currentCode, mode]);
-
   // this effect handles the logic for displaying slides, web previews, and external browser steps
   // we want to continue display those even if followed by an author action
   useEffect(() => {
-    const actions = extractActionsFromProject(project, currentLessonIndex);
+    // Don't proceed if project is empty (not loaded yet)
+    if (!project || (Array.isArray(project) && project.length === 0)) {
+      return;
+    }
+    
     const currentAction = currentActionIndex >= 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
 
     // Determine if we're moving forward or backward through actions
@@ -394,7 +433,11 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
 
   // Effect to handle terminal caret based on current action
   useEffect(() => {
-    const actions = extractActionsFromProject(project, currentLessonIndex);
+    // Don't proceed if project is empty (not loaded yet)
+    if (!project || (Array.isArray(project) && project.length === 0)) {
+      return;
+    }
+    
     const currentAction = currentActionIndex >= 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
 
     if (currentAction && currentAction.name.startsWith('terminal-')) {
@@ -413,7 +456,11 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
 
   // whenever issoundon changes or currentActionIndex, and we are in step mode, and the current action includes 'speak', we should speak
   useEffect(() => {
-    const actions = extractActionsFromProject(project, currentLessonIndex)
+    // Don't proceed if project is empty (not loaded yet)
+    if (!project || (Array.isArray(project) && project.length === 0)) {
+      return;
+    }
+    
     const currentAction = currentActionIndex >= 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
     if (isSoundOn && mode === 'step' && currentAction && currentAction.name.startsWith('author-')) {
       // try to find a match by the sha256 hash of the action.value in the speakActionAudios array
@@ -429,18 +476,55 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
 
   // update virtual when current action index changes
   useEffect(() => {
+    console.log("[Main useEffect] Triggered with:", { mode, currentActionIndex, projectType: Array.isArray(project) ? 'array' : typeof project, projectLength: Array.isArray(project) ? project.length : 'N/A' });
+    
+    // Don't proceed if project is empty (not loaded yet)
+    if (!project || (Array.isArray(project) && project.length === 0)) {
+      console.log("[Main useEffect] Project is empty or not loaded yet, skipping update");
+      console.log("[Main useEffect] Project value:", project);
+      return;
+    }
+    
+    console.log("[Main useEffect] Project appears loaded, proceeding...");
+    
     // normal step by step mode OR initial replay state - can update state immediately
     if (mode === 'step') {
+      console.log("[Main useEffect] Step mode - calling updateState");
       updateState();
       return;
     }
     // if playback mode, we need to animate the typing on the editor, then we can apply the action to maintain state, then we call the actionFinishedCallback
     if (mode === 'replay') {
-      // need to handle the first reset
+      console.log("[Main useEffect] Replay mode detected");
+      // need to handle the first reset - ensure initial state is properly established
       if (currentActionIndex === 0) {
+        console.log("[Main useEffect] First action (index 0) in replay mode");
+        // Validate that we have actions before proceeding
+        console.log("[Main useEffect] About to extract actions from project");
+        console.log("[Main useEffect] Project type:", Array.isArray(project) ? 'array' : typeof project);
+        console.log("[Main useEffect] Project keys:", project ? JSON.stringify(Object.keys(project)) : 'null');
+        console.log("[Main useEffect] currentLessonIndex:", currentLessonIndex);
+        console.log("[Main useEffect] Extracted actions count:", actions.length);
+        
+        if (actions.length === 0) {
+          console.log("[Main useEffect] No actions found in project - waiting for project to be loaded");
+          console.log("[Main useEffect] Project structure:", JSON.stringify(project, null, 2));
+          return;
+        }
+        
+        console.log("[Main useEffect] Actions found, updating state first");
         updateState();
+        // Don't start animation immediately for the first action to allow initial state to be established
+        // Use setTimeout to allow the initial state to be rendered before starting animations
+        console.log("[Main useEffect] Setting 1-second timeout before starting animation");
+        setTimeout(() => {
+          console.log("[Main useEffect] Timeout expired, calling applyAnimation");
+          applyAnimation();
+        }, 1000); // Small delay to ensure initial state is rendered
+        return;
       }
       // this in turn calls updateState once the animation is complete, and then calls actionFinishedCallback
+      console.log("[Main useEffect] Non-first action in replay mode, calling applyAnimation directly");
       applyAnimation();
     }
   }, [mode, currentActionIndex, project]);
@@ -621,54 +705,51 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
       const monaco = globalMonacoRef.current;
       const editor = monacoEditorRef.current;
       
-      // If there's no current editor or no editors at all, clear the model
-      if (!currentEditor?.filename || !editors || editors.length === 0) {
+      // If there's no current editor filename, clear the model
+      if (!currentEditor?.filename) {
         if (editor.getModel()) {
           editor.setModel(null);
-          console.log('Cleared Monaco editor model - no active editors');
+          console.log('Cleared Monaco editor model - no active editor');
         }
         return;
       }
       
-      // Handle normal file switching when there are editors
-      if (currentCode !== null) {
-        const filename = currentEditor.filename;
-        
-        // Create a unique URI for this file
-        const uri = monaco.Uri.file(filename);
-        
-        // Check if a model already exists for this file
-        let model = monaco.editor.getModel(uri);
-        
-        if (!model) {
-          // Create a new model for this file
-          const language = getLanguageFromFilename(filename);
-          model = monaco.editor.createModel(currentCode, language, uri);
-          console.log(`Created new Monaco model for file: ${filename} with language: ${language}`);
-        } else {
-          // In replay mode, don't update model content here since executeActionPlaybackForMonacoInstance
-          // handles the typing animation. Only update in step mode or when file content changes significantly.
-          if (mode === 'step' && model.getValue() !== currentCode) {
+      // Handle normal file switching when we have a current editor
+      const filename = currentEditor.filename;
+      
+      // Create a unique URI for this file
+      const uri = monaco.Uri.file(filename);
+      
+      // Check if a model already exists for this file
+      let model = monaco.editor.getModel(uri);
+      
+      if (!model) {
+        // Create a new model for this file
+        const language = getLanguageFromFilename(filename);
+        model = monaco.editor.createModel(currentCode || '', language, uri);
+        console.log(`Created new Monaco model for file: ${filename} with language: ${language}, content length: ${(currentCode || '').length}`);
+      } else {
+        // In replay mode, don't update model content here since executeActionPlaybackForMonacoInstance
+        // handles the typing animation. Only update in step mode or when file content changes significantly.
+        if (mode === 'step' && model.getValue() !== currentCode) {
+          model.setValue(currentCode || '');
+          console.log(`Updated Monaco model content for file: ${filename} (step mode), content length: ${(currentCode || '').length}`);
+        } else if (mode === 'replay') {
+          // In replay mode, only update if the model is completely empty or if we're switching files
+          if (model.getValue() === '' && currentCode && currentCode !== '') {
             model.setValue(currentCode);
-            console.log(`Updated Monaco model content for file: ${filename} (step mode)`);
-          } else if (mode === 'replay') {
-            // In replay mode, only update if the model is completely empty or if we're switching files
-            // This prevents overriding the typing animation from executeActionPlaybackForMonacoInstance
-            if (model.getValue() === '' && currentCode !== '') {
-              model.setValue(currentCode);
-              console.log(`Initialized Monaco model content for file: ${filename} (replay mode)`);
-            }
+            console.log(`Initialized Monaco model content for file: ${filename} (replay mode), content length: ${currentCode.length}`);
           }
         }
-        
-        // Set the model on the editor if it's not already set
-        if (editor.getModel() !== model) {
-          editor.setModel(model);
-          console.log(`Switched Monaco editor to model for file: ${filename}`);
-        }
+      }
+      
+      // Set the model on the editor if it's not already set
+      if (editor.getModel() !== model) {
+        editor.setModel(model);
+        console.log(`Switched Monaco editor to model for file: ${filename}`);
       }
     }
-  }, [currentEditor?.filename, currentCode, editors, mode]);
+  }, [currentEditor?.filename, currentCode, mode]);
 
   // update the language of the editor based on the current filename every time it changes
   useEffect(() => {
@@ -738,7 +819,6 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
   // These are now managed by the useEffect above to support continuation during author actions
   const webPreviewFiles = webPreviewFilesState;
   const externalBrowserStepUrl = externalBrowserStepUrlState;
-  const actions = extractActionsFromProject(project, currentLessonIndex);
   const currentAction = currentActionIndex >= 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
 
   return (

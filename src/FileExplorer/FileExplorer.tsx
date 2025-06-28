@@ -135,6 +135,10 @@ export function FileExplorer(props: IFileExplorerProps) {
                     value={newFileInputValue}
                     readOnly={true}
                     autoFocus={true}
+                    style={{ 
+                        fontFamily: 'Fira Code, monospace', 
+                        fontSize: '0.9em' 
+                    }}
                 />
             </Flex>
         );
@@ -161,6 +165,10 @@ export function FileExplorer(props: IFileExplorerProps) {
                     value={newFolderInputValue}
                     readOnly={true}
                     autoFocus={true}
+                    style={{ 
+                        fontFamily: 'Fira Code, monospace', 
+                        fontSize: '0.9em' 
+                    }}
                 />
             </Flex>
         );
@@ -208,7 +216,7 @@ export function FileExplorer(props: IFileExplorerProps) {
             }
 
             return (
-                <Box key={fullPath} ml={leftMargin}>
+                <Box key={`${level}-${index}-${fullPath}`} ml={leftMargin}>
                     <Flex
                         data-codevideo-id={`file-explorer-${fullPath}`}
                         align="center"
