@@ -124,14 +124,15 @@ describe('convertToContainerCoordinates', () => {
       convertToContainerCoordinates(inputPoint, mockContainerRef);
 
       // Assert
-      expect(consoleSpy).toHaveBeenCalledWith('🔧 [convertToContainerCoordinates] Container rect:', {
+      // the source logs JSON.stringify'd strings, not raw objects
+      expect(consoleSpy).toHaveBeenCalledWith('🔧 [convertToContainerCoordinates] Container rect:', JSON.stringify({
         left: 50,
         top: 75,
         width: 900,
         height: 700
-      });
-      expect(consoleSpy).toHaveBeenCalledWith('🔧 [convertToContainerCoordinates] Input point:', inputPoint);
-      expect(consoleSpy).toHaveBeenCalledWith('🔧 [convertToContainerCoordinates] Converted coordinates:', { x: 250, y: 325 });
+      }));
+      expect(consoleSpy).toHaveBeenCalledWith('🔧 [convertToContainerCoordinates] Input point:', JSON.stringify(inputPoint));
+      expect(consoleSpy).toHaveBeenCalledWith('🔧 [convertToContainerCoordinates] Converted coordinates:', JSON.stringify({ x: 250, y: 325 }));
 
       consoleSpy.mockRestore();
     });

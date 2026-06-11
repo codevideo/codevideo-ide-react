@@ -86,11 +86,12 @@ describe('getNewMousePosition Integration Tests', () => {
       getNewMousePosition(targetMousePosition, fileAction, mockContainerRef);
 
       // Assert
-      expect(consoleSpy).toHaveBeenCalledWith('🚀 [getNewMousePosition] Handling file/folder movement:', {
+      // the source logs JSON.stringify'd strings, not raw objects
+      expect(consoleSpy).toHaveBeenCalledWith('🚀 [getNewMousePosition] Handling file/folder movement:', JSON.stringify({
         actionName: 'mouse-move-file-explorer-file',
         actionValue: 'package.json'
-      });
-      expect(consoleSpy).toHaveBeenCalledWith('🚀 [getNewMousePosition] Result position:', expectedResult);
+      }));
+      expect(consoleSpy).toHaveBeenCalledWith('🚀 [getNewMousePosition] Result position:', JSON.stringify(expectedResult));
 
       consoleSpy.mockRestore();
     });
@@ -140,8 +141,9 @@ describe('getNewMousePosition Integration Tests', () => {
       // Act
       const result = getNewMousePosition(targetMousePosition, action, mockContainerRef);
 
-      // Assert - When coordinate function returns default, the system should handle this gracefully
-      expect(result).toEqual({ x: 0, y: 0 });
+      // Assert - {0,0} fails the falsy safety checks in getNewMousePosition, so it
+      // falls back to the original target position (matching this test's name)
+      expect(result).toEqual({ x: 150, y: 200 });
     });
   });
 

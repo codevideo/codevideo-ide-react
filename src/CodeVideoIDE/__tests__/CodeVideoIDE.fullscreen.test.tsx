@@ -1,3 +1,11 @@
+/**
+ * IMPORTANT: this suite tests a local MOCK of CodeVideoIDE (see MockCodeVideoIDE
+ * below), NOT the real component. What it actually pins is the display-routing
+ * logic expressed in the mock plus the semantics of extractActionsFromProject
+ * from codevideo-types (which is strict: any action with an empty value makes
+ * the whole project invalid and extraction returns []). Real-component coverage
+ * lives in CodeVideoIDE.continuation.test.tsx and the other component suites.
+ */
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { ICodeVideoIDEProps, IAction, extractActionsFromProject, Project, ILesson, ICourse } from '@fullstackcraftllc/codevideo-types';
@@ -295,35 +303,10 @@ describe('CodeVideoIDE Fullscreen Component Display', () => {
       expect(screen.queryByTestId('editor-tabs')).not.toBeInTheDocument();
     });
 
-    it('should continue showing slide during author-speak actions when stepping forward', () => {
-      const actions: IAction[] = [
-        { name: 'slide-display', value: '# Test Slide' } as IAction,
-        { name: 'author-speak-before', value: 'Speaking about the slide' } as IAction,
-        { name: 'editor-type', value: 'console.log("hello");' } as IAction
-      ];
-      const project = createProject(actions);
-
-      // Start with slide displayed
-      const { rerender } = renderCodeVideoIDE({ project, currentActionIndex: 0 });
-      expect(screen.getByTestId('slide-viewer')).toBeInTheDocument();
-
-      // Move to author action - should still show slide
-      rerender(
-        <Theme>
-          <CodeVideoIDE {...baseProps} project={project} currentActionIndex={1} />
-        </Theme>
-      );
-      expect(screen.getByTestId('slide-viewer')).toBeInTheDocument();
-
-      // Move to non-slide/non-author action - should hide slide and show normal IDE
-      rerender(
-        <Theme>
-          <CodeVideoIDE {...baseProps} project={project} currentActionIndex={2} />
-        </Theme>
-      );
-      expect(screen.queryByTestId('slide-viewer')).not.toBeInTheDocument();
-      expect(screen.getByTestId('file-explorer')).toBeInTheDocument();
-    });
+    // NOTE: the "continue showing slide during author-speak" continuation test
+    // was removed here: this suite renders a stateless MOCK component (see header
+    // comment) which has no continuation logic. The real component's continuation
+    // behavior is covered in CodeVideoIDE.continuation.test.tsx.
   });
 
   describe('🌐 ExternalWebViewer Display', () => {
@@ -359,7 +342,7 @@ describe('CodeVideoIDE Fullscreen Component Display', () => {
       const actions: IAction[] = [
         { name: 'file-explorer-create-file', value: 'index.html' } as IAction,
         { name: 'editor-type', value: '<html><body>Hello World</body></html>' } as IAction,
-        { name: 'external-web-preview', value: '' } as IAction
+        { name: 'external-web-preview', value: '1' } as IAction
       ];
       const project = createProject(actions);
 
@@ -441,7 +424,7 @@ describe('CodeVideoIDE Fullscreen Component Display', () => {
       const actions: IAction[] = [
         { name: 'slide-display', value: '# Intro Slide' } as IAction,
         { name: 'editor-type', value: 'console.log("hello");' } as IAction,
-        { name: 'external-web-preview', value: '' } as IAction
+        { name: 'external-web-preview', value: '1' } as IAction
       ];
       const project = createProject(actions);
 
@@ -523,7 +506,7 @@ describe('CodeVideoIDE Fullscreen Component Display', () => {
     it('should prioritize ExternalWebViewer over all other components when URL is provided', () => {
       const actions: IAction[] = [
         { name: 'slide-display', value: '# Test Slide' },
-        { name: 'external-web-preview', value: '' }
+        { name: 'external-web-preview', value: '1' }
       ];
       const project = createProject(actions);
 
@@ -556,7 +539,7 @@ describe('CodeVideoIDE Fullscreen Component Display', () => {
     it('should prioritize WebPreview over normal IDE components', () => {
       const actions: IAction[] = [
         { name: 'editor-type', value: 'console.log("hello");' },
-        { name: 'external-web-preview', value: '' }
+        { name: 'external-web-preview', value: '1' }
       ];
       const project = createProject(actions);
 
@@ -630,7 +613,7 @@ describe('CodeVideoIDE Fullscreen Component Display', () => {
     const testActions: IAction[] = [
       { name: 'slide-display', value: '# Test Slide' } as IAction,
       { name: 'editor-type', value: 'console.log("hello");' } as IAction,
-      { name: 'external-web-preview', value: '' } as IAction
+      { name: 'external-web-preview', value: '1' } as IAction
     ];
 
     describe('Array<IAction> Project Type', () => {
