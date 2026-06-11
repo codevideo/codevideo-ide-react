@@ -177,7 +177,7 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
 
   // single source of action extraction for the whole component; the epoch only
   // changes on non-append content changes (see useStableActions)
-  const { actions: stableActions, actionsEpoch, hasActionAtCurrentIndex } = useStableActions(project, currentLessonIndex, currentActionIndex);
+  const { actions: stableActions, actionsEpoch, currentAction: stableCurrentAction, hasActionAtCurrentIndex } = useStableActions(project, currentLessonIndex, currentActionIndex);
 
   // Handle scroll actions for step mode
   const handleStepModeScrollActions = () => {
@@ -335,9 +335,7 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
       return;
     }
 
-    const extractedActions = extractActions(project, currentLessonIndex);
-
-    const currentAction = getActionAtIndex(extractedActions, currentActionIndex);
+    const currentAction = stableCurrentAction;
 
     // Determine if we're moving forward or backward through actions
     const isSteppingForward = currentActionIndex > prevActionIndex;
@@ -351,7 +349,7 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
         // When current action is external-web-preview, always show it
         setIsExternalWebPreviewDisplayStep(true);
         const virtualIDE = new VirtualIDE(project);
-        virtualIDE.applyActions(extractedActions.slice(0, currentActionIndex + 1));
+        virtualIDE.applyActions(stableActions.slice(0, currentActionIndex + 1));
         setWebPreviewFilesState(virtualIDE.getFullFilePathsAndContents());
       } else if (currentAction.name === 'external-browser' || currentAction.name === 'external-browser-scroll') {
         // When current action is external-browser, always show it
@@ -392,7 +390,10 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
     if (mode === 'step' || currentActionIndex > 0) {
       setPrevActionIndex(currentActionIndex);
     }
-  }, [currentActionIndex, project, currentLessonIndex, mode]);
+    // append-stable deps: appends beyond the current index change none of these,
+    // so a streamed append no longer rebuilds the web-preview VirtualIDE or
+    // re-routes the overlays
+  }, [currentActionIndex, stableCurrentAction?.name, stableCurrentAction?.value, actionsEpoch, currentLessonIndex, mode]);
 
   // Effect to handle terminal caret based on current action
   useEffect(() => {
@@ -401,9 +402,7 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
       return;
     }
 
-    const extractedActions = extractActions(project, currentLessonIndex);
-
-    const currentAction = getActionAtIndex(extractedActions, currentActionIndex);
+    const currentAction = stableCurrentAction;
 
     if (currentAction && currentAction.name.startsWith('terminal-')) {
       setShowBlockCaret(true);
@@ -417,7 +416,8 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
     } else {
       setShowBlockCaret(false);
     }
-  }, [currentActionIndex, project, currentLessonIndex]);
+    // append-stable deps: a streamed append must not restart the 2s caret timer
+  }, [currentActionIndex, stableCurrentAction?.name, actionsEpoch, currentLessonIndex]);
 
   // whenever issoundon changes or currentActionIndex, and we are in step mode, and the current action includes 'speak', we should speak
   useEffect(() => {
@@ -426,9 +426,7 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
       return;
     }
 
-    const extractedActions = extractActions(project, currentLessonIndex);
-
-    const currentAction = getActionAtIndex(extractedActions, currentActionIndex);
+    const currentAction = stableCurrentAction;
     if (isSoundOn && mode === 'step' && currentAction && currentAction.name.startsWith('author-')) {
       // try to find a match by the sha256 hash of the action.value in the speakActionAudios array
       const action = currentAction;
@@ -439,7 +437,9 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
     } else {
       stopSpeaking();
     }
-  }, [isSoundOn, project, currentActionIndex, currentLessonIndex]);
+    // append-stable deps: a streamed append must not re-speak the current action.
+    // NOTE: mode is deliberately NOT a dependency (long-standing quirk, preserved)
+  }, [isSoundOn, stableCurrentAction?.name, stableCurrentAction?.value, actionsEpoch, currentActionIndex, currentLessonIndex]);
 
   // the replay playback loop: animates the current action exactly once per
   // (content epoch, index), handles the 1s initial delay, and signals the
@@ -771,8 +771,8 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
   // These are now managed by the useEffect above to support continuation during author actions
   const webPreviewFiles = webPreviewFilesState;
   const externalBrowserStepUrl = externalBrowserStepUrlState;
-  const extractedActions = extractActions(project, currentLessonIndex);
-  const currentAction = getActionAtIndex(extractedActions, currentActionIndex);
+  const extractedActions = stableActions;
+  const currentAction = stableCurrentAction;
 
   return (
     <Flex

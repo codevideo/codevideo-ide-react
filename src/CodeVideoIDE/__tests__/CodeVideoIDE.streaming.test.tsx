@@ -27,7 +27,9 @@ jest.mock('../../Editor/EditorTabs', () => ({
   EditorTabs: () => <div data-testid="editor-tabs">Tabs</div>
 }));
 jest.mock('../../Terminal/Terminal', () => ({
-  Terminal: () => <div data-testid="terminal">Terminal</div>
+  Terminal: ({ showBlockCaret }: { showBlockCaret?: boolean }) => (
+    <div data-testid="terminal">{showBlockCaret ? 'caret-on' : 'caret-off'}</div>
+  )
 }));
 jest.mock('../../MouseOverlay/MouseOverlay', () => ({
   MouseOverlay: () => <div data-testid="mouse-overlay">Mouse</div>
@@ -275,6 +277,61 @@ describe('CodeVideoIDE streaming appends', () => {
     await flush(10);
 
     expect(actionFinished).toHaveBeenCalledTimes(2);
+  });
+
+  it('an append does not restart the 2s terminal block-caret timer', async () => {
+    const terminalChunk: IAction[] = [a('terminal-type', 'npm install')];
+    const { rerenderIDE, getByTestId } = renderIDE({
+      project: terminalChunk,
+      currentActionIndex: 0,
+      isStreaming: true,
+    });
+    await flush();
+    expect(getByTestId('terminal')).toHaveTextContent('caret-on');
+
+    // 1.5s into the 2s caret window, the stream appends an action
+    await act(async () => {
+      jest.advanceTimersByTime(1500);
+    });
+    rerenderIDE({
+      project: [...terminalChunk, a('author-speak-before', 'done installing')],
+      currentActionIndex: 0,
+      isStreaming: true,
+    });
+    await flush();
+
+    // 0.6s later the original 2s timer expires; a restarted timer would still show the caret
+    await act(async () => {
+      jest.advanceTimersByTime(600);
+    });
+    await flush();
+    expect(getByTestId('terminal')).toHaveTextContent('caret-off');
+  });
+
+  it('an append does not re-speak the current author action (step mode + sound)', async () => {
+    const { speakText } = jest.requireMock('../../utils/speakText');
+    (speakText as jest.Mock).mockClear();
+
+    const { rerenderIDE } = renderIDE({
+      mode: 'step',
+      project: chunk1,
+      currentActionIndex: 0,
+      isSoundOn: true,
+      isStreaming: true,
+    });
+    await flush();
+    expect(speakText).toHaveBeenCalledTimes(1);
+
+    rerenderIDE({
+      mode: 'step',
+      project: chunk2,
+      currentActionIndex: 0,
+      isSoundOn: true,
+      isStreaming: true,
+    });
+    await flush();
+
+    expect(speakText).toHaveBeenCalledTimes(1);
   });
 
   it('without isStreaming, starvation still completes (legacy semantics intact)', async () => {
