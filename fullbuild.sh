@@ -8,11 +8,11 @@
 # then, build the project
 npm run build &&
 
-# publish to npm
+# # publish to npm
 npm publish --access public &&
 
-# wait for 15 seconds for npm to finish publishing internally (HTTP cache nonsense)
-sleep 15 &&
+# wait for 30 seconds for npm to finish publishing internally (HTTP cache nonsense)
+sleep 30 &&
 
 # then, move into examples directory
 cd example &&
@@ -38,7 +38,7 @@ cd /Users/chris/enterprise/codevideo/codevideo-cli &&
 go build -o codevideo &&
 
 # then, run the example and open the video when done
-./codevideo --verbose --open --debug -p "$(cat data/lesson.json)" > /Users/chris/enterprise/codevideo/codevideo-cli/test-lesson-2.log &&
+./codevideo --verbose --open --debug -p "$(cat data/actions.json)" > /Users/chris/enterprise/codevideo/codevideo-cli/test-lesson-2.log &&
 
 # return us back to the root of this project
 cd /Users/chris/enterprise/codevideo/codevideo-ide-react &&

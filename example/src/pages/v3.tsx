@@ -22,7 +22,7 @@ export default function Puppeteer() {
   const [ideProps, setIdeProps] = useState<ICodeVideoIDEProps>({
     project: [],
     mode: 'step',
-    currentLessonIndex: 0,
+    currentLessonIndex: null,
     currentActionIndex: 0,
     isSoundOn: false,
     actionFinishedCallback: () => {},

@@ -25,6 +25,7 @@ export function getLanguageFromFilename(filename: string | undefined): string {
       'sql': 'sql',
       'yaml': 'yaml',
       'yml': 'yaml',
+      'dart': 'dart'
       // Add more mappings as needed
     };
     

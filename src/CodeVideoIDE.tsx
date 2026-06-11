@@ -145,7 +145,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
   const isRestoringViewStateRef = useRef<boolean>(false);
 
   // should be the single action extraction in the whole component
-  const actions =  extractActionsFromProject(project, currentLessonIndex);
+  // const actions =  extractActionsFromProject(project, currentLessonIndex);
 
   // for cleanup TODO
   // const modelUrisRef = useRef<Set<string>>(new Set());
@@ -156,29 +156,37 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     console.log("[applyAnimation] Starting animation for action index:", currentActionIndex, "in lesson index:", currentLessonIndex);
     console.log("[applyAnimation] Project type:", Array.isArray(project) ? 'actions array' : typeof project);
     console.log("[applyAnimation] Project length/structure:", Array.isArray(project) ? project.length : Object.keys(project || {}).length);
-    
-    console.log("[applyAnimation] Extracted actions for current lesson:", actions.length, "actions.");
-    
-    if (actions.length > 0) {
-      console.log("[applyAnimation] First few actions:", actions.slice(0, 3).map(a => ({ name: a.name, value: a.value?.substring(0, 50) + '...' })));
+
+    // if we find an actions key, use it directly
+    let extractedActions: Array<IAction> = [];
+    if (Object.keys(project).includes('actions')) {
+      extractedActions = (project as any).actions;
+    } else if (Array.isArray(project)) {
+      extractedActions = project;
     }
-    
+
+    console.log("[applyAnimation] Extracted actions for current lesson:", extractedActions.length, "actions.");
+
+    if (extractedActions.length > 0) {
+      console.log("[applyAnimation] First few actions:", extractedActions.slice(0, 3).map(a => ({ name: a.name, value: a.value?.substring(0, 50) + '...' })));
+    }
+
     // If we don't have any actions, it likely means the project isn't fully loaded yet
-    if (actions.length === 0) {
+    if (extractedActions.length === 0) {
       console.log("[applyAnimation] No actions found - project may not be fully loaded yet. Skipping animation.");
       console.log("[applyAnimation] Project data:", project);
       return;
     }
-    
-    const currentAction = currentActionIndex >= 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
+
+    const currentAction = currentActionIndex >= 0 && currentActionIndex < extractedActions.length ? extractedActions[currentActionIndex] : null;
 
     if (!currentAction) {
       console.log("[applyAnimation] No current action found, calling playback complete callback.");
-      console.log("[applyAnimation] currentActionIndex:", currentActionIndex, "actions.length:", actions.length);
+      console.log("[applyAnimation] currentActionIndex:", currentActionIndex, "actions.length:", extractedActions.length);
       playBackCompleteCallback && playBackCompleteCallback();
       return;
     }
-    
+
     console.log("[applyAnimation] About to execute action:", currentAction.name, "with value:", currentAction.value?.substring(0, 100) + '...');
 
     if (monacoEditorRef.current) {
@@ -226,8 +234,16 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     if (!project || (Array.isArray(project) && project.length === 0)) {
       return;
     }
-    
-    const currentAction = currentActionIndex >= 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
+
+    // if we find an actions key, use it directly
+    let extractedActions: Array<IAction> = [];
+    if (Object.keys(project).includes('actions')) {
+      extractedActions = (project as any).actions;
+    } else if (Array.isArray(project)) {
+      extractedActions = project;
+    }
+
+    const currentAction = currentActionIndex >= 0 && currentActionIndex < extractedActions.length ? extractedActions[currentActionIndex] : null;
 
     if (!currentAction) {
       return;
@@ -267,10 +283,10 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
       console.log("[updateState] Project:", project);
       return;
     }
-    
+
     console.log("[updateState] Updating state for action index:", currentActionIndex, "lesson index:", currentLessonIndex);
     console.log("[updateState] Project type:", Array.isArray(project) ? 'actions array' : typeof project);
-    
+
     const {
       editors,
       currentEditor,
@@ -285,7 +301,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
       isUnsavedChangesDialogOpen,
       unsavedFileName
     } = reconstituteAllPartsOfState(project, currentActionIndex, currentLessonIndex);
-    
+
     console.log("[updateState] Reconstituted state:");
     console.log("  - editors count:", editors?.length || 0);
     console.log("  - currentEditor:", currentEditor?.filename || 'none');
@@ -353,14 +369,14 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     if (!currentAction) return;
 
     const newPosition = getNewMousePosition(targetMousePosition, currentAction, containerRef);
-    
+
     // Safety check to prevent undefined coordinates
-    if (!newPosition || isNaN(newPosition.x) || isNaN(newPosition.y) || 
-        newPosition.x === undefined || newPosition.y === undefined) {
+    if (!newPosition || isNaN(newPosition.x) || isNaN(newPosition.y) ||
+      newPosition.x === undefined || newPosition.y === undefined) {
       console.warn('Invalid mouse position detected, keeping current position:', newPosition);
       return;
     }
-    
+
     console.log(`Action: ${currentAction.name}, New position: x=${newPosition.x}, y=${newPosition.y}`);
 
     setTargetMousePosition(newPosition);
@@ -373,8 +389,16 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     if (!project || (Array.isArray(project) && project.length === 0)) {
       return;
     }
-    
-    const currentAction = currentActionIndex >= 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
+
+    // if we find an actions key, use it directly
+    let extractedActions: Array<IAction> = [];
+    if (Object.keys(project).includes('actions')) {
+      extractedActions = (project as any).actions;
+    } else if (Array.isArray(project)) {
+      extractedActions = project;
+    }
+
+    const currentAction = currentActionIndex >= 0 && currentActionIndex < extractedActions.length ? extractedActions[currentActionIndex] : null;
 
     // Determine if we're moving forward or backward through actions
     const isSteppingForward = currentActionIndex > prevActionIndex;
@@ -388,7 +412,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
         // When current action is external-web-preview, always show it
         setIsExternalWebPreviewDisplayStep(true);
         const virtualIDE = new VirtualIDE(project);
-        virtualIDE.applyActions(actions.slice(0, currentActionIndex + 1));
+        virtualIDE.applyActions(extractedActions.slice(0, currentActionIndex + 1));
         setWebPreviewFilesState(virtualIDE.getFullFilePathsAndContents());
       } else if (currentAction.name === 'external-browser' || currentAction.name === 'external-browser-scroll') {
         // When current action is external-browser, always show it
@@ -437,8 +461,16 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     if (!project || (Array.isArray(project) && project.length === 0)) {
       return;
     }
-    
-    const currentAction = currentActionIndex >= 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
+
+    // if we find an actions key, use it directly
+    let extractedActions: Array<IAction> = [];
+    if (Object.keys(project).includes('actions')) {
+      extractedActions = (project as any).actions;
+    } else if (Array.isArray(project)) {
+      extractedActions = project;
+    }
+
+    const currentAction = currentActionIndex >= 0 && currentActionIndex < extractedActions.length ? extractedActions[currentActionIndex] : null;
 
     if (currentAction && currentAction.name.startsWith('terminal-')) {
       setShowBlockCaret(true);
@@ -460,8 +492,16 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     if (!project || (Array.isArray(project) && project.length === 0)) {
       return;
     }
-    
-    const currentAction = currentActionIndex >= 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
+
+    // if we find an actions key, use it directly
+    let extractedActions: Array<IAction> = [];
+    if (Object.keys(project).includes('actions')) {
+      extractedActions = (project as any).actions;
+    } else if (Array.isArray(project)) {
+      extractedActions = project;
+    }
+
+    const currentAction = currentActionIndex >= 0 && currentActionIndex < extractedActions.length ? extractedActions[currentActionIndex] : null;
     if (isSoundOn && mode === 'step' && currentAction && currentAction.name.startsWith('author-')) {
       // try to find a match by the sha256 hash of the action.value in the speakActionAudios array
       const action = currentAction;
@@ -477,19 +517,19 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
   // update virtual when current action index changes
   useEffect(() => {
     console.log("[Main useEffect] Triggered with:", { mode, currentActionIndex, projectType: Array.isArray(project) ? 'array' : typeof project, projectLength: Array.isArray(project) ? project.length : 'N/A' });
-    
+
     // Don't proceed if project is empty (not loaded yet)
     if (!project || (Array.isArray(project) && project.length === 0)) {
       console.log("[Main useEffect] Project is empty or not loaded yet, skipping update");
       console.log("[Main useEffect] Project value:", project);
       return;
     }
-    
+
     console.log("[Main useEffect] Project appears loaded, proceeding...");
-    
+
     // normal step by step mode OR initial replay state - can update state immediately
     if (mode === 'step') {
-      console.log("[Main useEffect] Step mode - calling updateState");
+      console.log("[Main useEffect] We're in step mode - calling updateState immediately");
       updateState();
       return;
     }
@@ -503,15 +543,24 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
         console.log("[Main useEffect] About to extract actions from project");
         console.log("[Main useEffect] Project type:", Array.isArray(project) ? 'array' : typeof project);
         console.log("[Main useEffect] Project keys:", project ? JSON.stringify(Object.keys(project)) : 'null');
+
+        // if we find an actions key, use it directly
+        let extractedActions: Array<IAction> = [];
+        if (Object.keys(project).includes('actions')) {
+          extractedActions = (project as any).actions;
+        } else if (Array.isArray(project)) {
+          extractedActions = project;
+        }
+
         console.log("[Main useEffect] currentLessonIndex:", currentLessonIndex);
-        console.log("[Main useEffect] Extracted actions count:", actions.length);
-        
-        if (actions.length === 0) {
+        console.log("[Main useEffect] Extracted actions from project count:", extractedActions.length);
+
+        if (extractedActions.length === 0) {
           console.log("[Main useEffect] No actions found in project - waiting for project to be loaded");
           console.log("[Main useEffect] Project structure:", JSON.stringify(project, null, 2));
           return;
         }
-        
+
         console.log("[Main useEffect] Actions found, updating state first");
         updateState();
         // Don't start animation immediately for the first action to allow initial state to be established
@@ -523,6 +572,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
         }, 1000); // Small delay to ensure initial state is rendered
         return;
       }
+      // normal animation flow (non first action) 
       // this in turn calls updateState once the animation is complete, and then calls actionFinishedCallback
       console.log("[Main useEffect] Non-first action in replay mode, calling applyAnimation directly");
       applyAnimation();
@@ -538,7 +588,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
 
     // Don't create a model here - let the model management useEffect handle it
     // This ensures proper file switching behavior in replay mode
-    
+
     // Ensure theme is applied after a short delay
     // monaco.editor.defineTheme(
     //   "Monokai",
@@ -704,7 +754,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     if (monacoEditorRef.current && globalMonacoRef.current) {
       const monaco = globalMonacoRef.current;
       const editor = monacoEditorRef.current;
-      
+
       // If there's no current editor filename, clear the model
       if (!currentEditor?.filename) {
         if (editor.getModel()) {
@@ -713,21 +763,21 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
         }
         return;
       }
-      
+
       // Handle normal file switching when we have a current editor
       const filename = currentEditor.filename;
-      
+
       // Create a unique URI for this file
       const uri = monaco.Uri.file(filename);
-      
+
       // Check if a model already exists for this file
       let model = monaco.editor.getModel(uri);
-      
+
       if (!model) {
         // Create a new model for this file
         const language = getLanguageFromFilename(filename);
         model = monaco.editor.createModel(currentCode || '', language, uri);
-        console.log(`Created new Monaco model for file: ${filename} with language: ${language}, content length: ${(currentCode || '').length}`);
+        console.log(`Created new Monaco model for file: ${filename} with language: ${language}, uri: ${uri} content length: ${(currentCode || '').length}`);
       } else {
         // In replay mode, don't update model content here since executeActionPlaybackForMonacoInstance
         // handles the typing animation. Only update in step mode or when file content changes significantly.
@@ -742,7 +792,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
           }
         }
       }
-      
+
       // Set the model on the editor if it's not already set
       if (editor.getModel() !== model) {
         editor.setModel(model);
@@ -819,7 +869,14 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
   // These are now managed by the useEffect above to support continuation during author actions
   const webPreviewFiles = webPreviewFilesState;
   const externalBrowserStepUrl = externalBrowserStepUrlState;
-  const currentAction = currentActionIndex >= 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
+  // if we find an actions key, use it directly
+  let extractedActions: Array<IAction> = [];
+  if (Object.keys(project).includes('actions')) {
+    extractedActions = (project as any).actions;
+  } else if (Array.isArray(project)) {
+    extractedActions = project;
+  }
+  const currentAction = currentActionIndex >= 0 && currentActionIndex < extractedActions.length ? extractedActions[currentActionIndex] : null;
 
   return (
     <Flex
@@ -1026,7 +1083,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
         // captionText,
         currentFileName,
         currentCode: currentCode.substring(0, 50) + '...',
-        actionLength: actions.length,
+        actionLength: extractedActions.length,
         currentActionIndex,
         currentAction
         // isUnsavedChangesDialogOpen,

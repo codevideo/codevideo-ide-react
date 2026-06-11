@@ -189,7 +189,7 @@ export function FileExplorer(props: IFileExplorerProps) {
             return aIsDir ? -1 : 1;
         });
 
-        return sortedEntries.map(([name, item]) => {
+        return sortedEntries.map(([name, item], index) => {
             const fullPath = path ? `${path}/${name}` : name;
             const isDirectory = item.type === 'directory';
             const leftMargin = level === 0 ? "0" : "4";
