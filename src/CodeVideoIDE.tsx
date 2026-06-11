@@ -48,6 +48,7 @@ import { WebPreview } from './WebPreview/WebPreview.jsx';
 // util functions
 import { reconstituteAllPartsOfState } from './utils/reconstituteAllPartsOfState.js';
 import { extractActions, getActionAtIndex } from './utils/extractActions.js';
+import { setDebugLogging } from './utils/debugLog.js';
 import { getNewMousePosition } from './MouseOverlay/utils/getNewMousePosition.js';
 
 // ids and constants
@@ -62,11 +63,28 @@ import { useStableActions } from './hooks/useStableActions.js';
 import { useReplayPlayback } from './hooks/useReplayPlayback.js';
 
 /**
- * Represents a powerful IDE with file explorer, multiple editors, and terminal
- * @param props 
- * @returns 
+ * Props for CodeVideoIDE: everything from codevideo-types' ICodeVideoIDEProps
+ * plus locally-added flags (to be upstreamed to codevideo-types later).
  */
-export function CodeVideoIDE(props: ICodeVideoIDEProps) {
+export interface CodeVideoIDEProps extends ICodeVideoIDEProps {
+  /**
+   * Streaming mode (e.g. actions generated live by an LLM): appends to the
+   * actions array continue playback seamlessly, and when playback runs out of
+   * actions it idles instead of calling playBackCompleteCallback. Set this
+   * back to false once the stream ends to get normal completion semantics.
+   * Default false = exact legacy behavior.
+   */
+  isStreaming?: boolean;
+  /** Enable the component's verbose internal console logging. Default false. */
+  debug?: boolean;
+}
+
+/**
+ * Represents a powerful IDE with file explorer, multiple editors, and terminal
+ * @param props
+ * @returns
+ */
+export function CodeVideoIDE(props: CodeVideoIDEProps) {
   const {
     theme,
     project,
@@ -96,8 +114,13 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     standardPauseMs = STANDARD_PAUSE_MS,
     longPauseMs = LONG_PAUSE_MS,
     resolution = '1080p',
-    showDevBox = false
+    showDevBox = false,
+    isStreaming = false,
+    debug = false
   } = props;
+  // module-level log gate; set during render so even render-scope logging is
+  // covered. Idempotent, so safe under StrictMode double-renders.
+  setDebugLogging(debug);
   const isRecording = mode === 'record'
   const [editors, setEditors] = useState<Array<IEditor>>();
   const [currentEditor, setCurrentEditor] = useState<IEditor>();
@@ -431,6 +454,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     actions: stableActions,
     actionsEpoch,
     hasActionAtCurrentIndex,
+    isStreaming,
     isSoundOn,
     speakActionAudios,
     monacoEditorRef,

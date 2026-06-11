@@ -4,6 +4,7 @@ import * as monaco from 'monaco-editor';
 import { executeActionPlaybackForMonacoInstance } from '../utils/executeActionPlaybackForMonacoInstance.js';
 import { getActionAtIndex } from '../utils/extractActions.js';
 import { sleep } from '../utils/sleep.js';
+import { debugLog } from '../utils/debugLog.js';
 
 export interface UseReplayPlaybackParams {
   mode: GUIMode;
@@ -15,6 +16,14 @@ export interface UseReplayPlaybackParams {
   actions: Array<IAction>;
   actionsEpoch: number;
   hasActionAtCurrentIndex: boolean;
+
+  /**
+   * Streaming mode: when playback runs out of actions, idle and wait for more
+   * instead of calling playBackCompleteCallback. When the producer is done,
+   * the consumer sets this back to false and a still-starved playback then
+   * completes normally. Default false = legacy completion semantics.
+   */
+  isStreaming: boolean;
 
   isSoundOn: boolean;
   speakActionAudios: Array<{ text: string; mp3Url: string }>;
@@ -82,6 +91,7 @@ export const useReplayPlayback = (params: UseReplayPlaybackParams): void => {
     actions,
     actionsEpoch,
     hasActionAtCurrentIndex,
+    isStreaming,
     isSoundOn,
     speakActionAudios,
     monacoEditorRef,
@@ -116,24 +126,24 @@ export const useReplayPlayback = (params: UseReplayPlaybackParams): void => {
   const applyAnimation = async () => {
     const runId = runIdRef.current;
 
-    console.log("[applyAnimation] Starting animation for action index:", currentActionIndex, "in lesson index:", currentLessonIndex);
-    console.log("[applyAnimation] Extracted actions for current lesson:", actions.length, "actions.");
+    debugLog("[applyAnimation] Starting animation for action index:", currentActionIndex, "in lesson index:", currentLessonIndex);
+    debugLog("[applyAnimation] Extracted actions for current lesson:", actions.length, "actions.");
 
     // If we don't have any actions, it likely means the project isn't fully loaded yet
     if (actions.length === 0) {
-      console.log("[applyAnimation] No actions found - project may not be fully loaded yet. Skipping animation.");
+      debugLog("[applyAnimation] No actions found - project may not be fully loaded yet. Skipping animation.");
       return;
     }
 
     const currentAction = getActionAtIndex(actions, currentActionIndex);
 
     if (!currentAction) {
-      console.log("[applyAnimation] No current action found, calling playback complete callback.");
+      debugLog("[applyAnimation] No current action found, calling playback complete callback.");
       playBackCompleteCallback && playBackCompleteCallback();
       return;
     }
 
-    console.log("[applyAnimation] About to execute action:", currentAction.name, "with value:", currentAction.value?.substring(0, 100) + '...');
+    debugLog("[applyAnimation] About to execute action:", currentAction.name, "with value:", currentAction.value?.substring(0, 100) + '...');
 
     if (monacoEditorRef.current) {
       await executeActionPlaybackForMonacoInstance(
@@ -174,7 +184,7 @@ export const useReplayPlayback = (params: UseReplayPlaybackParams): void => {
     // staleness seam: a reset (epoch change / mode exit) during the animation
     // means this run must neither smear stale state nor advance the parent
     if (runIdRef.current !== runId) {
-      console.log("[applyAnimation] Run invalidated during animation, skipping state update and callback.");
+      debugLog("[applyAnimation] Run invalidated during animation, skipping state update and callback.");
       return;
     }
     updateState();
@@ -185,7 +195,7 @@ export const useReplayPlayback = (params: UseReplayPlaybackParams): void => {
   };
 
   useEffect(() => {
-    console.log("[useReplayPlayback] Triggered with:", { mode, currentActionIndex, actionsEpoch, hasActionAtCurrentIndex });
+    debugLog("[useReplayPlayback] Triggered with:", { mode, currentActionIndex, actionsEpoch, hasActionAtCurrentIndex });
 
     // a content reset invalidates any in-flight animation and all guards
     if (lastEpochRef.current !== actionsEpoch) {
@@ -203,7 +213,7 @@ export const useReplayPlayback = (params: UseReplayPlaybackParams): void => {
       if (mode === 'step') {
         // Don't proceed if project is empty (not loaded yet)
         if (!project || (Array.isArray(project) && project.length === 0)) {
-          console.log("[useReplayPlayback] Project is empty or not loaded yet, skipping update");
+          debugLog("[useReplayPlayback] Project is empty or not loaded yet, skipping update");
           return;
         }
         updateState();
@@ -215,13 +225,20 @@ export const useReplayPlayback = (params: UseReplayPlaybackParams): void => {
 
     if (actions.length === 0) {
       // project not loaded yet - idle, never complete
-      console.log("[useReplayPlayback] No actions found in project - waiting for project to be loaded");
+      debugLog("[useReplayPlayback] No actions found in project - waiting for project to be loaded");
       return;
     }
 
     if (!hasActionAtCurrentIndex) {
+      if (isStreaming) {
+        // starved mid-stream: idle without claiming the guard key, so the
+        // index animates as soon as an append makes it available (the
+        // hasActionAtCurrentIndex dep flips and re-fires this effect)
+        debugLog("[useReplayPlayback] Starved at index", currentActionIndex, "while streaming - waiting for more actions");
+        return;
+      }
       // past the end of the available actions: legacy completion semantics
-      console.log("[useReplayPlayback] No current action at index", currentActionIndex, "- calling playback complete callback");
+      debugLog("[useReplayPlayback] No current action at index", currentActionIndex, "- calling playback complete callback");
       playBackCompleteCallback && playBackCompleteCallback();
       return;
     }
@@ -230,13 +247,13 @@ export const useReplayPlayback = (params: UseReplayPlaybackParams): void => {
     if (lastStartedKeyRef.current === key || pendingTimerRef.current?.key === key) {
       // this exact action already animated (or is scheduled) for this content
       // epoch - e.g. a StrictMode double-invoke or a spurious re-render
-      console.log("[useReplayPlayback] Action", key, "already started/scheduled, skipping");
+      debugLog("[useReplayPlayback] Action", key, "already started/scheduled, skipping");
       return;
     }
 
     // need to handle the first reset - ensure initial state is properly established
     if (currentActionIndex === 0) {
-      console.log("[useReplayPlayback] First action (index 0) in replay mode, updating state first");
+      debugLog("[useReplayPlayback] First action (index 0) in replay mode, updating state first");
       updateState();
       // Don't start animation immediately for the first action: allow the
       // initial state to be rendered before starting animations
@@ -244,7 +261,7 @@ export const useReplayPlayback = (params: UseReplayPlaybackParams): void => {
         // claim-on-fire (see guard design note above)
         pendingTimerRef.current = null;
         lastStartedKeyRef.current = key;
-        console.log("[useReplayPlayback] Initial 1s timeout expired, calling applyAnimation");
+        debugLog("[useReplayPlayback] Initial 1s timeout expired, calling applyAnimation");
         applyAnimation();
       }, 1000);
       pendingTimerRef.current = { key, timer };
@@ -260,5 +277,5 @@ export const useReplayPlayback = (params: UseReplayPlaybackParams): void => {
     // normal animation flow (non-first action): claim-on-start
     lastStartedKeyRef.current = key;
     applyAnimation();
-  }, [mode, currentActionIndex, actionsEpoch, hasActionAtCurrentIndex]);
+  }, [mode, currentActionIndex, actionsEpoch, hasActionAtCurrentIndex, isStreaming]);
 };
