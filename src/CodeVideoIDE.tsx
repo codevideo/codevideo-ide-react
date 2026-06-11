@@ -48,6 +48,7 @@ import { WebPreview } from './WebPreview/WebPreview.jsx';
 
 // util functions
 import { reconstituteAllPartsOfState } from './utils/reconstituteAllPartsOfState.js';
+import { extractActions, getActionAtIndex } from './utils/extractActions.js';
 import { getNewMousePosition } from './MouseOverlay/utils/getNewMousePosition.js';
 
 // ids and constants
@@ -144,9 +145,6 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
   const editorViewStateRef = useRef<monaco.editor.ICodeEditorViewState | null>(null);
   const isRestoringViewStateRef = useRef<boolean>(false);
 
-  // should be the single action extraction in the whole component
-  // const actions =  extractActionsFromProject(project, currentLessonIndex);
-
   // for cleanup TODO
   // const modelUrisRef = useRef<Set<string>>(new Set());
   // const prevMode = useRef<GUIMode>(mode);
@@ -157,13 +155,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     console.log("[applyAnimation] Project type:", Array.isArray(project) ? 'actions array' : typeof project);
     console.log("[applyAnimation] Project length/structure:", Array.isArray(project) ? project.length : Object.keys(project || {}).length);
 
-    // if we find an actions key, use it directly
-    let extractedActions: Array<IAction> = [];
-    if (Object.keys(project).includes('actions')) {
-      extractedActions = (project as any).actions;
-    } else if (Array.isArray(project)) {
-      extractedActions = project;
-    }
+    const extractedActions = extractActions(project, currentLessonIndex);
 
     console.log("[applyAnimation] Extracted actions for current lesson:", extractedActions.length, "actions.");
 
@@ -178,7 +170,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
       return;
     }
 
-    const currentAction = currentActionIndex >= 0 && currentActionIndex < extractedActions.length ? extractedActions[currentActionIndex] : null;
+    const currentAction = getActionAtIndex(extractedActions, currentActionIndex);
 
     if (!currentAction) {
       console.log("[applyAnimation] No current action found, calling playback complete callback.");
@@ -235,15 +227,9 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
       return;
     }
 
-    // if we find an actions key, use it directly
-    let extractedActions: Array<IAction> = [];
-    if (Object.keys(project).includes('actions')) {
-      extractedActions = (project as any).actions;
-    } else if (Array.isArray(project)) {
-      extractedActions = project;
-    }
+    const extractedActions = extractActions(project, currentLessonIndex);
 
-    const currentAction = currentActionIndex >= 0 && currentActionIndex < extractedActions.length ? extractedActions[currentActionIndex] : null;
+    const currentAction = getActionAtIndex(extractedActions, currentActionIndex);
 
     if (!currentAction) {
       return;
@@ -365,7 +351,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
       });
       return;
     }
-    const currentAction = currentActionIndex >= 0 && currentActionIndex < actions.length ? actions[currentActionIndex] : null;
+    const currentAction = getActionAtIndex(actions, currentActionIndex);
     if (!currentAction) return;
 
     const newPosition = getNewMousePosition(targetMousePosition, currentAction, containerRef);
@@ -390,15 +376,9 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
       return;
     }
 
-    // if we find an actions key, use it directly
-    let extractedActions: Array<IAction> = [];
-    if (Object.keys(project).includes('actions')) {
-      extractedActions = (project as any).actions;
-    } else if (Array.isArray(project)) {
-      extractedActions = project;
-    }
+    const extractedActions = extractActions(project, currentLessonIndex);
 
-    const currentAction = currentActionIndex >= 0 && currentActionIndex < extractedActions.length ? extractedActions[currentActionIndex] : null;
+    const currentAction = getActionAtIndex(extractedActions, currentActionIndex);
 
     // Determine if we're moving forward or backward through actions
     const isSteppingForward = currentActionIndex > prevActionIndex;
@@ -462,15 +442,9 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
       return;
     }
 
-    // if we find an actions key, use it directly
-    let extractedActions: Array<IAction> = [];
-    if (Object.keys(project).includes('actions')) {
-      extractedActions = (project as any).actions;
-    } else if (Array.isArray(project)) {
-      extractedActions = project;
-    }
+    const extractedActions = extractActions(project, currentLessonIndex);
 
-    const currentAction = currentActionIndex >= 0 && currentActionIndex < extractedActions.length ? extractedActions[currentActionIndex] : null;
+    const currentAction = getActionAtIndex(extractedActions, currentActionIndex);
 
     if (currentAction && currentAction.name.startsWith('terminal-')) {
       setShowBlockCaret(true);
@@ -493,15 +467,9 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
       return;
     }
 
-    // if we find an actions key, use it directly
-    let extractedActions: Array<IAction> = [];
-    if (Object.keys(project).includes('actions')) {
-      extractedActions = (project as any).actions;
-    } else if (Array.isArray(project)) {
-      extractedActions = project;
-    }
+    const extractedActions = extractActions(project, currentLessonIndex);
 
-    const currentAction = currentActionIndex >= 0 && currentActionIndex < extractedActions.length ? extractedActions[currentActionIndex] : null;
+    const currentAction = getActionAtIndex(extractedActions, currentActionIndex);
     if (isSoundOn && mode === 'step' && currentAction && currentAction.name.startsWith('author-')) {
       // try to find a match by the sha256 hash of the action.value in the speakActionAudios array
       const action = currentAction;
@@ -544,13 +512,7 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
         console.log("[Main useEffect] Project type:", Array.isArray(project) ? 'array' : typeof project);
         console.log("[Main useEffect] Project keys:", project ? JSON.stringify(Object.keys(project)) : 'null');
 
-        // if we find an actions key, use it directly
-        let extractedActions: Array<IAction> = [];
-        if (Object.keys(project).includes('actions')) {
-          extractedActions = (project as any).actions;
-        } else if (Array.isArray(project)) {
-          extractedActions = project;
-        }
+        const extractedActions = extractActions(project, currentLessonIndex);
 
         console.log("[Main useEffect] currentLessonIndex:", currentLessonIndex);
         console.log("[Main useEffect] Extracted actions from project count:", extractedActions.length);
@@ -869,14 +831,8 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
   // These are now managed by the useEffect above to support continuation during author actions
   const webPreviewFiles = webPreviewFilesState;
   const externalBrowserStepUrl = externalBrowserStepUrlState;
-  // if we find an actions key, use it directly
-  let extractedActions: Array<IAction> = [];
-  if (Object.keys(project).includes('actions')) {
-    extractedActions = (project as any).actions;
-  } else if (Array.isArray(project)) {
-    extractedActions = project;
-  }
-  const currentAction = currentActionIndex >= 0 && currentActionIndex < extractedActions.length ? extractedActions[currentActionIndex] : null;
+  const extractedActions = extractActions(project, currentLessonIndex);
+  const currentAction = getActionAtIndex(extractedActions, currentActionIndex);
 
   return (
     <Flex

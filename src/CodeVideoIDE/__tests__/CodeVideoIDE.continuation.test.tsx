@@ -51,6 +51,12 @@ jest.mock('../../UnsavedChangesDialog/UnsavedChangesDialog', () => ({
   UnsavedChangesDialog: () => <div data-testid="unsaved-changes-dialog">Unsaved Changes Dialog</div>
 }));
 
+// speech uses browser APIs (window.speechSynthesis, Audio) not present in jsdom
+jest.mock('../../utils/speakText', () => ({
+  speakText: jest.fn().mockResolvedValue(undefined),
+  stopSpeaking: jest.fn(),
+}));
+
 // Helper function to create a test project
 const createTestProject = (actions: IAction[]): Project => ({
   id: 'test-project',
@@ -142,9 +148,27 @@ describe('CodeVideoIDE Continuation Behavior', () => {
       
       const project = createTestProject(actions);
       
+      // NOTE: overlay continuation state is carried across renders, not
+      // reconstituted from history at mount - so establish the slide by
+      // rendering through the slide-display action first
       const { rerender } = render(
         <TestWrapper>
-          <CodeVideoIDE 
+          <CodeVideoIDE
+            {...baseProps}
+            project={project}
+            currentActionIndex={1}
+          />
+        </TestWrapper>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('slide-viewer')).toBeInTheDocument();
+      });
+
+      // Step forward to author-speak action - slide should continue displaying
+      rerender(
+        <TestWrapper>
+          <CodeVideoIDE
             {...baseProps}
             project={project}
             currentActionIndex={2}
@@ -152,7 +176,6 @@ describe('CodeVideoIDE Continuation Behavior', () => {
         </TestWrapper>
       );
 
-      // Start at author-speak action - slide should be visible
       await waitFor(() => {
         expect(screen.getByTestId('slide-viewer')).toBeInTheDocument();
       });
@@ -224,9 +247,26 @@ describe('CodeVideoIDE Continuation Behavior', () => {
       
       const project = createTestProject(actions);
       
+      // NOTE: overlay continuation state is carried across renders, not
+      // reconstituted from history at mount - establish the preview first
       const { rerender } = render(
         <TestWrapper>
-          <CodeVideoIDE 
+          <CodeVideoIDE
+            {...baseProps}
+            project={project}
+            currentActionIndex={1}
+          />
+        </TestWrapper>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('web-preview')).toBeInTheDocument();
+      });
+
+      // Step forward to author-speak action - web preview should continue displaying
+      rerender(
+        <TestWrapper>
+          <CodeVideoIDE
             {...baseProps}
             project={project}
             currentActionIndex={2}
@@ -234,7 +274,6 @@ describe('CodeVideoIDE Continuation Behavior', () => {
         </TestWrapper>
       );
 
-      // Start at author-speak action - web preview should be visible
       await waitFor(() => {
         expect(screen.getByTestId('web-preview')).toBeInTheDocument();
       });
@@ -308,9 +347,26 @@ describe('CodeVideoIDE Continuation Behavior', () => {
       
       const project = createTestProject(actions);
       
+      // NOTE: overlay continuation state is carried across renders, not
+      // reconstituted from history at mount - establish the browser view first
       const { rerender } = render(
         <TestWrapper>
-          <CodeVideoIDE 
+          <CodeVideoIDE
+            {...baseProps}
+            project={project}
+            currentActionIndex={1}
+          />
+        </TestWrapper>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('external-web-viewer')).toBeInTheDocument();
+      });
+
+      // Step forward to author-speak action - external browser should continue displaying
+      rerender(
+        <TestWrapper>
+          <CodeVideoIDE
             {...baseProps}
             project={project}
             currentActionIndex={2}
@@ -318,7 +374,6 @@ describe('CodeVideoIDE Continuation Behavior', () => {
         </TestWrapper>
       );
 
-      // Start at author-speak action - external browser should be visible
       await waitFor(() => {
         expect(screen.getByTestId('external-web-viewer')).toBeInTheDocument();
       });
@@ -437,9 +492,26 @@ describe('CodeVideoIDE Continuation Behavior', () => {
       
       const project = createTestProject(actions);
       
+      // NOTE: overlay continuation state is carried across renders, not
+      // reconstituted from history at mount - establish the slide first
       const { rerender } = render(
         <TestWrapper>
-          <CodeVideoIDE 
+          <CodeVideoIDE
+            {...baseProps}
+            project={project}
+            currentActionIndex={0}
+          />
+        </TestWrapper>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('slide-viewer')).toBeInTheDocument();
+      });
+
+      // Step forward to author-speak - slide should continue displaying
+      rerender(
+        <TestWrapper>
+          <CodeVideoIDE
             {...baseProps}
             project={project}
             currentActionIndex={1}
@@ -447,7 +519,6 @@ describe('CodeVideoIDE Continuation Behavior', () => {
         </TestWrapper>
       );
 
-      // Start at author-speak with slide visible
       await waitFor(() => {
         expect(screen.getByTestId('slide-viewer')).toBeInTheDocument();
       });

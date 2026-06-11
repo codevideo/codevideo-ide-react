@@ -207,10 +207,11 @@ export const speakTextFallback = async (text: string, volume: number, mp3Url?: s
  * Immediately stops any ongoing speech synthesis or audio playback
  */
 export const stopSpeaking = (): void => {
-  // stop speech synthesis
-  const speechSynthesis = window.speechSynthesis;
-  // Cancel all queued utterances
-  speechSynthesis.cancel();
+  // stop speech synthesis - guard for environments without the API (jsdom, older webviews)
+  if (typeof window !== 'undefined' && window.speechSynthesis) {
+    // Cancel all queued utterances
+    window.speechSynthesis.cancel();
+  }
   // Reset the current utterance reference
   currentUtterance = null;
 
