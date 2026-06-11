@@ -15,7 +15,6 @@ import { EditorTabs } from './Editor/EditorTabs.jsx';
 import { ExternalWebViewer } from './ExternalWebViewer/ExternalWebViewer.jsx';
 
 // utils
-import { sleep } from './utils/sleep.js';
 import { speakText, stopSpeaking } from './utils/speakText.js';
 import { getLanguageFromFilename } from './utils/getLanguageFromFilename.js';
 
@@ -57,7 +56,10 @@ import { EDITOR_AREA_ID, EDITOR_ID } from './constants/CodeVideoDataIds.js';
 
 // last but not least - the Virtual IDE!
 import { VirtualIDE } from '@fullstackcraftllc/codevideo-virtual-ide';
-import { executeActionPlaybackForMonacoInstance } from './utils/executeActionPlaybackForMonacoInstance.js';
+
+// hooks
+import { useStableActions } from './hooks/useStableActions.js';
+import { useReplayPlayback } from './hooks/useReplayPlayback.js';
 
 /**
  * Represents a powerful IDE with file explorer, multiple editors, and terminal
@@ -150,75 +152,9 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
   // const prevMode = useRef<GUIMode>(mode);
   // const isInitialMount = useRef(true);
 
-  const applyAnimation = async () => {
-    console.log("[applyAnimation] Starting animation for action index:", currentActionIndex, "in lesson index:", currentLessonIndex);
-    console.log("[applyAnimation] Project type:", Array.isArray(project) ? 'actions array' : typeof project);
-    console.log("[applyAnimation] Project length/structure:", Array.isArray(project) ? project.length : Object.keys(project || {}).length);
-
-    const extractedActions = extractActions(project, currentLessonIndex);
-
-    console.log("[applyAnimation] Extracted actions for current lesson:", extractedActions.length, "actions.");
-
-    if (extractedActions.length > 0) {
-      console.log("[applyAnimation] First few actions:", extractedActions.slice(0, 3).map(a => ({ name: a.name, value: a.value?.substring(0, 50) + '...' })));
-    }
-
-    // If we don't have any actions, it likely means the project isn't fully loaded yet
-    if (extractedActions.length === 0) {
-      console.log("[applyAnimation] No actions found - project may not be fully loaded yet. Skipping animation.");
-      console.log("[applyAnimation] Project data:", project);
-      return;
-    }
-
-    const currentAction = getActionAtIndex(extractedActions, currentActionIndex);
-
-    if (!currentAction) {
-      console.log("[applyAnimation] No current action found, calling playback complete callback.");
-      console.log("[applyAnimation] currentActionIndex:", currentActionIndex, "actions.length:", extractedActions.length);
-      playBackCompleteCallback && playBackCompleteCallback();
-      return;
-    }
-
-    console.log("[applyAnimation] About to execute action:", currentAction.name, "with value:", currentAction.value?.substring(0, 100) + '...');
-
-    if (monacoEditorRef.current) {
-      await executeActionPlaybackForMonacoInstance(
-        monacoEditorRef.current,
-        project,
-        currentActionIndex,
-        currentLessonIndex,
-        currentAction,
-        isSoundOn,
-        setEditors,
-        setCurrentEditor,
-        setCurrentFileName,
-        setCurrentCode,
-        setCurrentCaretPosition,
-        setTerminalBuffer,
-        targetMousePosition,
-        containerRef,
-        setTargetMousePosition,
-        setCaptionText,
-        speakActionAudios,
-        setNewFileInputValue,
-        setNewFolderInputValue,
-        setRenameFileInputValue,
-        setRenameFolderInputValue,
-        keyboardTypingPauseMs,
-        standardPauseMs,
-        longPauseMs
-      );
-
-      // Handle external browser scroll actions in replay mode
-      if (currentAction.name === "external-browser-scroll") {
-        const scrollPosition = parseInt(currentAction.value) || 0;
-        setCurrentExternalBrowserScrollPosition(scrollPosition);
-        await sleep(standardPauseMs);
-      }
-    }
-    updateState();
-    actionFinishedCallback && actionFinishedCallback();
-  }
+  // single source of action extraction for the whole component; the epoch only
+  // changes on non-append content changes (see useStableActions)
+  const { actions: stableActions, actionsEpoch, hasActionAtCurrentIndex } = useStableActions(project, currentLessonIndex, currentActionIndex);
 
   // Handle scroll actions for step mode
   const handleStepModeScrollActions = () => {
@@ -482,64 +418,44 @@ export function CodeVideoIDE(props: ICodeVideoIDEProps) {
     }
   }, [isSoundOn, project, currentActionIndex, currentLessonIndex]);
 
-  // update virtual when current action index changes
-  useEffect(() => {
-    console.log("[Main useEffect] Triggered with:", { mode, currentActionIndex, projectType: Array.isArray(project) ? 'array' : typeof project, projectLength: Array.isArray(project) ? project.length : 'N/A' });
-
-    // Don't proceed if project is empty (not loaded yet)
-    if (!project || (Array.isArray(project) && project.length === 0)) {
-      console.log("[Main useEffect] Project is empty or not loaded yet, skipping update");
-      console.log("[Main useEffect] Project value:", project);
-      return;
-    }
-
-    console.log("[Main useEffect] Project appears loaded, proceeding...");
-
-    // normal step by step mode OR initial replay state - can update state immediately
-    if (mode === 'step') {
-      console.log("[Main useEffect] We're in step mode - calling updateState immediately");
-      updateState();
-      return;
-    }
-    // if playback mode, we need to animate the typing on the editor, then we can apply the action to maintain state, then we call the actionFinishedCallback
-    if (mode === 'replay') {
-      console.log("[Main useEffect] Replay mode detected");
-      // need to handle the first reset - ensure initial state is properly established
-      if (currentActionIndex === 0) {
-        console.log("[Main useEffect] First action (index 0) in replay mode");
-        // Validate that we have actions before proceeding
-        console.log("[Main useEffect] About to extract actions from project");
-        console.log("[Main useEffect] Project type:", Array.isArray(project) ? 'array' : typeof project);
-        console.log("[Main useEffect] Project keys:", project ? JSON.stringify(Object.keys(project)) : 'null');
-
-        const extractedActions = extractActions(project, currentLessonIndex);
-
-        console.log("[Main useEffect] currentLessonIndex:", currentLessonIndex);
-        console.log("[Main useEffect] Extracted actions from project count:", extractedActions.length);
-
-        if (extractedActions.length === 0) {
-          console.log("[Main useEffect] No actions found in project - waiting for project to be loaded");
-          console.log("[Main useEffect] Project structure:", JSON.stringify(project, null, 2));
-          return;
-        }
-
-        console.log("[Main useEffect] Actions found, updating state first");
-        updateState();
-        // Don't start animation immediately for the first action to allow initial state to be established
-        // Use setTimeout to allow the initial state to be rendered before starting animations
-        console.log("[Main useEffect] Setting 1-second timeout before starting animation");
-        setTimeout(() => {
-          console.log("[Main useEffect] Timeout expired, calling applyAnimation");
-          applyAnimation();
-        }, 1000); // Small delay to ensure initial state is rendered
-        return;
-      }
-      // normal animation flow (non first action) 
-      // this in turn calls updateState once the animation is complete, and then calls actionFinishedCallback
-      console.log("[Main useEffect] Non-first action in replay mode, calling applyAnimation directly");
-      applyAnimation();
-    }
-  }, [mode, currentActionIndex, project]);
+  // the replay playback loop: animates the current action exactly once per
+  // (content epoch, index), handles the 1s initial delay, and signals the
+  // parent via actionFinishedCallback / playBackCompleteCallback. In step
+  // mode it updates state immediately. Appends to a streamed actions array
+  // do NOT re-trigger it (see useStableActions).
+  useReplayPlayback({
+    mode,
+    project,
+    currentActionIndex,
+    currentLessonIndex,
+    actions: stableActions,
+    actionsEpoch,
+    hasActionAtCurrentIndex,
+    isSoundOn,
+    speakActionAudios,
+    monacoEditorRef,
+    containerRef,
+    targetMousePosition,
+    setEditors,
+    setCurrentEditor,
+    setCurrentFileName,
+    setCurrentCode,
+    setCurrentCaretPosition,
+    setTerminalBuffer,
+    setTargetMousePosition,
+    setCaptionText,
+    setNewFileInputValue,
+    setNewFolderInputValue,
+    setRenameFileInputValue,
+    setRenameFolderInputValue,
+    setCurrentExternalBrowserScrollPosition,
+    keyboardTypingPauseMs,
+    standardPauseMs,
+    longPauseMs,
+    updateState,
+    actionFinishedCallback,
+    playBackCompleteCallback,
+  });
 
   const handleEditorDidMount = (
     monacoEditor: monaco.editor.IStandaloneCodeEditor,
