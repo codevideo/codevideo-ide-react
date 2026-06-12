@@ -51,40 +51,36 @@ const randomJitterMs = () => 600 + Math.random() * 800
  */
 const useSimulatedActionStream = () => {
   const [streamedActions, setStreamedActions] = useState<Array<IAction>>([])
+  const [deliveredCount, setDeliveredCount] = useState<number>(0)
   const [isStreaming, setIsStreaming] = useState<boolean>(true)
   const [started, setStarted] = useState<boolean>(false)
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const start = useCallback(() => {
     setStarted(true)
   }, [])
 
+  // one timer alive at a time, fully effect-managed: each delivery bumps
+  // deliveredCount, which re-runs the effect to schedule the next one.
+  // Cleanup cancels the pending timer, so double-invocation (StrictMode,
+  // fast refresh) can never spawn concurrent delivery chains.
   useEffect(() => {
     if (!started) {
       return
     }
-    let delivered = 0
-    const deliverNext = () => {
-      if (delivered >= SCRIPT.length) {
-        // stream finished: flip isStreaming off so a starved playback
-        // completes normally instead of waiting forever
-        setIsStreaming(false)
-        return
-      }
-      const next = SCRIPT[delivered]
-      delivered += 1
+    if (deliveredCount >= SCRIPT.length) {
+      // stream finished: flip isStreaming off so a starved playback
+      // completes normally instead of waiting forever
+      setIsStreaming(false)
+      return
+    }
+    const delay = deliveredCount === STALL_BEFORE_INDEX ? STALL_MS : randomJitterMs()
+    const timer = setTimeout(() => {
       // immutably rebuild with all-new element references (Redux-style)
-      setStreamedActions(prev => [...prev.map(a => ({ ...a })), { ...next }])
-      const delay = delivered === STALL_BEFORE_INDEX ? STALL_MS : randomJitterMs()
-      timerRef.current = setTimeout(deliverNext, delay)
-    }
-    timerRef.current = setTimeout(deliverNext, randomJitterMs())
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current)
-      }
-    }
-  }, [started])
+      setStreamedActions(prev => [...prev.map(a => ({ ...a })), { ...SCRIPT[deliveredCount] }])
+      setDeliveredCount(c => c + 1)
+    }, delay)
+    return () => clearTimeout(timer)
+  }, [started, deliveredCount])
 
   return { streamedActions, isStreaming, started, start, total: SCRIPT.length }
 }
@@ -115,9 +111,11 @@ export default function Streaming() {
       setCurrentActionIndex(0)
       start()
     }
+    // capture phase: Monaco stops click propagation, so bubble-phase
+    // listeners never fire when the user clicks inside the editor area
     const events: Array<keyof WindowEventMap> = ["click", "keydown", "touchstart"]
-    events.forEach(e => window.addEventListener(e, begin, { once: true }))
-    return () => events.forEach(e => window.removeEventListener(e, begin))
+    events.forEach(e => window.addEventListener(e, begin, { once: true, capture: true }))
+    return () => events.forEach(e => window.removeEventListener(e, begin, { capture: true }))
   }, [started, start])
 
   const isBuffering = started && !isComplete && currentActionIndex >= streamedActions.length
