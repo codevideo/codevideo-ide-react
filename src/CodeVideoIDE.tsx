@@ -316,27 +316,6 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
     requestPlaybackStartCallback,
   });
 
-  // useful for debugging
-  // // before rendering log out all relevant stuff
-  // // current file
-  // console.log('currentFile', currentFile);
-  // // current file structure
-  // console.log('currentFileStructure', currentFileStructure);
-  // // current code
-  console.log('currentCode', currentCode);
-  // // terminal buffer
-  // console.log('terminalBuffer', terminalBuffer);
-  // // mouse position
-  // console.log('mousePosition', mousePosition);
-  // // current caret position
-  // console.log('currentCaretPosition', currentCaretPosition);
-  // // caption text
-  // console.log('captionText', captionText);
-  // current filepath
-  // console.log("currentFileName", currentFileName)
-  // console.log("isUnsavedChangesDialogOpen", isUnsavedChangesDialogOpen)
-  // console.log("unsavedFileName", unsavedFileName)
-
   // if we are in 4k mode, double the fontsize
   const renderFontSizePx = fontSizePx && resolution === "4K" ? fontSizePx * 2 : fontSizePx
 

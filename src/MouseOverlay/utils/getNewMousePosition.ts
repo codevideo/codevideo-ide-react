@@ -5,6 +5,7 @@ import { getCoordinatesOfTerminalInput } from "../coordinateFunctions/getCoordin
 import { parseCoordinatesFromMouseCoordinateAction } from "../coordinateFunctions/parseCoordinatesFromAction.js";
 import { getGaussianCoordinatesByCodeVideoDataID } from "../coordinateFunctions/getCoordinatesByCodeVideoDataID.js";
 import { FILE_EXPLORER_ID } from "src/constants/CodeVideoDataIds.js";
+import { debugLog, debugWarn } from '../../utils/debugLog.js';
 
 export const getNewMousePosition = (targetMousePosition: IPoint, currentAction: IAction, containerRef: React.RefObject<HTMLDivElement | null>) => {
   let newPosition = { x: targetMousePosition.x, y: targetMousePosition.y };
@@ -22,12 +23,12 @@ export const getNewMousePosition = (targetMousePosition: IPoint, currentAction: 
       break;
     case 'mouse-move-file-explorer-file':
     case 'mouse-move-file-explorer-folder':
-      console.log('🚀 [getNewMousePosition] Handling file/folder movement:', JSON.stringify({
+      debugLog('🚀 [getNewMousePosition] Handling file/folder movement:', JSON.stringify({
         actionName: currentAction.name,
         actionValue: currentAction.value
       }));
       newPosition = getCoordinatesOfFileOrFolder(currentAction.value, containerRef)
-      console.log('🚀 [getNewMousePosition] Result position:', JSON.stringify(newPosition));
+      debugLog('🚀 [getNewMousePosition] Result position:', JSON.stringify(newPosition));
       break;
     case 'mouse-move-to-coordinates-pixels':
       newPosition = parseCoordinatesFromMouseCoordinateAction(currentAction.value, containerRef)
@@ -92,16 +93,16 @@ export const getNewMousePosition = (targetMousePosition: IPoint, currentAction: 
 
   // Safety check to ensure we never return undefined or NaN coordinates
   if (!newPosition) {
-    console.warn('New position is undefined, falling back to target position:', JSON.stringify(targetMousePosition));
+    debugWarn('New position is undefined, falling back to target position:', JSON.stringify(targetMousePosition));
     return { x: targetMousePosition.x, y: targetMousePosition.y };
   }
   if (!newPosition.x) {
-    console.warn('New position x is undefined, falling back to target position:', JSON.stringify(targetMousePosition));
+    debugWarn('New position x is undefined, falling back to target position:', JSON.stringify(targetMousePosition));
     return { x: targetMousePosition.x, y: targetMousePosition.y };
   }
 
   if (!newPosition.y) {
-    console.warn('New position y is undefined, falling back to target position:', JSON.stringify(targetMousePosition));
+    debugWarn('New position y is undefined, falling back to target position:', JSON.stringify(targetMousePosition));
     return { x: targetMousePosition.x, y: targetMousePosition.y };
   }
 

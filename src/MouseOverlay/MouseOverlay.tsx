@@ -3,6 +3,7 @@ import { GUIMode, IPoint } from '@fullstackcraftllc/codevideo-types';
 import { Box } from '@radix-ui/themes';
 import { samplePathPoints } from './coordinateFunctions/mouse-movement/samplePathPoints.js';
 import { generateControlPoints } from './coordinateFunctions/mouse-movement/generateControlPoints.js';
+import { debugLog, debugWarn } from '../utils/debugLog.js';
 
 interface IMouseOverlayProps {
   mode: GUIMode;
@@ -55,7 +56,7 @@ export const MouseOverlay = (props: IMouseOverlayProps) => {
   useEffect(() => {
     // Safety check: ensure targetMousePosition is valid
     if (!targetMousePosition || targetMousePosition.x === undefined || targetMousePosition.y === undefined) {
-      console.warn('Invalid targetMousePosition provided to MouseOverlay:', targetMousePosition);
+      debugWarn('Invalid targetMousePosition provided to MouseOverlay:', targetMousePosition);
       return;
     }
 
@@ -97,7 +98,7 @@ export const MouseOverlay = (props: IMouseOverlayProps) => {
     if (!startPosition || !targetMousePosition || 
         startPosition.x === undefined || startPosition.y === undefined ||
         targetMousePosition.x === undefined || targetMousePosition.y === undefined) {
-      console.warn('Invalid positions for animation, skipping:', { startPosition, targetMousePosition });
+      debugWarn('Invalid positions for animation, skipping:', { startPosition, targetMousePosition });
       return;
     }
 
@@ -120,7 +121,7 @@ export const MouseOverlay = (props: IMouseOverlayProps) => {
     // Pre-calculate points along the path for smoother animation
     // Safety check: ensure control points are valid
     if (!controlPoints || controlPoints.length === 0) {
-      console.warn('No valid control points generated, skipping animation');
+      debugWarn('No valid control points generated, skipping animation');
       return;
     }
 
@@ -144,7 +145,7 @@ export const MouseOverlay = (props: IMouseOverlayProps) => {
 
     // Safety check: ensure animation points are valid
     if (!animationPoints || animationPoints.length === 0) {
-      console.warn('No valid animation points generated, skipping animation');
+      debugWarn('No valid animation points generated, skipping animation');
       return;
     }
 
@@ -156,11 +157,11 @@ export const MouseOverlay = (props: IMouseOverlayProps) => {
     );
 
     if (validAnimationPoints.length === 0) {
-      console.warn('No valid animation points after filtering, skipping animation');
+      debugWarn('No valid animation points after filtering, skipping animation');
       return;
     }
 
-    console.log(`🎬 Distance: ${distance.toFixed(1)}px, Duration: ${calculatedDuration}ms, Points: ${validAnimationPoints.length}, Velocity: ${(distance / (calculatedDuration / 1000)).toFixed(1)}px/s`);
+    debugLog(`🎬 Distance: ${distance.toFixed(1)}px, Duration: ${calculatedDuration}ms, Points: ${validAnimationPoints.length}, Velocity: ${(distance / (calculatedDuration / 1000)).toFixed(1)}px/s`);
 
     setPathPoints(validAnimationPoints);
 
@@ -187,7 +188,7 @@ export const MouseOverlay = (props: IMouseOverlayProps) => {
       
       // Safety check: ensure the new position is valid
       if (!newPosition || newPosition.x === undefined || newPosition.y === undefined) {
-        console.warn('Invalid animation position detected, ending animation:', newPosition);
+        debugWarn('Invalid animation position detected, ending animation:', newPosition);
         setIsAnimating(false);
         if (onAnimationFinished) {
           onAnimationFinished();

@@ -4,6 +4,7 @@ import { CodeVideoIDE } from './CodeVideoIDE.jsx';
 import { Theme } from '@radix-ui/themes';
 import { useState } from 'react';
 import { extractActionsFromProject, GUIMode, ICodeVideoIDEProps } from '@fullstackcraftllc/codevideo-types';
+import { debugLog } from './utils/debugLog.js';
 
 export function mountEmbeddableCodeVideoIDE(props: any, containerId: string) {
     const container = document.getElementById(containerId);
@@ -52,7 +53,7 @@ export function EmbeddableCodeVideoIDE({
     };
 
     if (!actions) {
-        console.log("No current project");
+        debugLog("No current project");
         return null;
     }
 

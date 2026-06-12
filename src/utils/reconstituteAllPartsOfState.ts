@@ -1,6 +1,7 @@
 import { Project, extractActionsFromProject, isLesson } from "@fullstackcraftllc/codevideo-types";
 import { VirtualIDE } from "@fullstackcraftllc/codevideo-virtual-ide";
 import { DEFAULT_CARET_POSITION } from "../constants/CodeVideoIDEConstants.js";
+import { debugLog } from './debugLog.js';
 
 export const reconstituteAllPartsOfState = (project: Project, currentActionIndex: number, currentLessonIndex: number | null) => {
     const actions = extractActionsFromProject(project, currentLessonIndex)
@@ -19,9 +20,9 @@ export const reconstituteAllPartsOfState = (project: Project, currentActionIndex
     const virtualIDE = new VirtualIDE(project, undefined, false);
 
     if (isLesson(project) && project.initialSnapshot) {
-      console.log("[reconstituteAllPartsOfState] Detected lesson project WITH initial snapshot, initial snapshot should have been applied.");
-      console.log(`[reconstituteAllPartsOfState] virtualIDE.virtualEditors.length: ${virtualIDE.virtualEditors.length}`);
-      console.log(`[reconstituteAllPartsOfState] project.initialSnapshot.editorSnapshot.editors.length: ${project.initialSnapshot.editorSnapshot.editors.length}`);
+      debugLog("[reconstituteAllPartsOfState] Detected lesson project WITH initial snapshot, initial snapshot should have been applied.");
+      debugLog(`[reconstituteAllPartsOfState] virtualIDE.virtualEditors.length: ${virtualIDE.virtualEditors.length}`);
+      debugLog(`[reconstituteAllPartsOfState] project.initialSnapshot.editorSnapshot.editors.length: ${project.initialSnapshot.editorSnapshot.editors.length}`);
     }
 
     virtualIDE.applyActions(actionsToApply);

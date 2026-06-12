@@ -1,5 +1,10 @@
 import { DEFAULT_MOUSE_POSITION } from "../../../constants/CodeVideoIDEConstants.js";
 import { getCoordinatesOfFileOrFolder } from "../getCoordinatesOfFileOrFolder";
+import { setDebugLogging } from "../../../utils/debugLog.js";
+
+// the debug-log assertions below require the gate to be open
+beforeAll(() => setDebugLogging(true));
+afterAll(() => setDebugLogging(false));
 
 // Mock the convertToContainerCoordinates function to isolate the issue
 jest.mock('../convertToContainerCoordinates', () => ({

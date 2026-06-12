@@ -1,5 +1,10 @@
 import { getNewMousePosition } from '../getNewMousePosition.js';
 import { IAction } from '@fullstackcraftllc/codevideo-types';
+import { setDebugLogging } from '../../../utils/debugLog.js';
+
+// the debug-log assertions below require the gate to be open
+beforeAll(() => setDebugLogging(true));
+afterAll(() => setDebugLogging(false));
 
 // Mock the specific coordinate functions to isolate the integration
 jest.mock('../../coordinateFunctions/getCoordinatesOfFileOrFolder');

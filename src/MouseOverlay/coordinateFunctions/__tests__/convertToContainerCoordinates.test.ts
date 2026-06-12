@@ -1,5 +1,10 @@
 import { convertToContainerCoordinates } from '../convertToContainerCoordinates.js';
 import { DEFAULT_MOUSE_POSITION } from '../../../constants/CodeVideoIDEConstants.js';
+import { setDebugLogging } from '../../../utils/debugLog.js';
+
+// the debug-log assertions below require the gate to be open
+beforeAll(() => setDebugLogging(true));
+afterAll(() => setDebugLogging(false));
 
 describe('convertToContainerCoordinates', () => {
   let mockContainer: HTMLDivElement;

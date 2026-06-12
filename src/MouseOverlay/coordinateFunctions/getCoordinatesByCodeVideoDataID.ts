@@ -1,6 +1,7 @@
 import { IPoint } from "@fullstackcraftllc/codevideo-types";
 import { convertToContainerCoordinates } from "./convertToContainerCoordinates.js";
 import { DEFAULT_MOUSE_POSITION } from "../../constants/CodeVideoIDEConstants.js";
+import { debugLog, debugWarn } from '../../utils/debugLog.js';
 
 // Box-Muller transform for generating normally distributed random numbers
 const generateGaussian = (mean: number, stdDev: number): number => {
@@ -23,7 +24,7 @@ export const getGaussianCoordinatesByCodeVideoDataID = (
     
     const element = document.querySelector(`[data-codevideo-id="${dataId}"]`);
     if (!element) {
-        console.warn('Element with data-codevideo-id not found', dataId);
+        debugWarn('Element with data-codevideo-id not found', dataId);
         return DEFAULT_MOUSE_POSITION;
     }
     
@@ -35,7 +36,7 @@ export const getGaussianCoordinatesByCodeVideoDataID = (
     
     // If randomization is disabled, just return the center point
     if (!options.randomize) {
-        console.log(`Exact center of element found at: ${centerX}, ${centerY}`);
+        debugLog(`Exact center of element found at: ${centerX}, ${centerY}`);
         return convertToContainerCoordinates({ x: centerX, y: centerY }, containerRef);
     }
     
@@ -61,7 +62,7 @@ export const getGaussianCoordinatesByCodeVideoDataID = (
     x = Math.max(minX, Math.min(maxX, x));
     y = Math.max(minY, Math.min(maxY, y));
     
-    console.log(`Random point within element: ${x}, ${y}`);
+    debugLog(`Random point within element: ${x}, ${y}`);
     
     return convertToContainerCoordinates({ x, y }, containerRef);
 };

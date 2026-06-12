@@ -3,6 +3,7 @@ import { GUIMode, IEditor, IEditorPosition } from '@fullstackcraftllc/codevideo-
 import { Monaco } from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
 import { getLanguageFromFilename } from '../utils/getLanguageFromFilename.js';
+import { debugLog } from '../utils/debugLog.js';
 
 export interface UseMonacoModelManagementParams {
   mode: GUIMode;
@@ -150,12 +151,12 @@ export const useMonacoModelManagement = (
     if (monacoEditorRef.current) {
       if (isOverlayActive && !editorViewStateRef.current) {
         // Save view state before showing overlay (only if not already saved)
-        console.log('Saving editor view state before overlay, current position:', monacoEditorRef.current.getPosition());
+        debugLog('Saving editor view state before overlay, current position:', monacoEditorRef.current.getPosition());
         editorViewStateRef.current = monacoEditorRef.current.saveViewState();
       } else if (!isOverlayActive && editorViewStateRef.current) {
         // Restore view state after hiding overlay
         const savedState = editorViewStateRef.current;
-        console.log('Restoring editor view state after overlay');
+        debugLog('Restoring editor view state after overlay');
 
         // Clear the saved state first to prevent re-triggering
         editorViewStateRef.current = null;
@@ -166,13 +167,13 @@ export const useMonacoModelManagement = (
         // Use setTimeout to ensure the editor has finished any re-rendering
         setTimeout(() => {
           if (monacoEditorRef.current && savedState) {
-            console.log('Actually restoring view state, current position before restore:', monacoEditorRef.current.getPosition());
+            debugLog('Actually restoring view state, current position before restore:', monacoEditorRef.current.getPosition());
 
             // First restore the view state to get scroll position and other state
             monacoEditorRef.current.restoreViewState(savedState);
 
-            console.log('Position after restore:', monacoEditorRef.current.getPosition());
-            console.log('Expected position:', { row: currentCaretPosition.row, col: currentCaretPosition.col });
+            debugLog('Position after restore:', monacoEditorRef.current.getPosition());
+            debugLog('Expected position:', { row: currentCaretPosition.row, col: currentCaretPosition.col });
 
             // Then set the current caret position to ensure it's at the right place
             monacoEditorRef.current.setPosition({
@@ -186,7 +187,7 @@ export const useMonacoModelManagement = (
               column: currentCaretPosition.col
             });
 
-            console.log('Final position after manual set:', monacoEditorRef.current.getPosition());
+            debugLog('Final position after manual set:', monacoEditorRef.current.getPosition());
 
             // Clear the flag after restoration is complete
             isRestoringViewStateRef.current = false;
@@ -242,7 +243,7 @@ export const useMonacoModelManagement = (
       if (!currentEditor?.filename) {
         if (editor.getModel()) {
           editor.setModel(null);
-          console.log('Cleared Monaco editor model - no active editor');
+          debugLog('Cleared Monaco editor model - no active editor');
         }
         return;
       }
@@ -260,18 +261,18 @@ export const useMonacoModelManagement = (
         // Create a new model for this file
         const language = getLanguageFromFilename(filename);
         model = monacoInstance.editor.createModel(currentCode || '', language, uri);
-        console.log(`Created new Monaco model for file: ${filename} with language: ${language}, uri: ${uri} content length: ${(currentCode || '').length}`);
+        debugLog(`Created new Monaco model for file: ${filename} with language: ${language}, uri: ${uri} content length: ${(currentCode || '').length}`);
       } else {
         // In replay mode, don't update model content here since executeActionPlaybackForMonacoInstance
         // handles the typing animation. Only update in step mode or when file content changes significantly.
         if (mode === 'step' && model.getValue() !== currentCode) {
           model.setValue(currentCode || '');
-          console.log(`Updated Monaco model content for file: ${filename} (step mode), content length: ${(currentCode || '').length}`);
+          debugLog(`Updated Monaco model content for file: ${filename} (step mode), content length: ${(currentCode || '').length}`);
         } else if (mode === 'replay') {
           // In replay mode, only update if the model is completely empty or if we're switching files
           if (model.getValue() === '' && currentCode && currentCode !== '') {
             model.setValue(currentCode);
-            console.log(`Initialized Monaco model content for file: ${filename} (replay mode), content length: ${currentCode.length}`);
+            debugLog(`Initialized Monaco model content for file: ${filename} (replay mode), content length: ${currentCode.length}`);
           }
         }
       }
@@ -279,7 +280,7 @@ export const useMonacoModelManagement = (
       // Set the model on the editor if it's not already set
       if (editor.getModel() !== model) {
         editor.setModel(model);
-        console.log(`Switched Monaco editor to model for file: ${filename}`);
+        debugLog(`Switched Monaco editor to model for file: ${filename}`);
       }
     }
   }, [currentEditor?.filename, currentCode, mode]);

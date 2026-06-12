@@ -1,5 +1,6 @@
 import { IPoint } from "@fullstackcraftllc/codevideo-types";
 import { calculateCubicBezierPoint } from "./calculateCubicBezierPoint.js";
+import { debugWarn } from '../../../utils/debugLog.js';
 
 // Function to sample points along a complex path for animation
 export const samplePathPoints = (
@@ -37,7 +38,7 @@ export const samplePathPoints = (
             
             if (isNaN(currentPoint.x) || isNaN(currentPoint.y) || 
                 isNaN(nextPoint.x) || isNaN(nextPoint.y)) {
-              console.warn('NaN values detected in control points, skipping interpolation');
+              debugWarn('NaN values detected in control points, skipping interpolation');
               continue;
             }
             

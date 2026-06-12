@@ -3,6 +3,7 @@ import * as monaco from 'monaco-editor';
 import { reconstituteAllPartsOfState } from '../utils/reconstituteAllPartsOfState.js';
 import { extractActions, getActionAtIndex } from '../utils/extractActions.js';
 import { getNewMousePosition } from '../MouseOverlay/utils/getNewMousePosition.js';
+import { debugLog, debugWarn } from '../utils/debugLog.js';
 
 export interface UseStepModeStateParams {
   project: Project;
@@ -157,11 +158,11 @@ export const useStepModeState = (params: UseStepModeStateParams): UseStepModeSta
     // Safety check to prevent undefined coordinates
     if (!newPosition || isNaN(newPosition.x) || isNaN(newPosition.y) ||
       newPosition.x === undefined || newPosition.y === undefined) {
-      console.warn('Invalid mouse position detected, keeping current position:', newPosition);
+      debugWarn('Invalid mouse position detected, keeping current position:', newPosition);
       return;
     }
 
-    console.log(`Action: ${currentAction.name}, New position: x=${newPosition.x}, y=${newPosition.y}`);
+    debugLog(`Action: ${currentAction.name}, New position: x=${newPosition.x}, y=${newPosition.y}`);
 
     setTargetMousePosition(newPosition);
   }
@@ -169,13 +170,13 @@ export const useStepModeState = (params: UseStepModeStateParams): UseStepModeSta
   const updateState = () => {
     // Don't proceed if project is empty (not loaded yet)
     if (!project || (Array.isArray(project) && project.length === 0)) {
-      console.log("[updateState] Project is empty or not loaded yet, skipping state update");
-      console.log("[updateState] Project:", project);
+      debugLog("[updateState] Project is empty or not loaded yet, skipping state update");
+      debugLog("[updateState] Project:", project);
       return;
     }
 
-    console.log("[updateState] Updating state for action index:", currentActionIndex, "lesson index:", currentLessonIndex);
-    console.log("[updateState] Project type:", Array.isArray(project) ? 'actions array' : typeof project);
+    debugLog("[updateState] Updating state for action index:", currentActionIndex, "lesson index:", currentLessonIndex);
+    debugLog("[updateState] Project type:", Array.isArray(project) ? 'actions array' : typeof project);
 
     const {
       editors,
@@ -192,11 +193,11 @@ export const useStepModeState = (params: UseStepModeStateParams): UseStepModeSta
       unsavedFileName
     } = reconstituteAllPartsOfState(project, currentActionIndex, currentLessonIndex);
 
-    console.log("[updateState] Reconstituted state:");
-    console.log("  - editors count:", editors?.length || 0);
-    console.log("  - currentEditor:", currentEditor?.filename || 'none');
-    console.log("  - actions count:", actions?.length || 0);
-    console.log("  - fileStructure keys:", Object.keys(fileExplorerSnapshot?.fileStructure || {}));
+    debugLog("[updateState] Reconstituted state:");
+    debugLog("  - editors count:", editors?.length || 0);
+    debugLog("  - currentEditor:", currentEditor?.filename || 'none');
+    debugLog("  - actions count:", actions?.length || 0);
+    debugLog("  - fileStructure keys:", Object.keys(fileExplorerSnapshot?.fileStructure || {}));
     setEditors(editors)
     setCurrentEditor(currentEditor);
     setCurrentFileName(currentFilename);

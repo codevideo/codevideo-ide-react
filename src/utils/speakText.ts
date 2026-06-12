@@ -1,3 +1,4 @@
+import { debugLog, debugWarn } from './debugLog.js';
 // import { KokoroTTS } from "kokoro-js";
 const model_id = "onnx-community/Kokoro-82M-v1.0-ONNX";
 
@@ -110,7 +111,7 @@ export const speakText = async (text: string, volume: number, mp3Url?: string): 
 
     } catch (error) {
       // If the API call fails, fall back to the browser's speech synthesis
-      console.warn('Local speech API failed, falling back to browser speech synthesis:', error);
+      debugWarn('Local speech API failed, falling back to browser speech synthesis:', error);
       try {
         await speakTextFallback(text, volume);
         resolve();
@@ -133,8 +134,8 @@ export const speakTextFallback = async (text: string, volume: number, mp3Url?: s
 
     // if a url to an mp3 is provided, play the audio
     if (mp3Url) {
-      console.log("Creating audio element for MP3 URL:", mp3Url);
-      console.log("Volume", volume);
+      debugLog("Creating audio element for MP3 URL:", mp3Url);
+      debugLog("Volume", volume);
       const audioElement = new Audio(mp3Url);
       audioElement.volume = volume;
       audioElement.onended = () => {
@@ -249,7 +250,7 @@ export const playAudio = async (url: string) => {
       console.error("Error details:", audio.error);
     });
 
-    console.log("Playing audio from data URL...");
+    debugLog("Playing audio from data URL...");
     audio.play().catch(err => {
       console.error("Play error:", err);
     });
@@ -260,7 +261,7 @@ export const playAudio = async (url: string) => {
 export const fetchAudioAsDataURL = async (url: string): Promise<string> => {
   try {
     // Fetch the audio file
-    console.log(`Fetching audio from: ${url}`);
+    debugLog(`Fetching audio from: ${url}`);
     const response = await fetch(url);
 
     if (!response.ok) {
@@ -269,7 +270,7 @@ export const fetchAudioAsDataURL = async (url: string): Promise<string> => {
 
     // Get the blob from the response
     const blob = await response.blob();
-    console.log(`Received blob of type: ${blob.type}, size: ${blob.size} bytes`);
+    debugLog(`Received blob of type: ${blob.type}, size: ${blob.size} bytes`);
 
     // Convert blob to base64 data URL
     return new Promise((resolve, reject) => {
@@ -280,7 +281,7 @@ export const fetchAudioAsDataURL = async (url: string): Promise<string> => {
           reject(new Error('Failed to convert blob to data URL'));
           return;
         }
-        console.log(`Converted to data URL, length: ${dataURL.length}`);
+        debugLog(`Converted to data URL, length: ${dataURL.length}`);
         resolve(dataURL);
       };
       reader.onerror = reject;

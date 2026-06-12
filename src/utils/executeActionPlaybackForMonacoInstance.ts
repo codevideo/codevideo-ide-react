@@ -7,6 +7,7 @@ import { speakText } from "./speakText";
 import { simulateHumanTypingWithReactSetterCallback } from "./simulateHumanTypingWithReactSetterCallback";
 import { simulateHumanTypingInMonaco } from "./simulateHumanTypingInMonaco";
 import * as monaco from 'monaco-editor';
+import { debugLog, debugWarn } from './debugLog.js';
 
 /**
  * Everything executeActionPlaybackForMonacoInstance needs to animate one
@@ -80,7 +81,7 @@ export const executeActionPlaybackForMonacoInstance = async (context: IPlaybackC
   // OPEN FILE ANIMATION, STATE NEEDS TO BE SET HERE BEFORE TYPING OR WE ALWAYS TYPE ONE CHARACTER TOO LATE
   switch (action.name) {
     case 'file-explorer-open-file':
-      console.log("SET CURRENT FILE to ", action.value)
+      debugLog("SET CURRENT FILE to ", action.value)
       setEditors(editors);
       setCurrentEditor(currentEditor);
       setCurrentFileName(currentFilename);
@@ -119,7 +120,7 @@ export const executeActionPlaybackForMonacoInstance = async (context: IPlaybackC
       !isNaN(newPosition.x) && !isNaN(newPosition.y)) {
     setMousePosition(newPosition);
   } else {
-    console.warn('Invalid mouse position from getNewMousePosition, keeping current position:', newPosition);
+    debugWarn('Invalid mouse position from getNewMousePosition, keeping current position:', newPosition);
   }
 
   // const highlightText = (
@@ -176,7 +177,7 @@ export const executeActionPlaybackForMonacoInstance = async (context: IPlaybackC
   // the "times" doesn't always apply to most actions, so we do that action just once
   const times = isRepeatableAction(action.name) ? parseInt(action.value) : 1;
   const pos = editor.getPosition();
-  console.log(`Editor position is at line ${pos?.lineNumber}, column ${pos?.column}`);
+  debugLog(`Editor position is at line ${pos?.lineNumber}, column ${pos?.column}`);
   // const lineNumber = pos?.lineNumber;
   for (let i = 0; i < times; i++) {
     // actual logic
@@ -206,7 +207,7 @@ export const executeActionPlaybackForMonacoInstance = async (context: IPlaybackC
       case action.name === "author-wait":
         // Wait for the specified duration
         const waitDuration = parseInt(action.value) || 1000; // Default to 1000ms if parsing fails
-        console.log(`Waiting for ${waitDuration}ms`);
+        debugLog(`Waiting for ${waitDuration}ms`);
         await sleep(waitDuration);
         break;
       // BEGIN FILE EXPLORER TYPING ACTIONS
@@ -347,7 +348,7 @@ export const executeActionPlaybackForMonacoInstance = async (context: IPlaybackC
       default:
         // no op - but still do default delay
         // await sleep(standardPauseMs);
-        console.warn("Unable to apply action", JSON.stringify(action));
+        debugWarn("Unable to apply action", JSON.stringify(action));
         break;
     }
   }
