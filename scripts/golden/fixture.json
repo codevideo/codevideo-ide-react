@@ -1,0 +1,16 @@
+[
+  { "name": "author-wait", "value": "1500" },
+  { "name": "file-explorer-create-file", "value": "hello.ts" },
+  { "name": "file-explorer-open-file", "value": "hello.ts" },
+  { "name": "mouse-move-editor", "value": "1" },
+  { "name": "mouse-left-click", "value": "1" },
+  { "name": "editor-type", "value": "// Golden regression fixture - deterministic, speak-free\ninterface Greeting {\n  recipient: string;\n  enthusiasm: number;\n}\n\nconst buildGreeting = (g: Greeting): string => {\n  const punctuation = '!'.repeat(g.enthusiasm);\n  return `Hello, ${g.recipient}${punctuation}`;\n};\n\nconst greeting = buildGreeting({ recipient: 'CodeVideo', enthusiasm: 3 });\nconsole.log(greeting);\n" },
+  { "name": "editor-scroll-down", "value": "10" },
+  { "name": "mouse-move-file-explorer", "value": "1" },
+  { "name": "mouse-move-terminal", "value": "1" },
+  { "name": "mouse-left-click", "value": "1" },
+  { "name": "terminal-type", "value": "npx ts-node hello.ts" },
+  { "name": "author-wait", "value": "2000" },
+  { "name": "slide-display", "value": "# Golden Fixture\n\nEnd of regression sequence." },
+  { "name": "author-wait", "value": "2000" }
+]
