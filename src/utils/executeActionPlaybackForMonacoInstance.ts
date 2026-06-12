@@ -8,32 +8,65 @@ import { simulateHumanTypingWithReactSetterCallback } from "./simulateHumanTypin
 import { simulateHumanTypingInMonaco } from "./simulateHumanTypingInMonaco";
 import * as monaco from 'monaco-editor';
 
-export const executeActionPlaybackForMonacoInstance = async (
-  editor: monaco.editor.IStandaloneCodeEditor,
-  project: Project,
-  currentActionIndex: number,
-  currentLessonIndex: number | null,
-  action: IAction,
-  isSoundOn: boolean,
-  setEditors: (value: any) => void,
-  setCurrentEditor: (value: any) => void,
-  setCurrentFileName: (value: any) => void,
-  setCurrentCode: (value: any) => void,
-  setCurrentCaretPosition: (value: any) => void,
-  setTerminalBuffer: (value: any) => void,
-  mousePosition: IPoint,
-  containerRef: React.RefObject<HTMLDivElement | null>,
-  setMousePosition: (value: any) => void,
-  setCaptionText: (value: any) => void,
-  speakActionAudios: Array<{ text: string, mp3Url: string }>,
-  setNewFileInputValue: React.Dispatch<React.SetStateAction<string>>,
-  setNewFolderInputValue: React.Dispatch<React.SetStateAction<string>>,
-  setRenameFileInputValue: React.Dispatch<React.SetStateAction<string>>,
-  setRenameFolderInputValue: React.Dispatch<React.SetStateAction<string>>,
-  keyboardTypingPauseMs: number = KEYBOARD_TYPING_PAUSE_MS,
-  standardPauseMs: number = STANDARD_PAUSE_MS,
-  longPauseMs: number = LONG_PAUSE_MS,
-) => {
+/**
+ * Everything executeActionPlaybackForMonacoInstance needs to animate one
+ * action against a live Monaco instance. Replaces the former 24 positional
+ * parameters; the execution body is unchanged.
+ */
+export interface IPlaybackContext {
+  editor: monaco.editor.IStandaloneCodeEditor;
+  project: Project;
+  currentActionIndex: number;
+  currentLessonIndex: number | null;
+  action: IAction;
+  isSoundOn: boolean;
+  setEditors: (value: any) => void;
+  setCurrentEditor: (value: any) => void;
+  setCurrentFileName: (value: any) => void;
+  setCurrentCode: (value: any) => void;
+  setCurrentCaretPosition: (value: any) => void;
+  setTerminalBuffer: (value: any) => void;
+  mousePosition: IPoint;
+  containerRef: React.RefObject<HTMLDivElement | null>;
+  setMousePosition: (value: any) => void;
+  setCaptionText: (value: any) => void;
+  speakActionAudios: Array<{ text: string, mp3Url: string }>;
+  setNewFileInputValue: React.Dispatch<React.SetStateAction<string>>;
+  setNewFolderInputValue: React.Dispatch<React.SetStateAction<string>>;
+  setRenameFileInputValue: React.Dispatch<React.SetStateAction<string>>;
+  setRenameFolderInputValue: React.Dispatch<React.SetStateAction<string>>;
+  keyboardTypingPauseMs?: number;
+  standardPauseMs?: number;
+  longPauseMs?: number;
+}
+
+export const executeActionPlaybackForMonacoInstance = async (context: IPlaybackContext) => {
+  const {
+    editor,
+    project,
+    currentActionIndex,
+    currentLessonIndex,
+    action,
+    isSoundOn,
+    setEditors,
+    setCurrentEditor,
+    setCurrentFileName,
+    setCurrentCode,
+    setCurrentCaretPosition,
+    setTerminalBuffer,
+    mousePosition,
+    containerRef,
+    setMousePosition,
+    setCaptionText,
+    speakActionAudios,
+    setNewFileInputValue,
+    setNewFolderInputValue,
+    setRenameFileInputValue,
+    setRenameFolderInputValue,
+    keyboardTypingPauseMs = KEYBOARD_TYPING_PAUSE_MS,
+    standardPauseMs = STANDARD_PAUSE_MS,
+    longPauseMs = LONG_PAUSE_MS,
+  } = context;
   let startTime = -1;
 
   // helpful for debugging

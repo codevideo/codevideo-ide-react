@@ -146,12 +146,12 @@ export const useReplayPlayback = (params: UseReplayPlaybackParams): void => {
     debugLog("[applyAnimation] About to execute action:", currentAction.name, "with value:", currentAction.value?.substring(0, 100) + '...');
 
     if (monacoEditorRef.current) {
-      await executeActionPlaybackForMonacoInstance(
-        monacoEditorRef.current,
+      await executeActionPlaybackForMonacoInstance({
+        editor: monacoEditorRef.current,
         project,
         currentActionIndex,
         currentLessonIndex,
-        currentAction,
+        action: currentAction,
         isSoundOn,
         setEditors,
         setCurrentEditor,
@@ -159,9 +159,9 @@ export const useReplayPlayback = (params: UseReplayPlaybackParams): void => {
         setCurrentCode,
         setCurrentCaretPosition,
         setTerminalBuffer,
-        targetMousePosition,
+        mousePosition: targetMousePosition,
         containerRef,
-        setTargetMousePosition,
+        setMousePosition: setTargetMousePosition,
         setCaptionText,
         speakActionAudios,
         setNewFileInputValue,
@@ -170,8 +170,8 @@ export const useReplayPlayback = (params: UseReplayPlaybackParams): void => {
         setRenameFolderInputValue,
         keyboardTypingPauseMs,
         standardPauseMs,
-        longPauseMs
-      );
+        longPauseMs,
+      });
 
       // Handle external browser scroll actions in replay mode
       if (currentAction.name === "external-browser-scroll") {
