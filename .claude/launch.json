@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "example-gatsby",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "export PATH=\"$HOME/.nvm/versions/node/v22.15.0/bin:$PATH\" && cd example && npx gatsby develop -p 8765"],
+      "port": 8765
+    }
+  ]
+}
