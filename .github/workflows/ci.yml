@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "feature/**"]
+  pull_request:
+
+jobs:
+  library:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run type-check
+      - run: npm run build
+
+  # the example app is also the codevideo-cli's render surface: a Gatsby build
+  # break here means a broken video pipeline that jest cannot see. The freshly
+  # built dist is overlaid so this exercises the UNPUBLISHED library code.
+  example-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: cd example && npm install --legacy-peer-deps
+      - run: rsync -a --delete dist/ example/node_modules/@fullstackcraftllc/codevideo-ide-react/dist/
+      - run: cd example && npx gatsby build

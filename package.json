@@ -11,6 +11,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "example:local": "bash scripts/example-local.sh",
     "predeploy": "cd example && npm run clean && npm run build-for-gh-pages && cd ..",
     "deploy": "gh-pages -d example/public"
   },
@@ -30,7 +31,7 @@
   },
   "homepage": "https://github.com/codevideo/codevideo-ide-react#readme",
   "devDependencies": {
-    "@fullstackcraftllc/codevideo-types": "^2.1.31",
+    "@fullstackcraftllc/codevideo-types": "^2.2.0",
     "@rollup/plugin-commonjs": "^25.0.7",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@rollup/plugin-replace": "^6.0.2",

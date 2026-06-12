@@ -24,6 +24,51 @@ In `replay` mode compatible with puppeteer recording callbacks, starting a full 
 
 [https://codevideo.github.io/codevideo-ide-react/puppeteer](https://codevideo.github.io/codevideo-ide-react/puppeteer)
 
+In `replay` mode with a **simulated LLM stream** appending actions to a growing array while playback runs (the `isStreaming` prop):
+
+[https://codevideo.github.io/codevideo-ide-react/streaming](https://codevideo.github.io/codevideo-ide-react/streaming)
+
+## Quickstart (working on this repo)
+
+```bash
+git clone https://github.com/codevideo/codevideo-ide-react.git
+cd codevideo-ide-react
+nvm use          # pins Node 22 (.nvmrc)
+npm install
+npm test         # full jest suite
+npm run example:local   # build the lib + run the example app against it
+```
+
+> **Note:** the library itself builds and tests on Node 20-23, but the
+> `example/` Gatsby app needs Node 20 or 22 - Gatsby's lmdb dependency
+> crashes on Node 23+ (`"length" is outside of buffer bounds`).
+> `npm run example:local` guards for this and tells you what to do.
+
+
+## Streaming actions (live-generated content)
+
+The component is fully controlled: the parent owns `currentActionIndex` and
+advances it from `actionFinishedCallback`. With the `isStreaming` prop you can
+feed it a **growing** actions array (e.g. generated live by an LLM) and
+playback continues seamlessly across appends:
+
+- appends never restart the current animation (detection is content-based, so
+  Redux-style immutable array rebuilds work)
+- when playback runs out of actions it idles ("buffering") instead of calling
+  `playBackCompleteCallback`, and resumes automatically on the next append
+- set `isStreaming` back to `false` once the stream ends to restore normal
+  completion semantics
+
+See [`example/src/pages/streaming.tsx`](example/src/pages/streaming.tsx) for a
+complete working simulation - the exact wiring a real streaming consumer uses.
+
+## Regression testing (golden render)
+
+Beyond the jest suite, visual/timing behavior is guarded by a golden-render
+workflow: a deterministic fixture rendered to video via
+[codevideo-cli](https://github.com/codevideo/codevideo-cli) and compared
+against a known-good reference (duration + keyframe contact sheets). See
+[`scripts/golden/README.md`](scripts/golden/README.md) - no API keys required.
 
 ## Installation
 

@@ -4,6 +4,9 @@
   "description": "Various examples on how to use the CodeVideoIDE component.",
   "version": "0.1.0",
   "license": "0BSD",
+  "engines": {
+    "node": "^20 || ^22"
+  },
   "scripts": {
     "redo": "npm install @fullstackcraftllc/codevideo-ide-react@latest --legacy-peer-deps && npm run clean && npm run develop",
     "rebuild": "npm install @fullstackcraftllc/codevideo-ide-react@latest --legacy-peer-deps && npm run clean && npm run build",
