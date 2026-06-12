@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { GUIMode, IAction, IFileEntry, Project } from '@fullstackcraftllc/codevideo-types';
 import { VirtualIDE } from '@fullstackcraftllc/codevideo-virtual-ide';
+import { deriveOverlayState } from './deriveOverlayState.js';
 
 export interface UseOverlayDisplayParams {
   project: Project;
@@ -58,53 +59,41 @@ export const useOverlayDisplay = (params: UseOverlayDisplayParams): OverlayDispl
       return;
     }
 
-    // Determine if we're moving forward or backward through actions
-    const isSteppingForward = currentActionIndex > prevActionIndex;
-
-    if (currentAction) {
-      if (currentAction.name === 'slide-display') {
-        // When current action is a slide-display, always show it
-        setIsSlideDisplayStep(true);
-        setSlideMarkdown(currentAction.value);
-      } else if (currentAction.name === 'external-web-preview') {
-        // When current action is external-web-preview, always show it
-        setIsExternalWebPreviewDisplayStep(true);
-        const virtualIDE = new VirtualIDE(project);
-        virtualIDE.applyActions(actions.slice(0, currentActionIndex + 1));
-        setWebPreviewFilesState(virtualIDE.getFullFilePathsAndContents());
-      } else if (currentAction.name === 'external-browser' || currentAction.name === 'external-browser-scroll') {
-        // When current action is external-browser, always show it
-        setIsExternalBrowserDisplayStep(true);
-        setExternalBrowserStepUrlState(currentAction.value);
-      } else if (currentAction.name.startsWith('author-')) {
-        // For author actions, maintain slide/web preview state when stepping forward
-        // but hide them when stepping backward
-        if (!isSteppingForward) {
-          setIsSlideDisplayStep(false);
-          setSlideMarkdown("");
-          setIsExternalWebPreviewDisplayStep(false);
-          setWebPreviewFilesState([]);
-          setIsExternalBrowserDisplayStep(false);
-          setExternalBrowserStepUrlState(null);
-        }
-        // When stepping forward, keep any currently displayed slide/web preview
-      } else {
-        // For any other action, always hide slides and web previews
-        setIsSlideDisplayStep(false);
-        setSlideMarkdown("");
-        setIsExternalWebPreviewDisplayStep(false);
-        setWebPreviewFilesState([]);
-        setIsExternalBrowserDisplayStep(false);
-        setExternalBrowserStepUrlState(null);
-      }
-    } else {
-      // No action at this index, hide everything
+    const hideAll = () => {
       setIsSlideDisplayStep(false);
       setSlideMarkdown("");
       setIsExternalWebPreviewDisplayStep(false);
       setWebPreviewFilesState([]);
       setIsExternalBrowserDisplayStep(false);
       setExternalBrowserStepUrlState(null);
+    };
+
+    // Determine if we're moving forward or backward through actions
+    const isSteppingForward = currentActionIndex > prevActionIndex;
+    const patch = deriveOverlayState(currentAction, isSteppingForward);
+
+    switch (patch.type) {
+      case 'slide':
+        setIsSlideDisplayStep(true);
+        setSlideMarkdown(patch.slideMarkdown);
+        break;
+      case 'web-preview': {
+        setIsExternalWebPreviewDisplayStep(true);
+        const virtualIDE = new VirtualIDE(project);
+        virtualIDE.applyActions(actions.slice(0, currentActionIndex + 1));
+        setWebPreviewFilesState(virtualIDE.getFullFilePathsAndContents());
+        break;
+      }
+      case 'external-browser':
+        setIsExternalBrowserDisplayStep(true);
+        setExternalBrowserStepUrlState(patch.url);
+        break;
+      case 'keep':
+        // author action stepping forward: keep any currently displayed overlay
+        break;
+      case 'hide':
+        hideAll();
+        break;
     }
 
     // Update the previous action index for next comparison - moved to end and add dependency check
