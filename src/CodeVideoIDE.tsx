@@ -15,7 +15,6 @@ import { EditorTabs } from './Editor/EditorTabs.jsx';
 import { ExternalWebViewer } from './ExternalWebViewer/ExternalWebViewer.jsx';
 
 // utils
-import { speakText, stopSpeaking } from './utils/speakText.js';
 import { getLanguageFromFilename } from './utils/getLanguageFromFilename.js';
 
 // File explorer
@@ -62,6 +61,7 @@ import { VirtualIDE } from '@fullstackcraftllc/codevideo-virtual-ide';
 import { useStableActions } from './hooks/useStableActions.js';
 import { useReplayPlayback } from './hooks/useReplayPlayback.js';
 import { useTerminalCaret } from './hooks/useTerminalCaret.js';
+import { useSpeechOnStep } from './hooks/useSpeechOnStep.js';
 
 /**
  * Props for CodeVideoIDE: everything from codevideo-types' ICodeVideoIDEProps
@@ -404,27 +404,17 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
     currentLessonIndex,
   });
 
-  // whenever issoundon changes or currentActionIndex, and we are in step mode, and the current action includes 'speak', we should speak
-  useEffect(() => {
-    // Don't proceed if project is empty (not loaded yet)
-    if (!project || (Array.isArray(project) && project.length === 0)) {
-      return;
-    }
-
-    const currentAction = stableCurrentAction;
-    if (isSoundOn && mode === 'step' && currentAction && currentAction.name.startsWith('author-')) {
-      // try to find a match by the sha256 hash of the action.value in the speakActionAudios array
-      const action = currentAction;
-      const mp3Url = speakActionAudios.find((audio) => audio.text === action.value)?.mp3Url;
-
-      // if audio element was not found, it is undefined and we default to the speech synthesis
-      speakText(currentAction.value, 1, mp3Url);
-    } else {
-      stopSpeaking();
-    }
-    // append-stable deps: a streamed append must not re-speak the current action.
-    // NOTE: mode is deliberately NOT a dependency (long-standing quirk, preserved)
-  }, [isSoundOn, stableCurrentAction?.name, stableCurrentAction?.value, actionsEpoch, currentActionIndex, currentLessonIndex]);
+  // step-mode speech: speak the current author action when sound is on
+  useSpeechOnStep({
+    project,
+    mode,
+    isSoundOn,
+    currentAction: stableCurrentAction,
+    currentActionIndex,
+    actionsEpoch,
+    currentLessonIndex,
+    speakActionAudios,
+  });
 
   // the replay playback loop: animates the current action exactly once per
   // (content epoch, index), handles the 1s initial delay, and signals the
