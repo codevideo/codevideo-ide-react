@@ -6,7 +6,7 @@ import * as monaco from 'monaco-editor';
 // import Monokai from "monaco-themes/themes/Monokai.json";
 
 // types
-import { ICodeVideoIDEProps, IAction, IEditor, IEditorPosition, IFileStructure, IPoint, IFileEntry, extractActionsFromProject } from '@fullstackcraftllc/codevideo-types';
+import { ICodeVideoIDEProps, IAction, IEditor, IEditorPosition, IFileStructure, IPoint } from '@fullstackcraftllc/codevideo-types';
 
 // editor tabs
 import { EditorTabs } from './Editor/EditorTabs.jsx';
@@ -54,15 +54,13 @@ import { getNewMousePosition } from './MouseOverlay/utils/getNewMousePosition.js
 import { CODEVIDEO_IDE_ID, DEFAULT_CARET_POSITION, DEFAULT_MOUSE_POSITION, KEYBOARD_TYPING_PAUSE_MS, LONG_PAUSE_MS, STANDARD_PAUSE_MS } from './constants/CodeVideoIDEConstants.js';
 import { EDITOR_AREA_ID, EDITOR_ID } from './constants/CodeVideoDataIds.js';
 
-// last but not least - the Virtual IDE!
-import { VirtualIDE } from '@fullstackcraftllc/codevideo-virtual-ide';
-
 // hooks
 import { useStableActions } from './hooks/useStableActions.js';
 import { useReplayPlayback } from './hooks/useReplayPlayback.js';
 import { useTerminalCaret } from './hooks/useTerminalCaret.js';
 import { useSpeechOnStep } from './hooks/useSpeechOnStep.js';
 import { useEmbedKeyboard } from './hooks/useEmbedKeyboard.js';
+import { useOverlayDisplay } from './hooks/useOverlayDisplay.js';
 
 /**
  * Props for CodeVideoIDE: everything from codevideo-types' ICodeVideoIDEProps
@@ -153,13 +151,6 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
   const [currentHoveredEditorTabFileName, setCurrentHoveredEditorTabFileName] = useState<string>("")
   const [isUnsavedChangesDialogOpen, setIsUnsavedChangesDialogOpen] = useState<boolean>(false);
   const [unsavedFileName, setUnsavedFileName] = useState<string>("");
-  const [isSlideDisplayStep, setIsSlideDisplayStep] = useState<boolean>(false);
-  const [slideMarkdown, setSlideMarkdown] = useState<string>("");
-  const [isExternalWebPreviewDisplayStep, setIsExternalWebPreviewDisplayStep] = useState<boolean>(false);
-  const [webPreviewFilesState, setWebPreviewFilesState] = useState<Array<IFileEntry>>([]);
-  const [isExternalBrowserDisplayStep, setIsExternalBrowserDisplayStep] = useState<boolean>(false);
-  const [externalBrowserStepUrlState, setExternalBrowserStepUrlState] = useState<string | null>(null);
-  const [prevActionIndex, setPrevActionIndex] = useState<number>(-1);
   const [currentExternalBrowserScrollPosition, setCurrentExternalBrowserScrollPosition] = useState<number>(0);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -327,73 +318,24 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
     setTargetMousePosition(newPosition);
   }
 
-  // this effect handles the logic for displaying slides, web previews, and external browser steps
-  // we want to continue display those even if followed by an author action
-  useEffect(() => {
-    // Don't proceed if project is empty (not loaded yet)
-    if (!project || (Array.isArray(project) && project.length === 0)) {
-      return;
-    }
-
-    const currentAction = stableCurrentAction;
-
-    // Determine if we're moving forward or backward through actions
-    const isSteppingForward = currentActionIndex > prevActionIndex;
-
-    if (currentAction) {
-      if (currentAction.name === 'slide-display') {
-        // When current action is a slide-display, always show it
-        setIsSlideDisplayStep(true);
-        setSlideMarkdown(currentAction.value);
-      } else if (currentAction.name === 'external-web-preview') {
-        // When current action is external-web-preview, always show it
-        setIsExternalWebPreviewDisplayStep(true);
-        const virtualIDE = new VirtualIDE(project);
-        virtualIDE.applyActions(stableActions.slice(0, currentActionIndex + 1));
-        setWebPreviewFilesState(virtualIDE.getFullFilePathsAndContents());
-      } else if (currentAction.name === 'external-browser' || currentAction.name === 'external-browser-scroll') {
-        // When current action is external-browser, always show it
-        setIsExternalBrowserDisplayStep(true);
-        setExternalBrowserStepUrlState(currentAction.value);
-      } else if (currentAction.name.startsWith('author-')) {
-        // For author actions, maintain slide/web preview state when stepping forward
-        // but hide them when stepping backward
-        if (!isSteppingForward) {
-          setIsSlideDisplayStep(false);
-          setSlideMarkdown("");
-          setIsExternalWebPreviewDisplayStep(false);
-          setWebPreviewFilesState([]);
-          setIsExternalBrowserDisplayStep(false);
-          setExternalBrowserStepUrlState(null);
-        }
-        // When stepping forward, keep any currently displayed slide/web preview
-      } else {
-        // For any other action, always hide slides and web previews
-        setIsSlideDisplayStep(false);
-        setSlideMarkdown("");
-        setIsExternalWebPreviewDisplayStep(false);
-        setWebPreviewFilesState([]);
-        setIsExternalBrowserDisplayStep(false);
-        setExternalBrowserStepUrlState(null);
-      }
-    } else {
-      // No action at this index, hide everything
-      setIsSlideDisplayStep(false);
-      setSlideMarkdown("");
-      setIsExternalWebPreviewDisplayStep(false);
-      setWebPreviewFilesState([]);
-      setIsExternalBrowserDisplayStep(false);
-      setExternalBrowserStepUrlState(null);
-    }
-
-    // Update the previous action index for next comparison - moved to end and add dependency check
-    if (mode === 'step' || currentActionIndex > 0) {
-      setPrevActionIndex(currentActionIndex);
-    }
-    // append-stable deps: appends beyond the current index change none of these,
-    // so a streamed append no longer rebuilds the web-preview VirtualIDE or
-    // re-routes the overlays
-  }, [currentActionIndex, stableCurrentAction?.name, stableCurrentAction?.value, actionsEpoch, currentLessonIndex, mode]);
+  // slide / web-preview / external-browser overlay routing, including
+  // continuation through author actions when stepping forward
+  const {
+    isSlideDisplayStep,
+    slideMarkdown,
+    isExternalWebPreviewDisplayStep,
+    webPreviewFilesState,
+    isExternalBrowserDisplayStep,
+    externalBrowserStepUrlState,
+  } = useOverlayDisplay({
+    project,
+    mode,
+    currentAction: stableCurrentAction,
+    currentActionIndex,
+    actions: stableActions,
+    actionsEpoch,
+    currentLessonIndex,
+  });
 
   // terminal block caret: on for 2s after any terminal action
   const showBlockCaret = useTerminalCaret({
