@@ -1,9 +1,6 @@
 import React from 'react';
 import { Editor } from '@monaco-editor/react';
 import { Box, Flex } from '@radix-ui/themes';
-// TODO: add multiple theme support later
-// import Monokai from "monaco-themes/themes/Monokai.json";
-
 // types
 import { ICodeVideoIDEProps } from '@fullstackcraftllc/codevideo-types';
 
@@ -156,11 +153,6 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
     editorViewStateRef,
     isRestoringViewStateRef,
   } = useCodeVideoIDEState(defaultLanguage);
-
-  // for cleanup TODO
-  // const modelUrisRef = useRef<Set<string>>(new Set());
-  // const prevMode = useRef<GUIMode>(mode);
-  // const isInitialMount = useRef(true);
 
   // single source of action extraction for the whole component; the epoch only
   // changes on non-append content changes (see useStableActions)

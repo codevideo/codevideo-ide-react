@@ -73,14 +73,7 @@ export const useMonacoModelManagement = (
     // Don't create a model here - let the model management useEffect handle it
     // This ensures proper file switching behavior in replay mode
 
-    // Ensure theme is applied after a short delay
-    // monaco.editor.defineTheme(
-    //   "Monokai",
-    //   Monokai as monaco.editor.IStandaloneThemeData
-    // );
-    // setTimeout(() => {
-    //   monaco.editor.setTheme('Monokai');
-    // }, 1);
+    // (multiple-theme support graveyarded - see docs/MONACO_QUIRKS.md #3)
     monacoLoadedCallback && monacoLoadedCallback();
   };
 
@@ -197,40 +190,7 @@ export const useMonacoModelManagement = (
     }
   }, [isSlideDisplayStep, isExternalWebPreviewDisplayStep, isExternalBrowserDisplayStep, currentCaretPosition]);
 
-  // TODO: figure out highlights! (breaks due to SSR)
-  // const currentHighlightCoordinates = currentFile ? currentFile.highlightCoordinates : null;
-  // // highlight effect (only when not recording)
-  // useEffect(() => {
-  //   // if (typeof window !== "undefined" && !isRecording && monacoEditorRef.current && currentHighlightCoordinates) {
-  //   // TODO: this line breaks SSR:
-  //   // maybe we can hack our own highlight functionality...
-  //   //   monacoEditorRef.current.createDecorationsCollection([
-  //   //     {
-  //   //       range: new monaco.Range(
-  //   //         currentHighlightCoordinates.start.row,
-  //   //         currentHighlightCoordinates.start.col,
-  //   //         currentHighlightCoordinates.end.row,
-  //   //         currentHighlightCoordinates.end.col
-  //   //       ),
-  //   //       options: { inlineClassName: 'highlighted-code' }
-  //   //     }
-  //   //   ]);
-
-  //   //   // log out decorations for debugging
-  //   //   // console.log(monacoEditorRef.current.getVisibleRanges());
-
-  //   //   // trigger a focus to actually highlight where the highlight is
-  //   //   // monacoEditorRef.current.focus();
-  //   // }
-  // }, [currentHighlightCoordinates]);
-
-  // Gemini says this is not needed: let's see:
-  // always auto-scroll to line in center when the caret row position changes
-  // useEffect(() => {
-  //   if (monacoEditorRef.current) {
-  //     monacoEditorRef.current.revealLineInCenter(currentCaretPosition.row);
-  //   }
-  // }, [currentCaretPosition.row]);
+  // (highlight effect and caret auto-scroll graveyarded - see docs/MONACO_QUIRKS.md #1, #4)
 
   // Monaco model management for proper file switching
   // this useEffect FROM CLAUDE:

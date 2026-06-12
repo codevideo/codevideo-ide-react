@@ -70,11 +70,6 @@ export const executeActionPlaybackForMonacoInstance = async (context: IPlaybackC
   } = context;
   let startTime = -1;
 
-  // helpful for debugging
-  // editor.getSupportedActions().forEach((value) => {
-  //   console.log(value);
-  // });
-
   const { editors, currentEditor, currentFilename, currentCaretPosition, currentCode } = reconstituteAllPartsOfState(project, currentActionIndex, currentLessonIndex);
 
 
@@ -123,58 +118,17 @@ export const executeActionPlaybackForMonacoInstance = async (context: IPlaybackC
     debugWarn('Invalid mouse position from getNewMousePosition, keeping current position:', newPosition);
   }
 
-  // const highlightText = (
-  //   editor: monaco.editor.IStandaloneCodeEditor,
-  //   searchText: string
-  // ) => {
-  //   const model = editor.getModel();
-
-  // findNextMatch BREAKS SSR
-  // Find the position of the searchText in the model
-  // @ts-ignore
-  // const searchTextPosition = model.findNextMatch(
-  //   searchText,
-  //   // @ts-ignore
-  //   new monaco.Position(1, 1)
-  // );
-
-
-  // this ALSO BREAKS SSR
-  // const searchTextPosition: monaco.editor.FindMatch = {
-  //   range: new monaco.Range(1, 1, 1, 1),
-  // }
-
-  // If searchText is found
-  // if (searchTextPosition) {
-  //   const line = searchTextPosition.range.startLineNumber;
-  //   const column = searchTextPosition.range.startColumn;
-
-  //   // Move the cursor to the beginning of the searchText
-  //   editor.setPosition({ lineNumber: line, column });
-
-  //   // Reveal the line in the center
-  //   editor.revealLineInCenter(line);
-
-  //   // Calculate the range of the searchText
-  //   const searchTextLength = searchText.length;
-  //   // @ts-ignore
-  //   const range = new monaco.Range(
-  //     line,
-  //     column,
-  //     line,
-  //     column + searchTextLength
-  //   );
-
-  //   // Set the selection to highlight the searchText
-  //   editor.setSelection(range);
-
-  //   // Reveal the range in the center
-  //   editor.revealRangeInCenter(range);
-  // }
-  // };
+  // (highlightText helper graveyarded: findNextMatch/monaco.Range break SSR - see docs/MONACO_QUIRKS.md #1)
 
   // try to parse the 'times' value as an integer for repeatable actions, if it fails, default to 1
   // the "times" doesn't always apply to most actions, so we do that action just once
+  // KNOWN BUG (preserved during refactor): isRepeatableAction expects the full
+  // IAction but receives action.name (a string), so it always returns false and
+  // times is always 1 - repeatable actions animate once instead of N times.
+  // The type error was historically masked by a stray @ts-ignore inside a
+  // since-removed comment block. Fixing it (pass `action`) CHANGES replay
+  // behavior, so it is deliberately left as-is here. See docs/MONACO_QUIRKS.md.
+  // @ts-expect-error see comment above
   const times = isRepeatableAction(action.name) ? parseInt(action.value) : 1;
   const pos = editor.getPosition();
   debugLog(`Editor position is at line ${pos?.lineNumber}, column ${pos?.column}`);
@@ -282,15 +236,7 @@ export const executeActionPlaybackForMonacoInstance = async (context: IPlaybackC
       case action.name === "editor-enter":
         await simulateHumanTypingInMonaco(editor, "\n", keyboardTypingPauseMs);
         break;
-      // case action.name === "editor-delete-line" && lineNumber !== null:
-      //   console.log("deleting line");
-      //   // @ts-ignore - this also breaks SSR
-      //   editor.executeEdits("", [
-      //     // @ts-ignore
-      //     { range: new monaco.Range(lineNumber, 1, lineNumber + 1, 1), text: null },
-      //   ]);
-      //   await sleep(keyboardTypingPauseMs)
-      //   break;
+      // (editor-delete-line graveyarded: monaco.Range breaks SSR - see docs/MONACO_QUIRKS.md #2)
       case action.name === "editor-command-right" && pos !== null:
         // simulate moving to the end of the current line
         // @ts-ignore
@@ -298,10 +244,7 @@ export const executeActionPlaybackForMonacoInstance = async (context: IPlaybackC
         editor.setPosition(pos);
         await sleep(keyboardTypingPauseMs)
         break;
-      //   // highlight breaks SSR
-      // // case action.name === "editor-highlight-code":
-      // //   highlightText(editor, action.value);
-      // //   break;
+      // (editor-highlight-code graveyarded - see docs/MONACO_QUIRKS.md #1)
       case action.name === "editor-space":
         await simulateHumanTypingInMonaco(editor, " ", keyboardTypingPauseMs);
         break;
