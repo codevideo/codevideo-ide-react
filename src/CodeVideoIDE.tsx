@@ -61,6 +61,7 @@ import { VirtualIDE } from '@fullstackcraftllc/codevideo-virtual-ide';
 // hooks
 import { useStableActions } from './hooks/useStableActions.js';
 import { useReplayPlayback } from './hooks/useReplayPlayback.js';
+import { useTerminalCaret } from './hooks/useTerminalCaret.js';
 
 /**
  * Props for CodeVideoIDE: everything from codevideo-types' ICodeVideoIDEProps
@@ -159,7 +160,6 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
   const [isExternalBrowserDisplayStep, setIsExternalBrowserDisplayStep] = useState<boolean>(false);
   const [externalBrowserStepUrlState, setExternalBrowserStepUrlState] = useState<string | null>(null);
   const [prevActionIndex, setPrevActionIndex] = useState<number>(-1);
-  const [showBlockCaret, setShowBlockCaret] = useState<boolean>(false);
   const [currentExternalBrowserScrollPosition, setCurrentExternalBrowserScrollPosition] = useState<number>(0);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -395,29 +395,14 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
     // re-routes the overlays
   }, [currentActionIndex, stableCurrentAction?.name, stableCurrentAction?.value, actionsEpoch, currentLessonIndex, mode]);
 
-  // Effect to handle terminal caret based on current action
-  useEffect(() => {
-    // Don't proceed if project is empty (not loaded yet)
-    if (!project || (Array.isArray(project) && project.length === 0)) {
-      return;
-    }
-
-    const currentAction = stableCurrentAction;
-
-    if (currentAction && currentAction.name.startsWith('terminal-')) {
-      setShowBlockCaret(true);
-
-      // Keep block caret for 2 seconds after terminal action
-      const timer = setTimeout(() => {
-        setShowBlockCaret(false);
-      }, 2000);
-
-      return () => clearTimeout(timer);
-    } else {
-      setShowBlockCaret(false);
-    }
-    // append-stable deps: a streamed append must not restart the 2s caret timer
-  }, [currentActionIndex, stableCurrentAction?.name, actionsEpoch, currentLessonIndex]);
+  // terminal block caret: on for 2s after any terminal action
+  const showBlockCaret = useTerminalCaret({
+    project,
+    currentAction: stableCurrentAction,
+    currentActionIndex,
+    actionsEpoch,
+    currentLessonIndex,
+  });
 
   // whenever issoundon changes or currentActionIndex, and we are in step mode, and the current action includes 'speak', we should speak
   useEffect(() => {
