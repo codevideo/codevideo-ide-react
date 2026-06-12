@@ -6,7 +6,7 @@ import * as monaco from 'monaco-editor';
 // import Monokai from "monaco-themes/themes/Monokai.json";
 
 // types
-import { ICodeVideoIDEProps, IAction, IEditor, IEditorPosition, IFileStructure, IPoint } from '@fullstackcraftllc/codevideo-types';
+import { ICodeVideoIDEProps, IEditor, IEditorPosition, IFileStructure, IPoint } from '@fullstackcraftllc/codevideo-types';
 
 // editor tabs
 import { EditorTabs } from './Editor/EditorTabs.jsx';
@@ -45,10 +45,7 @@ import { SlideViewer } from './SlideViewer/SlideViewer.jsx';
 import { WebPreview } from './WebPreview/WebPreview.jsx';
 
 // util functions
-import { reconstituteAllPartsOfState } from './utils/reconstituteAllPartsOfState.js';
-import { extractActions, getActionAtIndex } from './utils/extractActions.js';
 import { setDebugLogging } from './utils/debugLog.js';
-import { getNewMousePosition } from './MouseOverlay/utils/getNewMousePosition.js';
 
 // ids and constants
 import { CODEVIDEO_IDE_ID, DEFAULT_CARET_POSITION, DEFAULT_MOUSE_POSITION, KEYBOARD_TYPING_PAUSE_MS, LONG_PAUSE_MS, STANDARD_PAUSE_MS } from './constants/CodeVideoIDEConstants.js';
@@ -61,6 +58,7 @@ import { useTerminalCaret } from './hooks/useTerminalCaret.js';
 import { useSpeechOnStep } from './hooks/useSpeechOnStep.js';
 import { useEmbedKeyboard } from './hooks/useEmbedKeyboard.js';
 import { useOverlayDisplay } from './hooks/useOverlayDisplay.js';
+import { useStepModeState } from './hooks/useStepModeState.js';
 
 /**
  * Props for CodeVideoIDE: everything from codevideo-types' ICodeVideoIDEProps
@@ -171,152 +169,43 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
   const { actions: stableActions, actionsEpoch, currentAction: stableCurrentAction, hasActionAtCurrentIndex } = useStableActions(project, currentLessonIndex, currentActionIndex);
 
   // Handle scroll actions for step mode
-  const handleStepModeScrollActions = () => {
-    // Don't proceed if project is empty (not loaded yet)
-    if (!project || (Array.isArray(project) && project.length === 0)) {
-      return;
-    }
-
-    const extractedActions = extractActions(project, currentLessonIndex);
-
-    const currentAction = getActionAtIndex(extractedActions, currentActionIndex);
-
-    if (!currentAction) {
-      return;
-    }
-
-    switch (currentAction.name) {
-      case "editor-scroll-up":
-        if (monacoEditorRef.current) {
-          const scrollUpDistance = parseInt(currentAction.value) || 3; // Default to 3 lines
-          const currentPosition = monacoEditorRef.current.getPosition();
-          const currentLine = currentPosition?.lineNumber || 1;
-          monacoEditorRef.current.revealLineInCenter(Math.max(1, currentLine - scrollUpDistance));
-        }
-        break;
-      case "editor-scroll-down":
-        if (monacoEditorRef.current) {
-          const scrollDownDistance = parseInt(currentAction.value) || 3; // Default to 3 lines
-          const currentPositionDown = monacoEditorRef.current.getPosition();
-          const currentLineDown = currentPositionDown?.lineNumber || 1;
-          monacoEditorRef.current.revealLineInCenter(currentLineDown + scrollDownDistance);
-        }
-        break;
-      case "external-browser-scroll":
-        const scrollPosition = parseInt(currentAction.value) || 0;
-        setCurrentExternalBrowserScrollPosition(scrollPosition);
-        break;
-      default:
-        // No scroll action to handle
-        break;
-    }
-  };
-
-  const updateState = () => {
-    // Don't proceed if project is empty (not loaded yet)
-    if (!project || (Array.isArray(project) && project.length === 0)) {
-      console.log("[updateState] Project is empty or not loaded yet, skipping state update");
-      console.log("[updateState] Project:", project);
-      return;
-    }
-
-    console.log("[updateState] Updating state for action index:", currentActionIndex, "lesson index:", currentLessonIndex);
-    console.log("[updateState] Project type:", Array.isArray(project) ? 'actions array' : typeof project);
-
-    const {
-      editors,
-      currentEditor,
-      currentFilename,
-      fileExplorerSnapshot,
-      currentCode,
-      currentCaretPosition,
-      currentTerminalBuffer,
-      captionText,
-      actions,
-      mouseSnapshot,
-      isUnsavedChangesDialogOpen,
-      unsavedFileName
-    } = reconstituteAllPartsOfState(project, currentActionIndex, currentLessonIndex);
-
-    console.log("[updateState] Reconstituted state:");
-    console.log("  - editors count:", editors?.length || 0);
-    console.log("  - currentEditor:", currentEditor?.filename || 'none');
-    console.log("  - actions count:", actions?.length || 0);
-    console.log("  - fileStructure keys:", Object.keys(fileExplorerSnapshot?.fileStructure || {}));
-    setEditors(editors)
-    setCurrentEditor(currentEditor);
-    setCurrentFileName(currentFilename);
-    setCurrentFileStructure(fileExplorerSnapshot.fileStructure);
-
-    // In step mode, update code first, then caret position after a brief delay
-    if (mode === 'step') {
-      setCurrentCode(currentCode);
-      // Use setTimeout to ensure caret is set after Monaco processes the content change
-      setTimeout(() => {
-        setCurrentCaretPosition(currentCaretPosition);
-      }, 0);
-
-      // Only set input values in step mode, not replay mode where animation handles it
-      setNewFileInputValue(fileExplorerSnapshot.newFileInputValue);
-      setNewFolderInputValue(fileExplorerSnapshot.newFolderInputValue);
-
-      // Handle scroll actions for step mode after state update
-      setTimeout(() => {
-        handleStepModeScrollActions();
-      }, 0); // Execute on next tick to ensure editor is ready
-
-      // Only update mouse position in step mode, not in replay mode
-      // This prevents double mouse movement animations in replay mode
-      updateMouseStateAndSideEffects(actions);
-    }
-
-    setTerminalBuffer(currentTerminalBuffer);
-    setCaptionText(captionText);
-    setIsFileExplorerContextMenuVisible(fileExplorerSnapshot.isFileExplorerContextMenuOpen);
-    setIsFileContextMenuVisible(fileExplorerSnapshot.isFileContextMenuOpen);
-    setIsFolderContextMenuVisible(fileExplorerSnapshot.isFolderContextMenuOpen);
-    setIsNewFileInputVisible(fileExplorerSnapshot.isNewFileInputVisible);
-    setIsNewFolderInputVisible(fileExplorerSnapshot.isNewFolderInputVisible);
-    setOriginalFileBeingRenamed(fileExplorerSnapshot.originalFileBeingRenamed);
-    setOriginalFolderBeingRenamed(fileExplorerSnapshot.originalFolderBeingRenamed);
-    setCurrentHoveredFileName(mouseSnapshot.currentHoveredFileName);
-    setCurrentHoveredFolderName(mouseSnapshot.currentHoveredFolderName);
-    setNewFileParentPath(fileExplorerSnapshot.newFileParentPath);
-    setNewFolderParentPath(fileExplorerSnapshot.newFolderParentPath);
-    setCurrentHoveredEditorTabFileName(mouseSnapshot.currentHoveredEditorTabFileName);
-    setIsUnsavedChangesDialogOpen(isUnsavedChangesDialogOpen);
-    setUnsavedFileName(unsavedFileName);
-  }
-
-  // This is copied basically in animation way down logic below, could be refactored
-  const updateMouseStateAndSideEffects = (actions: Array<IAction>) => {
-    if (currentActionIndex === 0 && mode === 'step') {
-      if (!containerRef?.current) {
-        return;
-      }
-      const rect = containerRef.current.getBoundingClientRect();
-      setTargetMousePosition({
-        x: rect.width / 2,
-        y: rect.height / 2,
-      });
-      return;
-    }
-    const currentAction = getActionAtIndex(actions, currentActionIndex);
-    if (!currentAction) return;
-
-    const newPosition = getNewMousePosition(targetMousePosition, currentAction, containerRef);
-
-    // Safety check to prevent undefined coordinates
-    if (!newPosition || isNaN(newPosition.x) || isNaN(newPosition.y) ||
-      newPosition.x === undefined || newPosition.y === undefined) {
-      console.warn('Invalid mouse position detected, keeping current position:', newPosition);
-      return;
-    }
-
-    console.log(`Action: ${currentAction.name}, New position: x=${newPosition.x}, y=${newPosition.y}`);
-
-    setTargetMousePosition(newPosition);
-  }
+  // step-mode state derivation: reconstitutes the full VirtualIDE snapshot at
+  // the current index and distributes it into component state
+  const { updateState } = useStepModeState({
+    project,
+    mode,
+    currentActionIndex,
+    currentLessonIndex,
+    monacoEditorRef,
+    containerRef,
+    targetMousePosition,
+    setEditors,
+    setCurrentEditor,
+    setCurrentFileName,
+    setCurrentFileStructure,
+    setCurrentCode,
+    setCurrentCaretPosition,
+    setTerminalBuffer,
+    setCaptionText,
+    setTargetMousePosition,
+    setNewFileInputValue,
+    setNewFolderInputValue,
+    setIsFileExplorerContextMenuVisible,
+    setIsFileContextMenuVisible,
+    setIsFolderContextMenuVisible,
+    setIsNewFileInputVisible,
+    setIsNewFolderInputVisible,
+    setOriginalFileBeingRenamed,
+    setOriginalFolderBeingRenamed,
+    setCurrentHoveredFileName,
+    setCurrentHoveredFolderName,
+    setNewFileParentPath,
+    setNewFolderParentPath,
+    setCurrentHoveredEditorTabFileName,
+    setIsUnsavedChangesDialogOpen,
+    setUnsavedFileName,
+    setCurrentExternalBrowserScrollPosition,
+  });
 
   // slide / web-preview / external-browser overlay routing, including
   // continuation through author actions when stepping forward
