@@ -62,6 +62,7 @@ import { useStableActions } from './hooks/useStableActions.js';
 import { useReplayPlayback } from './hooks/useReplayPlayback.js';
 import { useTerminalCaret } from './hooks/useTerminalCaret.js';
 import { useSpeechOnStep } from './hooks/useSpeechOnStep.js';
+import { useEmbedKeyboard } from './hooks/useEmbedKeyboard.js';
 
 /**
  * Props for CodeVideoIDE: everything from codevideo-types' ICodeVideoIDEProps
@@ -134,7 +135,6 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
   const [currentCaretPosition, setCurrentCaretPosition] = useState<IEditorPosition>(DEFAULT_CARET_POSITION);
   const [captionText, setCaptionText] = useState<string>('');
   const [currentEditorLanguage, setCurrentEditorLanguage] = useState<string>(defaultLanguage);
-  const [showEmbedOverlay, setShowEmbedOverlay] = useState<boolean>(isEmbedMode || false);
   const [isFileExplorerContextMenuVisible, setIsFileExplorerContextMenuVisible] = useState<boolean>(false);
   const [isFileContextMenuVisible, setIsFileContextMenuVisible] = useState<boolean>(false)
   const [isFolderContextMenuVisible, setIsFolderContextMenuVisible] = useState<boolean>(false)
@@ -695,28 +695,13 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
   }, [currentFileName]);
 
   // if embedMode is 'true', we use space bar to request playback, left arrow to request previous frame, and right arrow to request next frame
-  useEffect(() => {
-    if (isEmbedMode) {
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'ArrowRight') {
-          setShowEmbedOverlay(false);
-          requestStepModeCallback && requestStepModeCallback('step');
-          requestNextActionCallback && requestNextActionCallback();
-        } else if (e.key === 'ArrowLeft') {
-          setShowEmbedOverlay(false);
-          requestStepModeCallback && requestStepModeCallback('step');
-          requestPreviousActionCallback && requestPreviousActionCallback();
-        } else if (e.key === ' ') {
-          setShowEmbedOverlay(false);
-          requestPlaybackStartCallback && requestPlaybackStartCallback();
-        }
-      }
-      window.addEventListener('keydown', handleKeyDown)
-      return () => {
-        window.removeEventListener('keydown', handleKeyDown)
-      }
-    }
-  }, [isEmbedMode]);
+  const showEmbedOverlay = useEmbedKeyboard({
+    isEmbedMode,
+    requestStepModeCallback,
+    requestNextActionCallback,
+    requestPreviousActionCallback,
+    requestPlaybackStartCallback,
+  });
 
   // useful for debugging
   // // before rendering log out all relevant stuff
