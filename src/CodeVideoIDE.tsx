@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Editor, Monaco } from '@monaco-editor/react';
 import { Box, Flex } from '@radix-ui/themes';
 import * as monaco from 'monaco-editor';
@@ -6,7 +6,7 @@ import * as monaco from 'monaco-editor';
 // import Monokai from "monaco-themes/themes/Monokai.json";
 
 // types
-import { ICodeVideoIDEProps, IEditor, IEditorPosition, IFileStructure, IPoint } from '@fullstackcraftllc/codevideo-types';
+import { ICodeVideoIDEProps } from '@fullstackcraftllc/codevideo-types';
 
 // editor tabs
 import { EditorTabs } from './Editor/EditorTabs.jsx';
@@ -48,7 +48,7 @@ import { WebPreview } from './WebPreview/WebPreview.jsx';
 import { setDebugLogging } from './utils/debugLog.js';
 
 // ids and constants
-import { CODEVIDEO_IDE_ID, DEFAULT_CARET_POSITION, DEFAULT_MOUSE_POSITION, KEYBOARD_TYPING_PAUSE_MS, LONG_PAUSE_MS, STANDARD_PAUSE_MS } from './constants/CodeVideoIDEConstants.js';
+import { CODEVIDEO_IDE_ID, KEYBOARD_TYPING_PAUSE_MS, LONG_PAUSE_MS, STANDARD_PAUSE_MS } from './constants/CodeVideoIDEConstants.js';
 import { EDITOR_AREA_ID, EDITOR_ID } from './constants/CodeVideoDataIds.js';
 
 // hooks
@@ -59,6 +59,7 @@ import { useSpeechOnStep } from './hooks/useSpeechOnStep.js';
 import { useEmbedKeyboard } from './hooks/useEmbedKeyboard.js';
 import { useOverlayDisplay } from './hooks/useOverlayDisplay.js';
 import { useStepModeState } from './hooks/useStepModeState.js';
+import { useCodeVideoIDEState } from './state/useCodeVideoIDEState.js';
 
 /**
  * Props for CodeVideoIDE: everything from codevideo-types' ICodeVideoIDEProps
@@ -120,44 +121,44 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
   // covered. Idempotent, so safe under StrictMode double-renders.
   setDebugLogging(debug);
   const isRecording = mode === 'record'
-  const [editors, setEditors] = useState<Array<IEditor>>();
-  const [currentEditor, setCurrentEditor] = useState<IEditor>();
-  const [currentFileName, setCurrentFileName] = useState<string>();
-  const [currentFileStructure, setCurrentFileStructure] = useState<IFileStructure>();
-  const [currentCode, setCurrentCode] = useState<string>('');
-  const [terminalBuffer, setTerminalBuffer] = useState<string>('');
-  const [targetMousePosition, setTargetMousePosition] = useState<IPoint>(DEFAULT_MOUSE_POSITION);
-  const [currentMousePosition, setCurrentMousePosition] = useState<IPoint>(DEFAULT_MOUSE_POSITION);
-  const [currentCaretPosition, setCurrentCaretPosition] = useState<IEditorPosition>(DEFAULT_CARET_POSITION);
-  const [captionText, setCaptionText] = useState<string>('');
-  const [currentEditorLanguage, setCurrentEditorLanguage] = useState<string>(defaultLanguage);
-  const [isFileExplorerContextMenuVisible, setIsFileExplorerContextMenuVisible] = useState<boolean>(false);
-  const [isFileContextMenuVisible, setIsFileContextMenuVisible] = useState<boolean>(false)
-  const [isFolderContextMenuVisible, setIsFolderContextMenuVisible] = useState<boolean>(false)
-  const [isNewFileInputVisible, setIsNewFileInputVisible] = useState<boolean>(false)
-  const [isNewFolderInputVisible, setIsNewFolderInputVisible] = useState<boolean>(false)
-  const [newFileInputValue, setNewFileInputValue] = useState<string>("")
-  const [newFolderInputValue, setNewFolderInputValue] = useState<string>("")
-  const [originalFileBeingRenamed, setOriginalFileBeingRenamed] = useState<string>("")
-  const [originalFolderBeingRenamed, setOriginalFolderBeingRenamed] = useState<string>("")
-  const [renameFileInputValue, setRenameFileInputValue] = useState<string>("")
-  const [renameFolderInputValue, setRenameFolderInputValue] = useState<string>("")
-  const [currentHoveredFileName, setCurrentHoveredFileName] = useState<string>("")
-  const [currentHoveredFolderName, setCurrentHoveredFolderName] = useState<string>("")
-  const [newFileParentPath, setNewFileParentPath] = useState<string>("")
-  const [newFolderParentPath, setNewFolderParentPath] = useState<string>("")
-  const [currentHoveredEditorTabFileName, setCurrentHoveredEditorTabFileName] = useState<string>("")
-  const [isUnsavedChangesDialogOpen, setIsUnsavedChangesDialogOpen] = useState<boolean>(false);
-  const [unsavedFileName, setUnsavedFileName] = useState<string>("");
-  const [currentExternalBrowserScrollPosition, setCurrentExternalBrowserScrollPosition] = useState<number>(0);
-
-  const containerRef = useRef<HTMLDivElement>(null);
-  const monacoEditorRef = useRef<monaco.editor.IStandaloneCodeEditor | undefined>(undefined);
-  const globalMonacoRef = useRef<Monaco | undefined>(undefined);
-
-  // Store editor view state to preserve caret position when overlays are shown/hidden
-  const editorViewStateRef = useRef<monaco.editor.ICodeEditorViewState | null>(null);
-  const isRestoringViewStateRef = useRef<boolean>(false);
+  // all mutable state and refs, en bloc (called first - see hook doc)
+  const {
+    editors, setEditors,
+    currentEditor, setCurrentEditor,
+    currentFileName, setCurrentFileName,
+    currentFileStructure, setCurrentFileStructure,
+    currentCode, setCurrentCode,
+    terminalBuffer, setTerminalBuffer,
+    targetMousePosition, setTargetMousePosition,
+    currentMousePosition, setCurrentMousePosition,
+    currentCaretPosition, setCurrentCaretPosition,
+    captionText, setCaptionText,
+    currentEditorLanguage, setCurrentEditorLanguage,
+    isFileExplorerContextMenuVisible, setIsFileExplorerContextMenuVisible,
+    isFileContextMenuVisible, setIsFileContextMenuVisible,
+    isFolderContextMenuVisible, setIsFolderContextMenuVisible,
+    isNewFileInputVisible, setIsNewFileInputVisible,
+    isNewFolderInputVisible, setIsNewFolderInputVisible,
+    newFileInputValue, setNewFileInputValue,
+    newFolderInputValue, setNewFolderInputValue,
+    originalFileBeingRenamed, setOriginalFileBeingRenamed,
+    originalFolderBeingRenamed, setOriginalFolderBeingRenamed,
+    renameFileInputValue, setRenameFileInputValue,
+    renameFolderInputValue, setRenameFolderInputValue,
+    currentHoveredFileName, setCurrentHoveredFileName,
+    currentHoveredFolderName, setCurrentHoveredFolderName,
+    newFileParentPath, setNewFileParentPath,
+    newFolderParentPath, setNewFolderParentPath,
+    currentHoveredEditorTabFileName, setCurrentHoveredEditorTabFileName,
+    isUnsavedChangesDialogOpen, setIsUnsavedChangesDialogOpen,
+    unsavedFileName, setUnsavedFileName,
+    currentExternalBrowserScrollPosition, setCurrentExternalBrowserScrollPosition,
+    containerRef,
+    monacoEditorRef,
+    globalMonacoRef,
+    editorViewStateRef,
+    isRestoringViewStateRef,
+  } = useCodeVideoIDEState(defaultLanguage);
 
   // for cleanup TODO
   // const modelUrisRef = useRef<Set<string>>(new Set());
