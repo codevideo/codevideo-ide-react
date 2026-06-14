@@ -6,8 +6,17 @@ video with the sibling [codevideo-cli](https://github.com/codevideo/codevideo-cl
 once with the known-good build ("golden") and once with the changed build
 ("candidate"), then compare.
 
-No API keys needed: `fixture.json` contains **no author-speak actions**, and
-the CLI only calls ElevenLabs/S3 for those.
+There are two fixtures:
+
+- **`fixture.json`** — minimal, speak-free, ~30s. Needs **no API keys** (the
+  CLI only calls ElevenLabs/S3 for author-speak actions, and this has none).
+  This is the one used for the 0.0.179-vs-refactor regression comparison.
+- **`fixture-full.json`** — comprehensive, ~34 actions: narration, mouse moves
+  between panels, right-click context menus, folder + nested-file creation,
+  editor typing + save, and terminal commands with output, all from an empty
+  workspace. It **contains author-speak actions**, so rendering it needs
+  `ELEVEN_LABS_API_KEY`, `ELEVEN_LABS_VOICE_ID`, and S3 credentials. Use it as
+  a thorough manual smoke test of the full interaction set.
 
 ## Prerequisites
 
@@ -41,6 +50,28 @@ open out/golden.mp4 out/candidate.mp4
 What to look for: typing cadence, caret position after file switches, mouse
 path timing, terminal output pacing, overlay (slide) transitions, total
 duration drift beyond ~1s.
+
+### Comprehensive render (full interaction set)
+
+To exercise narration, right-click context menus, folder/file creation, and
+terminal commands in one render, use the full fixture (keys required):
+
+```bash
+export ELEVEN_LABS_API_KEY=... ELEVEN_LABS_VOICE_ID=...
+export CODEVIDEO_S3_KEY_ID=... CODEVIDEO_S3_SECRET=...
+./render.sh full fixture-full.json
+open out/full.mp4
+```
+
+There is no pre-refactor baseline for this fixture (the 0.0.179 embedded site
+is gone), so it is a forward-looking smoke test rather than a diff. After a
+clean render against the current build, check in its contact sheet as the
+baseline for future regressions:
+
+```bash
+ffmpeg -i out/full.mp4 -vf "select='not(mod(n,120))',scale=480:-1,tile=4x4" \
+  -frames:v 1 full-sheet-v4.png
+```
 
 ## Artifacts
 
