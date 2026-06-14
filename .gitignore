@@ -6,3 +6,6 @@ dist
 
 # golden render outputs (mp4s are regenerable; archive the golden out-of-band)
 scripts/golden/out/
+
+# macOS
+.DS_Store
