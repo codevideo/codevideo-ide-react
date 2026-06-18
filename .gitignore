@@ -9,3 +9,6 @@ scripts/golden/out/
 
 # macOS
 .DS_Store
+
+# rollup bundle-analyzer output (regenerable)
+stats.html
