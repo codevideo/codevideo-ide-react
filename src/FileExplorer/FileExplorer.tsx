@@ -95,7 +95,7 @@ export function FileExplorer(props: IFileExplorerProps) {
         // if we're currently renaming this file, show as input of the renamefileinputvalue
         if (name === originalFileBeingRenamed) {
             return (
-                <TextField.Root value={renameFileInputValue} readOnly={true}>
+                <TextField.Root data-codevideo-id="rename-file-input" value={renameFileInputValue} readOnly={true} style={{ fontFamily: 'Fira Code, monospace' }}>
                 </TextField.Root>
             )
         }
@@ -103,7 +103,7 @@ export function FileExplorer(props: IFileExplorerProps) {
         // if we're currently renaming this folder, show as input of the renamefolderinputvalue
         if (name === originalFolderBeingRenamed) {
             return (
-                <TextField.Root value={renameFolderInputValue} readOnly={true}>
+                <TextField.Root data-codevideo-id="rename-folder-input" value={renameFolderInputValue} readOnly={true} style={{ fontFamily: 'Fira Code, monospace' }}>
                 </TextField.Root>
             )
         }
@@ -132,6 +132,7 @@ export function FileExplorer(props: IFileExplorerProps) {
             >
                 <TextIcon height="20" />
                 <TextField.Root
+                    data-codevideo-id="new-file-input-field"
                     value={newFileInputValue}
                     readOnly={true}
                     autoFocus={true}
@@ -162,6 +163,7 @@ export function FileExplorer(props: IFileExplorerProps) {
             >
                 <Folder height="20" />
                 <TextField.Root
+                    data-codevideo-id="new-folder-input-field"
                     value={newFolderInputValue}
                     readOnly={true}
                     autoFocus={true}

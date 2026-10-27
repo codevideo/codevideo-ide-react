@@ -5,7 +5,8 @@ export const generateControlPoints = (
     start: IPoint,
     end: IPoint,
     numberOfCurves: number,
-    arcHeight: number
+    arcHeight: number,
+    random: () => number = Math.random
 ): IPoint[] => {
     const points: IPoint[] = [];
     const baseDistance = Math.hypot(end.x - start.x, end.y - start.y);
@@ -32,7 +33,7 @@ export const generateControlPoints = (
 
             // Create a zig-zag pattern by alternating control point direction
             const direction = i % 2 === 1 ? -1 : 1;
-            const perpFactor = Math.random() * 0.5 + 0.5; // Random factor between 0.5 and 1.0
+            const perpFactor = random() * 0.5 + 0.5; // Random factor between 0.5 and 1.0
 
             // Linear interpolation for base position
             const baseX = start.x + (end.x - start.x) * progress;

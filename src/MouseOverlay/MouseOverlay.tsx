@@ -1,11 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { GUIMode, IPoint } from '@fullstackcraftllc/codevideo-types';
+import { GUIMode, IPoint, RenderMode } from '@fullstackcraftllc/codevideo-types';
 import { Box } from '@radix-ui/themes';
 import { samplePathPoints } from './coordinateFunctions/mouse-movement/samplePathPoints.js';
 import { generateControlPoints } from './coordinateFunctions/mouse-movement/generateControlPoints.js';
 import { debugLog, debugWarn } from '../utils/debugLog.js';
 
-interface IMouseOverlayProps {
+import { createActionRandom } from '../utils/deterministicRandom.js';
+import { RenderCheckpointV1, RenderCallbacks } from '../rendering/types.js';
+
+interface IMouseOverlayProps extends RenderCallbacks {
+  initial?: RenderCheckpointV1['mouse'];
+  snapshotRef?: React.MutableRefObject<(RenderCheckpointV1['mouse'] & { animating: boolean }) | null>;
+  renderMode?: RenderMode;
+  renderSeed?: string;
+  actionIndex?: number;
+  lessonIndex?: number | null;
   mode: GUIMode;
   targetMousePosition: IPoint;
   maximumAnimationDuration: number;
@@ -20,7 +29,8 @@ interface IMouseOverlayProps {
 
 export const MouseOverlay = (props: IMouseOverlayProps) => {
   const {
-    mode,
+    mode, initial, snapshotRef,
+    renderMode = 'realtime', renderSeed = 'codevideo', actionIndex = 0, lessonIndex = null, onRenderEvent,
     mouseVisible,
     targetMousePosition,
     maximumAnimationDuration,
@@ -39,12 +49,14 @@ export const MouseOverlay = (props: IMouseOverlayProps) => {
     ? targetMousePosition 
     : { x: 0, y: 0 };
     
-  const [currentPosition, setCurrentPosition] = useState<IPoint>(safeTargetPosition);
-  const [prevPosition, setPrevPosition] = useState<IPoint>(safeTargetPosition);
+  const [currentPosition, setCurrentPosition] = useState<IPoint>(initial?.current ?? safeTargetPosition);
+  const [prevPosition, setPrevPosition] = useState<IPoint>(initial?.previous ?? safeTargetPosition);
   const [isAnimating, setIsAnimating] = useState<boolean>(false);
   const [pathPoints, setPathPoints] = useState<IPoint[]>([]);
   const animationRef = useRef<number | null>(null);
-  const lastTargetPositionRef = useRef<IPoint>(safeTargetPosition);
+  const lastTargetPositionRef = useRef<IPoint>(initial?.lastTarget ?? safeTargetPosition);
+
+  if (snapshotRef) snapshotRef.current = { current: currentPosition, target: targetMousePosition, previous: prevPosition, lastTarget: lastTargetPositionRef.current, animating: isAnimating };
 
   // Call the position change callback whenever currentPosition changes
   useEffect(() => {
@@ -103,8 +115,9 @@ export const MouseOverlay = (props: IMouseOverlayProps) => {
     }
 
     // Only animate in replay mode
+    const random = renderMode === 'deterministic' ? createActionRandom(renderSeed, actionIndex, 'mouse-path', lessonIndex) : Math.random;
     const curvesToUse = numberOfCurves === 1 ?
-      Math.floor(Math.random() * 3) + 1 :
+      Math.floor(random() * 3) + 1 :
       numberOfCurves;
 
     // Generate control points for the path
@@ -112,8 +125,11 @@ export const MouseOverlay = (props: IMouseOverlayProps) => {
       startPosition,
       targetMousePosition,
       curvesToUse,
-      arcHeight
+      arcHeight,
+      random
     );
+
+    if (renderMode === 'deterministic') onRenderEvent?.({ type: 'mouse-path', actionIndex, timestampMs: performance.now(), target: targetMousePosition, controlPoints });
 
     // Store previous position before updating
     setPrevPosition(startPosition);
@@ -174,7 +190,7 @@ export const MouseOverlay = (props: IMouseOverlayProps) => {
     const duration = calculatedDuration;
 
     const animateFrame = (timestamp: number) => {
-      if (!startTime) startTime = timestamp;
+      if (startTime === null) startTime = timestamp;
       const elapsed = timestamp - startTime;
       const progress = Math.min(elapsed / duration, 1);
 
@@ -247,7 +263,7 @@ export const MouseOverlay = (props: IMouseOverlayProps) => {
       ref={overlayRef}
       style={{
         transform: `translate(${safeCurrentPosition.x}px, ${safeCurrentPosition.y}px) scale(0.8)`,
-        transition: isAnimating ? undefined : (mode === 'replay' ? 'transform 0.05s linear' : undefined),
+        transition: renderMode === 'deterministic' || isAnimating ? undefined : (mode === 'replay' ? 'transform 0.05s linear' : undefined),
         zIndex: 10000,
         position: 'absolute',
         pointerEvents: 'none',

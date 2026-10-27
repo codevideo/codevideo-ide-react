@@ -6,6 +6,7 @@ import dts from 'rollup-plugin-dts';
 import {visualizer} from 'rollup-plugin-visualizer';
 
 const external = [
+  "@fullstackcraftllc/codevideo-virtual-keyboard",
   "@fullstackcraftllc/codevideo-types", 
   "react", 
   "react-dom/client",

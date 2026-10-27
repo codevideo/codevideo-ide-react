@@ -1,6 +1,6 @@
 import * as React from "react"
-import { ICodeVideoIDEProps, GUIMode, IAction, IAudioItem, ICodeVideoManifest, Project, extractActionsFromProject } from "@fullstackcraftllc/codevideo-types"
-import { CodeVideoIDE } from "@fullstackcraftllc/codevideo-ide-react"
+import { ICodeVideoIDEProps, RenderMode, GUIMode, IAction, IAudioItem, ICodeVideoManifest, Project, extractActionsFromProject } from "@fullstackcraftllc/codevideo-types"
+import { CodeVideoIDE, RenderEvent, RenderSession, RenderCheckpointV2, RenderSessionController } from "@fullstackcraftllc/codevideo-ide-react"
 import { Box, Flex, Theme } from "@radix-ui/themes";
 import { useEffect, useState } from "react";
 
@@ -8,6 +8,17 @@ import { useEffect, useState } from "react";
 // it also loads the manifest from the CodeVideo API running at localhost:7000
 // this is the static page used by the codevideo-cli
 export default function Puppeteer() {
+  const [renderSession, setRenderSession] = useState<RenderSession | undefined>();
+  const [clientReady, setClientReady] = useState(false);
+  const renderController = React.useRef<RenderSessionController | null>(null);
+  const checkpoints = React.useRef<RenderCheckpointV2[]>([]);
+
+  const [renderMode, setRenderMode] = useState<RenderMode>('realtime');
+  const [renderSeed, setRenderSeed] = useState('codevideo');
+  const [manifestLoaded, setManifestLoaded] = useState(false);
+  const renderState = React.useRef({ version: 3, ready: false, complete: false, segmentComplete: false, currentActionIndex: 0, totalActions: 0, error: null as string | null, events: [] as RenderEvent[] });
+  const reportError = (error: Error) => { renderState.current.error = error.message; };
+  const reportEvent = (event: RenderEvent) => { renderState.current.events.push(event); };
   const [mode, setMode] = useState<GUIMode>('step')
   const [currentActionIndex, setCurrentActionIndex] = useState(0)
   const [project, setProject] = useState<Project>([])
@@ -46,6 +57,18 @@ export default function Puppeteer() {
   // on user interaction, set mode to 'replay' and reset the current action index
   const [readyToReplay, setReadyToReplay] = useState(false)
 
+  // Gatsby's server HTML has no worker checkpoint. Mount the IDE only after
+  // hydration so a resumed file/overlay cannot mismatch that empty HTML.
+  useEffect(() => {
+    const session = (window as any).__codeVideoRenderSession as RenderSession | undefined;
+    setRenderSession(session);
+    if (session?.checkpoint) {
+      setCurrentActionIndex(session.checkpoint.cursor.actionIndex);
+      setMode('replay');
+    }
+    setClientReady(true);
+  }, []);
+
   // Expose the __startRecording function globally.
   // also log any error or unhandled rejection to the console
   useEffect(() => {
@@ -54,6 +77,13 @@ export default function Puppeteer() {
       return;
     }
     
+    (window as any).__codeVideoRenderState = renderState.current;
+    (window as any).__drainCodeVideoRenderCheckpoints = () => checkpoints.current.splice(0);
+    (window as any).__restoreCodeVideoCheckpoint = async () => {
+      if (!renderController.current) throw new Error('Render session controller is not ready');
+      await renderController.current.restore();
+    };
+    (window as any).__drainCodeVideoRenderEvents = () => renderState.current.events.splice(0);
     (window as any).__startRecording = () => {
       console.log("[__startRecording] Recording triggered programmatically!");
       console.log("[__startRecording] Current state:", {
@@ -67,6 +97,7 @@ export default function Puppeteer() {
     };
 
     (window as any).addEventListener('error', (event) => {
+        reportError(new Error(event.message || 'Unhandled browser error'));
         console.error('Global error caught:', JSON.stringify({
             message: event.message,
             filename: event.filename,
@@ -77,6 +108,7 @@ export default function Puppeteer() {
     });
 
     (window as any).addEventListener('unhandledrejection', (event) => {
+        reportError(event.reason instanceof Error ? event.reason : new Error(String(event.reason)));
         console.error('Unhandled promise rejection:', JSON.stringify(event));
     });
   }, []);
@@ -105,9 +137,9 @@ export default function Puppeteer() {
       console.log('[V3 useEffect] Project type:', Array.isArray(project) ? 'actions array' : typeof project);
       console.log('[V3 useEffect] First few actions:', actions.slice(0, 3).map(a => ({ name: a.name, value: a.value?.substring(0, 50) + '...' })));
       
-      setCurrentActionIndex(0)
+      setCurrentActionIndex(renderSession?.checkpoint?.cursor.actionIndex ?? 0)
       setMode('replay')
-      setIsSoundOn(true)
+      setIsSoundOn(renderMode === 'realtime')
       if (typeof (window as any).__onActionProgress === 'function') {
         (window as any).__onActionProgress({
           currentAction: currentActionIndex,
@@ -119,7 +151,13 @@ export default function Puppeteer() {
         });
       }
     }
-  }, [readyToReplay, monacoLoaded, project, actions])
+  }, [readyToReplay, monacoLoaded, project, actions, renderMode])
+
+  useEffect(() => {
+    renderState.current.ready = manifestLoaded && monacoLoaded && actions.length > 0;
+    renderState.current.totalActions = actions.length;
+    renderState.current.currentActionIndex = currentActionIndex;
+  }, [manifestLoaded, monacoLoaded, actions, currentActionIndex]);
 
   // gets manifest from the CodeVideo API running at localhost:7000
   const getManifest = async (uuid: string) => {
@@ -159,7 +197,10 @@ export default function Puppeteer() {
       
       setProject(project || [])
       setCurrentLessonIndex(lessonIndex)
-      setAudioItems(data.audioItems)
+      setAudioItems(data.audioItems || []);
+      setRenderSeed(data.renderSeed || 'codevideo');
+      if (!project || (Array.isArray(project) ? project.length === 0 : 'actions' in project && project.actions.length === 0)) throw new Error('Manifest contains no actions');
+      setManifestLoaded(true)
 
       // Apply codeVideoIDEProps from manifest if they exist
       if (data.codeVideoIDEProps) {
@@ -172,6 +213,7 @@ export default function Puppeteer() {
       
       console.log("[getManifest] Manifest processing complete");
     } catch (error) {
+      reportError(error instanceof Error ? error : new Error(String(error)));
       console.error("Error getting manifest: ", JSON.stringify(error));
     }
   }
@@ -180,6 +222,9 @@ export default function Puppeteer() {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
     const uuid = urlParams.get('uuid')
+    const requestedMode = urlParams.get('renderMode') || 'realtime';
+    if (requestedMode !== 'realtime' && requestedMode !== 'deterministic') { reportError(new Error(`Unknown renderMode: ${requestedMode}`)); return; }
+    setRenderMode(requestedMode);
     console.log("[V3 Mount] URL params:", Object.fromEntries(urlParams.entries()));
     if (uuid) {
       console.log("[V3 Mount] Retrieving manifest for uuid: ", uuid)
@@ -236,6 +281,7 @@ export default function Puppeteer() {
 
   // when the video is complete, you need may want to implement a function for the playBackCompleteCallback prop
   const playBackCompleteCallback = () => {
+    renderState.current.complete = true;
     console.log("[playBackCompleteCallback] Playback complete!")
     console.log("[playBackCompleteCallback] Final action index:", currentActionIndex);
     console.log("[playBackCompleteCallback] Total actions:", actions.length);
@@ -289,8 +335,17 @@ export default function Puppeteer() {
             width: '100vw',
           }}
         >
-          <CodeVideoIDE
+          {clientReady && <CodeVideoIDE
+            renderSession={renderSession}
+            renderSuspended={!!renderSession?.checkpoint && !readyToReplay}
+            onRenderSessionReady={controller => { renderController.current = controller; }}
+            onRenderCheckpoint={checkpoint => { checkpoints.current.push(checkpoint); }}
+            onRenderSegmentComplete={() => { renderState.current.segmentComplete = true; }}
             {...ideProps}
+            renderMode={renderMode}
+            renderSeed={renderSeed}
+            onRenderEvent={renderMode === 'deterministic' ? reportEvent : undefined}
+            onRenderError={reportError}
             // should be project, but something seems broken - just use the actions for now
             project={project}
             // should be currentLessonIndex, but something seems broken
@@ -304,7 +359,7 @@ export default function Puppeteer() {
             speakActionAudios={audioItems}
             monacoLoadedCallback={() => setMonacoLoaded(true)}
             showDevBox={false} // set to 'true' to show a small dev box in the bottom left corner of the video
-          />
+          />}
         </Box>
       </Flex>
     </Theme>

@@ -4,6 +4,8 @@ import { VirtualIDE } from '@fullstackcraftllc/codevideo-virtual-ide';
 import { deriveOverlayState } from './deriveOverlayState.js';
 
 export interface UseOverlayDisplayParams {
+  initial?: OverlayDisplayState;
+  suspended?: boolean;
   project: Project;
   mode: GUIMode;
   /** The current action from useStableActions. */
@@ -36,6 +38,7 @@ export interface OverlayDisplayState {
  */
 export const useOverlayDisplay = (params: UseOverlayDisplayParams): OverlayDisplayState => {
   const {
+    initial, suspended,
     project,
     mode,
     currentAction,
@@ -45,15 +48,16 @@ export const useOverlayDisplay = (params: UseOverlayDisplayParams): OverlayDispl
     currentLessonIndex,
   } = params;
 
-  const [isSlideDisplayStep, setIsSlideDisplayStep] = useState<boolean>(false);
-  const [slideMarkdown, setSlideMarkdown] = useState<string>("");
-  const [isExternalWebPreviewDisplayStep, setIsExternalWebPreviewDisplayStep] = useState<boolean>(false);
-  const [webPreviewFilesState, setWebPreviewFilesState] = useState<Array<IFileEntry>>([]);
-  const [isExternalBrowserDisplayStep, setIsExternalBrowserDisplayStep] = useState<boolean>(false);
-  const [externalBrowserStepUrlState, setExternalBrowserStepUrlState] = useState<string | null>(null);
+  const [isSlideDisplayStep, setIsSlideDisplayStep] = useState<boolean>(initial?.isSlideDisplayStep ?? false);
+  const [slideMarkdown, setSlideMarkdown] = useState<string>(initial?.slideMarkdown ?? "");
+  const [isExternalWebPreviewDisplayStep, setIsExternalWebPreviewDisplayStep] = useState<boolean>(initial?.isExternalWebPreviewDisplayStep ?? false);
+  const [webPreviewFilesState, setWebPreviewFilesState] = useState<Array<IFileEntry>>(initial?.webPreviewFilesState ?? []);
+  const [isExternalBrowserDisplayStep, setIsExternalBrowserDisplayStep] = useState<boolean>(initial?.isExternalBrowserDisplayStep ?? false);
+  const [externalBrowserStepUrlState, setExternalBrowserStepUrlState] = useState<string | null>(initial?.externalBrowserStepUrlState ?? null);
   const [prevActionIndex, setPrevActionIndex] = useState<number>(-1);
 
   useEffect(() => {
+    if (suspended) return;
     // Don't proceed if project is empty (not loaded yet)
     if (!project || (Array.isArray(project) && project.length === 0)) {
       return;
@@ -100,7 +104,7 @@ export const useOverlayDisplay = (params: UseOverlayDisplayParams): OverlayDispl
     if (mode === 'step' || currentActionIndex > 0) {
       setPrevActionIndex(currentActionIndex);
     }
-  }, [currentActionIndex, currentAction?.name, currentAction?.value, actionsEpoch, currentLessonIndex, mode]);
+  }, [currentActionIndex, currentAction?.name, currentAction?.value, actionsEpoch, currentLessonIndex, mode, suspended]);
 
   return {
     isSlideDisplayStep,

@@ -1,4 +1,4 @@
-import { Project, IAction, IPoint, isRepeatableAction } from "@fullstackcraftllc/codevideo-types";
+import { Project, IAction, IPoint, IAudioItem, RenderMode, isSteppableAction, isRepeatableAction } from "@fullstackcraftllc/codevideo-types";
 import { KEYBOARD_TYPING_PAUSE_MS, STANDARD_PAUSE_MS, LONG_PAUSE_MS } from "src/constants/CodeVideoIDEConstants";
 import { getNewMousePosition } from "src/MouseOverlay/utils/getNewMousePosition";
 import { reconstituteAllPartsOfState } from "./reconstituteAllPartsOfState";
@@ -14,7 +14,23 @@ import { debugLog, debugWarn } from './debugLog.js';
  * action against a live Monaco instance. Replaces the former 24 positional
  * parameters; the execution body is unchanged.
  */
-export interface IPlaybackContext {
+import { createActionRandom } from './deterministicRandom.js';
+import { RenderCallbacks } from '../rendering/types.js';
+
+import { executePlaybackSteps } from '../playback/executePlaybackSteps.js';
+import { monacoTarget, textTarget } from '../playback/targets.js';
+import { PlaybackStopped } from '../playback/types.js';
+import type { PlaybackContinuation } from '../playback/types.js';
+
+export interface IPlaybackContext extends RenderCallbacks {
+  includeTypos?: boolean;
+  keyboardTypingJitterMs?: number;
+  continuation?: PlaybackContinuation | null;
+  checkpointStep?: (cursor: PlaybackContinuation) => Promise<boolean>;
+  cancelled?: () => boolean;
+  typingValues?: Record<string, string>;
+  renderMode?: RenderMode;
+  renderSeed?: string;
   editor: monaco.editor.IStandaloneCodeEditor;
   project: Project;
   currentActionIndex: number;
@@ -31,7 +47,7 @@ export interface IPlaybackContext {
   containerRef: React.RefObject<HTMLDivElement | null>;
   setMousePosition: (value: any) => void;
   setCaptionText: (value: any) => void;
-  speakActionAudios: Array<{ text: string, mp3Url: string }>;
+  speakActionAudios: Array<IAudioItem>;
   setNewFileInputValue: React.Dispatch<React.SetStateAction<string>>;
   setNewFolderInputValue: React.Dispatch<React.SetStateAction<string>>;
   setRenameFileInputValue: React.Dispatch<React.SetStateAction<string>>;
@@ -44,6 +60,7 @@ export interface IPlaybackContext {
 export const executeActionPlaybackForMonacoInstance = async (context: IPlaybackContext) => {
   const {
     editor,
+    renderMode = 'realtime', renderSeed = 'codevideo', onRenderEvent,
     project,
     currentActionIndex,
     currentLessonIndex,
@@ -70,6 +87,7 @@ export const executeActionPlaybackForMonacoInstance = async (context: IPlaybackC
   } = context;
   let startTime = -1;
 
+  if (!context.continuation) {
   const { editors, currentEditor, currentFilename, currentCaretPosition, currentCode } = reconstituteAllPartsOfState(project, currentActionIndex, currentLessonIndex);
 
 
@@ -108,7 +126,7 @@ export const executeActionPlaybackForMonacoInstance = async (context: IPlaybackC
   await sleep(standardPauseMs);
 
   // MOUSE MOVEMENT ANIMATIONS, PASS THROUGH AND CONTINUE BELOW
-  const newPosition = getNewMousePosition(mousePosition, action, containerRef);
+  const newPosition = getNewMousePosition(mousePosition, action, containerRef, renderMode === 'deterministic' ? createActionRandom(renderSeed, currentActionIndex, 'mouse-target', currentLessonIndex) : Math.random);
   
   // Safety check before setting mouse position
   if (newPosition && newPosition.x !== undefined && newPosition.y !== undefined && 
@@ -116,6 +134,27 @@ export const executeActionPlaybackForMonacoInstance = async (context: IPlaybackC
     setMousePosition(newPosition);
   } else {
     debugWarn('Invalid mouse position from getNewMousePosition, keeping current position:', newPosition);
+  }
+
+  }
+  if (context.cancelled?.()) throw new PlaybackStopped();
+  if (isSteppableAction(action) && (renderMode === 'deterministic' || context.includeTypos || context.keyboardTypingJitterMs)) {
+    const setters: Record<string, React.Dispatch<React.SetStateAction<string>>> = {
+      'terminal-type': setTerminalBuffer,
+      'file-explorer-type-new-file-input': setNewFileInputValue,
+      'file-explorer-type-new-folder-input': setNewFolderInputValue,
+      'file-explorer-type-rename-file-input': setRenameFileInputValue,
+      'file-explorer-type-rename-folder-input': setRenameFolderInputValue,
+    };
+    await executePlaybackSteps({
+      action,
+      settings: { seed: renderSeed, lessonIndex: currentLessonIndex, actionIndex: currentActionIndex,
+        baseDelayMs: keyboardTypingPauseMs, jitterMs: context.keyboardTypingJitterMs ?? 0, includeTypos: context.includeTypos ?? false },
+      target: action.name === 'editor-type' ? monacoTarget(editor)
+        : textTarget(() => context.typingValues?.[action.name] ?? '', setters[action.name] ?? (() => {})),
+      continuation: context.continuation, checkpoint: context.checkpointStep, cancelled: context.cancelled,
+    });
+    return startTime;
   }
 
   // (highlightText helper graveyarded: findNextMatch/monaco.Range break SSR - see docs/MONACO_QUIRKS.md #1)
@@ -146,6 +185,16 @@ export const executeActionPlaybackForMonacoInstance = async (context: IPlaybackC
       case action.name === "author-speak-during":
       case action.name === "author-speak-after":
         setCaptionText(action.value);
+        if (renderMode === 'deterministic') {
+          const audio = speakActionAudios.find(a => a.actionIndex === currentActionIndex)
+            ?? speakActionAudios.find(a => a.actionIndex === undefined && a.text === action.value);
+          if (!audio?.assetId || !Number.isFinite(audio.durationMs) || audio.durationMs! <= 0) {
+            throw new Error(`Missing prepared speech asset at action ${currentActionIndex}`);
+          }
+          onRenderEvent?.({ type: 'speech', actionIndex: currentActionIndex, name: action.name, text: action.value, timestampMs: performance.now(), durationMs: audio.durationMs!, assetId: audio.assetId });
+          if (action.name !== 'author-speak-during') await sleep(audio.durationMs!);
+          break;
+        }
         // try to find a matching mp3 url by matching the text of it to action.value in the speakActionAudios array
         const mp3Url = speakActionAudios.find((audio) => audio.text === action.value)?.mp3Url;
 
@@ -166,25 +215,29 @@ export const executeActionPlaybackForMonacoInstance = async (context: IPlaybackC
         break;
       // BEGIN FILE EXPLORER TYPING ACTIONS
       case action.name === "file-explorer-type-new-file-input":
-        simulateHumanTypingWithReactSetterCallback(setNewFileInputValue, action.value, keyboardTypingPauseMs)
+        if (renderMode === 'deterministic') await simulateHumanTypingWithReactSetterCallback(setNewFileInputValue, action.value, keyboardTypingPauseMs);
+        else void simulateHumanTypingWithReactSetterCallback(setNewFileInputValue, action.value, keyboardTypingPauseMs);
         break;
       case action.name === "file-explorer-enter-new-file-input":
         setNewFileInputValue("")
         break;
       case action.name === "file-explorer-type-new-folder-input":
-        simulateHumanTypingWithReactSetterCallback(setNewFolderInputValue, action.value, keyboardTypingPauseMs)
+        if (renderMode === 'deterministic') await simulateHumanTypingWithReactSetterCallback(setNewFolderInputValue, action.value, keyboardTypingPauseMs);
+        else void simulateHumanTypingWithReactSetterCallback(setNewFolderInputValue, action.value, keyboardTypingPauseMs);
         break;
       case action.name === "file-explorer-enter-new-folder-input":
         setNewFolderInputValue("")
         break;
       case action.name === "file-explorer-type-rename-file-input":
-        simulateHumanTypingWithReactSetterCallback(setRenameFileInputValue, action.value, keyboardTypingPauseMs)
+        if (renderMode === 'deterministic') await simulateHumanTypingWithReactSetterCallback(setRenameFileInputValue, action.value, keyboardTypingPauseMs);
+        else void simulateHumanTypingWithReactSetterCallback(setRenameFileInputValue, action.value, keyboardTypingPauseMs);
         break;
       case action.name === "file-explorer-enter-rename-file-input":
         setRenameFileInputValue("")
         break;
       case action.name === "file-explorer-type-rename-folder-input":
-        simulateHumanTypingWithReactSetterCallback(setRenameFolderInputValue, action.value, keyboardTypingPauseMs)
+        if (renderMode === 'deterministic') await simulateHumanTypingWithReactSetterCallback(setRenameFolderInputValue, action.value, keyboardTypingPauseMs);
+        else void simulateHumanTypingWithReactSetterCallback(setRenameFolderInputValue, action.value, keyboardTypingPauseMs);
         break;
       case action.name === "file-explorer-enter-rename-folder-input":
         setRenameFolderInputValue("")

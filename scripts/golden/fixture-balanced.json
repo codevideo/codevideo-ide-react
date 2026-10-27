@@ -1,0 +1,122 @@
+[
+  {
+    "name": "author-wait",
+    "value": "1000"
+  },
+  {
+    "name": "file-explorer-create-file",
+    "value": "balanced.ts"
+  },
+  {
+    "name": "file-explorer-open-file",
+    "value": "balanced.ts"
+  },
+  {
+    "name": "mouse-move-editor",
+    "value": "1"
+  },
+  {
+    "name": "editor-type",
+    "value": "console.log(\"step 01\");\n"
+  },
+  {
+    "name": "author-wait",
+    "value": "100"
+  },
+  {
+    "name": "editor-type",
+    "value": "console.log(\"step 02\");\n"
+  },
+  {
+    "name": "author-wait",
+    "value": "100"
+  },
+  {
+    "name": "editor-type",
+    "value": "console.log(\"step 03\");\n"
+  },
+  {
+    "name": "author-wait",
+    "value": "100"
+  },
+  {
+    "name": "editor-type",
+    "value": "console.log(\"step 04\");\n"
+  },
+  {
+    "name": "author-wait",
+    "value": "100"
+  },
+  {
+    "name": "editor-type",
+    "value": "console.log(\"step 05\");\n"
+  },
+  {
+    "name": "author-wait",
+    "value": "100"
+  },
+  {
+    "name": "editor-type",
+    "value": "console.log(\"step 06\");\n"
+  },
+  {
+    "name": "author-wait",
+    "value": "100"
+  },
+  {
+    "name": "editor-type",
+    "value": "console.log(\"step 07\");\n"
+  },
+  {
+    "name": "author-wait",
+    "value": "100"
+  },
+  {
+    "name": "editor-type",
+    "value": "console.log(\"step 08\");\n"
+  },
+  {
+    "name": "author-wait",
+    "value": "100"
+  },
+  {
+    "name": "editor-type",
+    "value": "console.log(\"step 09\");\n"
+  },
+  {
+    "name": "author-wait",
+    "value": "100"
+  },
+  {
+    "name": "editor-type",
+    "value": "console.log(\"step 10\");\n"
+  },
+  {
+    "name": "author-wait",
+    "value": "100"
+  },
+  {
+    "name": "editor-type",
+    "value": "console.log(\"step 11\");\n"
+  },
+  {
+    "name": "author-wait",
+    "value": "100"
+  },
+  {
+    "name": "editor-type",
+    "value": "console.log(\"step 12\");\n"
+  },
+  {
+    "name": "author-wait",
+    "value": "100"
+  },
+  {
+    "name": "slide-display",
+    "value": "# Balanced render\n\nTwelve short typing actions."
+  },
+  {
+    "name": "author-wait",
+    "value": "1500"
+  }
+]

@@ -4,10 +4,10 @@ import { DEFAULT_MOUSE_POSITION } from "../../constants/CodeVideoIDEConstants.js
 import { debugLog, debugWarn } from '../../utils/debugLog.js';
 
 // Box-Muller transform for generating normally distributed random numbers
-const generateGaussian = (mean: number, stdDev: number): number => {
+const generateGaussian = (mean: number, stdDev: number, random: () => number): number => {
     // Box-Muller transform
-    const u1 = Math.random();
-    const u2 = Math.random();
+    const u1 = Math.max(Number.EPSILON, random());
+    const u2 = random();
     const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
     return z0 * stdDev + mean;
 };
@@ -18,7 +18,8 @@ export const getGaussianCoordinatesByCodeVideoDataID = (
     options = { 
         randomize: true,
         stdDevPercent: 0.15 // Standard deviation as percentage of element dimensions
-    }
+    },
+    random: () => number = Math.random
 ): IPoint => {
     if (!containerRef) return DEFAULT_MOUSE_POSITION;
     
@@ -55,8 +56,8 @@ export const getGaussianCoordinatesByCodeVideoDataID = (
     let x, y;
     
     // Generate random point using Gaussian distribution
-    x = generateGaussian(centerX, stdDevX);
-    y = generateGaussian(centerY, stdDevY);
+    x = generateGaussian(centerX, stdDevX, random);
+    y = generateGaussian(centerY, stdDevY, random);
     
     // Clamp coordinates to GUARANTEE they stay within the element boundaries
     x = Math.max(minX, Math.min(maxX, x));

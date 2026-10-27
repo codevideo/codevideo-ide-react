@@ -1,3 +1,4 @@
+import { validateTypingSettings } from './playback/createActionSteps.js';
 import React from 'react';
 import { Editor } from '@monaco-editor/react';
 import { Box, Flex } from '@radix-ui/themes';
@@ -59,7 +60,13 @@ import { useMonacoModelManagement } from './hooks/useMonacoModelManagement.js';
  * Props for CodeVideoIDE: everything from codevideo-types' ICodeVideoIDEProps
  * plus locally-added flags (to be upstreamed to codevideo-types later).
  */
-export interface CodeVideoIDEProps extends ICodeVideoIDEProps {
+import { useRenderSession } from './hooks/useRenderSession.js';
+import { RenderCheckpointV1, RenderSession, RenderSessionCallbacks, RenderCallbacks } from './rendering/types.js';
+
+export interface CodeVideoIDEProps extends ICodeVideoIDEProps, RenderCallbacks, RenderSessionCallbacks {
+  renderSession?: RenderSession;
+  /** Suspends replay and step effects while a checkpoint is hydrated. */
+  renderSuspended?: boolean;
   /**
    * Streaming mode (e.g. actions generated live by an LLM): appends to the
    * actions array continue playback seamlessly, and when playback runs out of
@@ -80,6 +87,8 @@ export interface CodeVideoIDEProps extends ICodeVideoIDEProps {
 export function CodeVideoIDE(props: CodeVideoIDEProps) {
   const {
     theme,
+    renderSession, renderSuspended = false, onRenderSessionReady, onRenderCheckpoint, onRenderSegmentComplete,
+    renderMode = 'realtime', renderSeed = 'codevideo', onRenderEvent: reportRenderEvent, onRenderError,
     project,
     mode,
     allowFocusInEditor,
@@ -103,6 +112,7 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
     requestPlaybackStartCallback,
     isFileExplorerVisible = true,
     isTerminalVisible = true,
+    includeTypos = false, keyboardTypingJitterMs = 0,
     keyboardTypingPauseMs = KEYBOARD_TYPING_PAUSE_MS,
     standardPauseMs = STANDARD_PAUSE_MS,
     longPauseMs = LONG_PAUSE_MS,
@@ -111,11 +121,19 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
     isStreaming = false,
     debug = false
   } = props;
+  validateTypingSettings(keyboardTypingPauseMs, keyboardTypingJitterMs);
+  const tracePosition = React.useRef(renderSession?.checkpoint?.tracePosition ?? 0);
+  const onRenderEvent: RenderCallbacks['onRenderEvent'] = event => {
+    tracePosition.current++;
+    reportRenderEvent?.(event);
+  };
   // module-level log gate; set during render so even render-scope logging is
   // covered. Idempotent, so safe under StrictMode double-renders.
   setDebugLogging(debug);
   const isRecording = mode === 'record'
   // all mutable state and refs, en bloc (called first - see hook doc)
+  const ideState = useCodeVideoIDEState(defaultLanguage, renderSession?.checkpoint?.ui);
+  const mouseSnapshotRef = React.useRef<(RenderCheckpointV1['mouse'] & { animating: boolean }) | null>(null);
   const {
     editors, setEditors,
     currentEditor, setCurrentEditor,
@@ -152,7 +170,7 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
     globalMonacoRef,
     editorViewStateRef,
     isRestoringViewStateRef,
-  } = useCodeVideoIDEState(defaultLanguage);
+  } = ideState;
 
   // single source of action extraction for the whole component; the epoch only
   // changes on non-append content changes (see useStableActions)
@@ -199,6 +217,10 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
 
   // slide / web-preview / external-browser overlay routing, including
   // continuation through author actions when stepping forward
+  const overlayState = useOverlayDisplay({
+    initial: renderSession?.checkpoint?.overlay, suspended: renderSuspended,
+    project, mode, currentAction: stableCurrentAction, currentActionIndex, actions: stableActions, actionsEpoch, currentLessonIndex,
+  });
   const {
     isSlideDisplayStep,
     slideMarkdown,
@@ -206,18 +228,15 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
     webPreviewFilesState,
     isExternalBrowserDisplayStep,
     externalBrowserStepUrlState,
-  } = useOverlayDisplay({
-    project,
-    mode,
-    currentAction: stableCurrentAction,
-    currentActionIndex,
-    actions: stableActions,
-    actionsEpoch,
-    currentLessonIndex,
-  });
+  } = overlayState;
 
   // terminal block caret: on for 2s after any terminal action
   const showBlockCaret = useTerminalCaret({
+    deadlineRef: ideState.terminalCaretDeadlineRef,
+    initialDeadlineMs: renderSession?.checkpoint?.presentation.terminalCaretDeadlineMs,
+    initialTimestampMs: renderSession?.checkpoint?.timestampMs,
+    initialActionIndex: renderSession?.checkpoint?.cursor.continuation ? renderSession.checkpoint.cursor.actionIndex : undefined,
+    suspended: renderSuspended,
     project,
     currentAction: stableCurrentAction,
     currentActionIndex,
@@ -229,7 +248,7 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
   useSpeechOnStep({
     project,
     mode,
-    isSoundOn,
+    isSoundOn: renderMode === 'realtime' && isSoundOn,
     currentAction: stableCurrentAction,
     currentActionIndex,
     actionsEpoch,
@@ -242,7 +261,14 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
   // parent via actionFinishedCallback / playBackCompleteCallback. In step
   // mode it updates state immediately. Appends to a streamed actions array
   // do NOT re-trigger it (see useStableActions).
+  const renderController = useRenderSession({
+    tracePosition, session: renderSession, state: ideState, overlay: overlayState, mouse: mouseSnapshotRef,
+    seed: renderSeed, lesson: currentLessonIndex, totalActions: stableActions.length,
+    onRenderSessionReady, onRenderCheckpoint, onRenderSegmentComplete, onError: onRenderError,
+  });
   useReplayPlayback({
+    suspended: renderSuspended, renderController: renderSession ? renderController : undefined,
+    renderMode, renderSeed, onRenderEvent, onRenderError,
     mode,
     project,
     currentActionIndex,
@@ -269,6 +295,14 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
     setRenameFileInputValue,
     setRenameFolderInputValue,
     setCurrentExternalBrowserScrollPosition,
+    includeTypos, keyboardTypingJitterMs,
+    typingValues: {
+      'terminal-type': terminalBuffer,
+      'file-explorer-type-new-file-input': newFileInputValue,
+      'file-explorer-type-new-folder-input': newFolderInputValue,
+      'file-explorer-type-rename-file-input': renameFileInputValue,
+      'file-explorer-type-rename-folder-input': renameFolderInputValue,
+    },
     keyboardTypingPauseMs,
     standardPauseMs,
     longPauseMs,
@@ -282,6 +316,9 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
   // creation/switching, language sync. Timing hacks preserved verbatim -
   // see the hook's doc comment before touching.
   const { handleEditorDidMount } = useMonacoModelManagement({
+    hydrating: renderSuspended,
+    scrollbarFadeStartRef: renderMode === 'deterministic' ? ideState.scrollbarFadeStartRef : undefined,
+    modelViewStatesRef: renderMode === 'deterministic' ? ideState.modelViewStatesRef : undefined,
     mode,
     allowFocusInEditor,
     currentEditor,
@@ -328,7 +365,19 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
         // necessary so embed overlay can be positioned absolutely
         position: 'relative'
       }}
-      id={CODEVIDEO_IDE_ID}>
+      id={CODEVIDEO_IDE_ID} data-codevideo-render-mode={renderMode}>
+      {renderMode === 'deterministic' && <style>{`
+        [data-codevideo-render-mode="deterministic"] .monaco-scrollable-element > .scrollbar {
+
+          transition: none !important;
+        }
+        [data-codevideo-render-mode="deterministic"] .monaco-scrollable-element > .scrollbar.vertical { opacity: var(--codevideo-scrollbar-vertical, 0) !important; }
+        [data-codevideo-render-mode="deterministic"] .monaco-scrollable-element > .scrollbar.horizontal { opacity: var(--codevideo-scrollbar-horizontal, 0) !important; }
+        [data-codevideo-render-mode="deterministic"] .monaco-editor .squiggly-hint,
+        [data-codevideo-render-mode="deterministic"] .monaco-editor .squiggly-unnecessary {
+          display: none !important;
+        }
+      `}</style>}
       <Flex direction="row"
         style={{
           height: '100%',
@@ -368,6 +417,7 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
         <Flex
           data-codevideo-id={EDITOR_AREA_ID}
           data-testid="editor-area"
+          style={renderMode === 'deterministic' ? { minWidth: 0 } : undefined}
           direction="column"
           width="100%">
           <EditorTabs
@@ -401,6 +451,7 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
             }}>
               <Editor
                 path={currentEditor?.filename}
+                saveViewState={renderMode !== 'deterministic'}
                 theme={theme === 'light' ? 'vs' : 'vs-dark'}
                 className={`no-mouse ${editors && editors.length === 0 ? 'display-none' : 'display-block'}`}
                 // value in replay mode is handled by setting the model value directly
@@ -410,6 +461,24 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
                 defaultLanguage={defaultLanguage}
                 options={{
                   automaticLayout: true,
+                  ...(renderMode === 'deterministic' ? {
+                    cursorBlinking: 'solid' as const,
+                    hideCursorInOverviewRuler: true,
+                    smoothScrolling: false,
+                    cursorSmoothCaretAnimation: 'off' as const,
+                    // Language-worker responses arrive in wall time. Keep syntax
+                    // tokens, but omit asynchronous diagnostics/semantic overlays.
+                    renderValidationDecorations: 'off' as const,
+                    'semanticHighlighting.enabled': false,
+                    occurrencesHighlight: 'off' as const,
+                    codeLens: false,
+                    showUnused: false,
+                    showDeprecated: false,
+                    inlayHints: { enabled: 'off' as const },
+                    bracketPairColorization: { enabled: false },
+                    matchBrackets: 'never' as const,
+                    stickyScroll: { enabled: false },
+                  } : {}),
                   minimap: { enabled: true },
                   scrollBeyondLastLine: true,
                   fontSize: renderFontSizePx ? renderFontSizePx : 14,
@@ -432,6 +501,7 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
           </Box>
           {/* Terminal - TODO: add support for multiple terminals in the future */}
           {isTerminalVisible && <Terminal
+            renderMode={renderMode}
             theme={theme}
             terminalBuffer={terminalBuffer}
             terminalHeight={terminalHeight}
@@ -501,6 +571,8 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
 
       {/* Mouse Overlay */}
       {!showEmbedOverlay && <MouseOverlay
+        initial={renderSession?.checkpoint?.mouse} snapshotRef={mouseSnapshotRef}
+        renderMode={renderMode} renderSeed={renderSeed} actionIndex={currentActionIndex} lessonIndex={currentLessonIndex} onRenderEvent={onRenderEvent}
         mode={mode}
         mouseVisible={true}
         targetMousePosition={targetMousePosition}

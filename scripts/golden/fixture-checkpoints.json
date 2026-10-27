@@ -1,0 +1,218 @@
+{
+  "id": "checkpoint-fixture",
+  "name": "Checkpoint state coverage",
+  "description": "Initial snapshot, tabs, scrolling, unsaved dialog, context menu, rename input, terminal and slide continuation.",
+  "initialSnapshot": {
+    "isUnsavedChangesDialogOpen": false,
+    "unsavedFileName": "",
+    "fileExplorerSnapshot": {
+      "fileStructure": {
+        "first.ts": {
+          "type": "file",
+          "content": "// line 1\n// line 2\n// line 3\n// line 4\n// line 5\n// line 6\n// line 7\n// line 8\n// line 9\n// line 10\n// line 11\n// line 12\n// line 13\n// line 14\n// line 15\n// line 16\n// line 17\n// line 18\n// line 19\n// line 20\n// line 21\n// line 22\n// line 23\n// line 24\n// line 25\n// line 26\n// line 27\n// line 28\n// line 29\n// line 30\n// line 31\n// line 32\n// line 33\n// line 34\n// line 35\n// line 36\n// line 37\n// line 38\n// line 39\n// line 40\n// line 41\n// line 42\n// line 43\n// line 44\n// line 45",
+          "language": "ts",
+          "caretPosition": {
+            "row": 45,
+            "col": 11
+          }
+        },
+        "second.ts": {
+          "type": "file",
+          "content": "const second = 2;\n",
+          "language": "ts",
+          "caretPosition": {
+            "row": 2,
+            "col": 1
+          }
+        }
+      },
+      "isFileExplorerContextMenuOpen": false,
+      "isFileContextMenuOpen": false,
+      "isFolderContextMenuOpen": false,
+      "isNewFileInputVisible": false,
+      "isNewFolderInputVisible": false,
+      "newFileInputValue": "",
+      "newFolderInputValue": "",
+      "isRenameFileInputVisible": false,
+      "isRenameFolderInputVisible": false,
+      "originalFileBeingRenamed": "",
+      "originalFolderBeingRenamed": "",
+      "renameFileInputValue": "",
+      "renameFolderInputValue": "",
+      "newFileParentPath": "",
+      "newFolderParentPath": ""
+    },
+    "editorSnapshot": {
+      "editors": [
+        {
+          "isActive": true,
+          "filename": "first.ts",
+          "content": "// line 1\n// line 2\n// line 3\n// line 4\n// line 5\n// line 6\n// line 7\n// line 8\n// line 9\n// line 10\n// line 11\n// line 12\n// line 13\n// line 14\n// line 15\n// line 16\n// line 17\n// line 18\n// line 19\n// line 20\n// line 21\n// line 22\n// line 23\n// line 24\n// line 25\n// line 26\n// line 27\n// line 28\n// line 29\n// line 30\n// line 31\n// line 32\n// line 33\n// line 34\n// line 35\n// line 36\n// line 37\n// line 38\n// line 39\n// line 40\n// line 41\n// line 42\n// line 43\n// line 44\n// line 45",
+          "caretPosition": {
+            "row": 45,
+            "col": 11
+          },
+          "highlightCoordinates": null,
+          "isSaved": true
+        },
+        {
+          "isActive": false,
+          "filename": "second.ts",
+          "content": "const second = 2;\n",
+          "caretPosition": {
+            "row": 2,
+            "col": 1
+          },
+          "highlightCoordinates": null,
+          "isSaved": true
+        }
+      ],
+      "isEditorContextMenuOpen": false
+    },
+    "terminalSnapshot": {
+      "terminals": []
+    },
+    "mouseSnapshot": {
+      "location": "editor",
+      "currentHoveredFileName": "",
+      "currentHoveredFolderName": "",
+      "currentHoveredEditorTabFileName": "",
+      "x": 0,
+      "y": 0,
+      "timestamp": 0,
+      "type": "move",
+      "button": 0,
+      "buttonStates": {
+        "left": false,
+        "right": false,
+        "middle": false
+      },
+      "scrollPosition": {
+        "x": 0,
+        "y": 0
+      },
+      "scrollDelta": 0
+    },
+    "authorSnapshot": {
+      "authors": []
+    }
+  },
+  "actions": [
+    {
+      "name": "author-wait",
+      "value": "101"
+    },
+    {
+      "name": "editor-scroll-down",
+      "value": "40"
+    },
+    {
+      "name": "author-wait",
+      "value": "101"
+    },
+    {
+      "name": "file-explorer-open-file",
+      "value": "second.ts"
+    },
+    {
+      "name": "editor-type",
+      "value": "// typed\n"
+    },
+    {
+      "name": "author-wait",
+      "value": "101"
+    },
+    {
+      "name": "mouse-move-editor-tab-close",
+      "value": "second.ts"
+    },
+    {
+      "name": "mouse-left-click",
+      "value": "1"
+    },
+    {
+      "name": "author-wait",
+      "value": "501"
+    },
+    {
+      "name": "mouse-move-unsaved-changes-dialog-button-cancel",
+      "value": "1"
+    },
+    {
+      "name": "mouse-left-click",
+      "value": "1"
+    },
+    {
+      "name": "author-wait",
+      "value": "501"
+    },
+    {
+      "name": "file-explorer-open-file",
+      "value": "first.ts"
+    },
+    {
+      "name": "author-wait",
+      "value": "101"
+    },
+    {
+      "name": "file-explorer-show-file-context-menu",
+      "value": "first.ts"
+    },
+    {
+      "name": "author-wait",
+      "value": "101"
+    },
+    {
+      "name": "file-explorer-hide-file-context-menu",
+      "value": "1"
+    },
+    {
+      "name": "file-explorer-rename-file-draft-state",
+      "value": "first.ts"
+    },
+    {
+      "name": "file-explorer-type-rename-file-input",
+      "value": "renamed.ts"
+    },
+    {
+      "name": "author-wait",
+      "value": "101"
+    },
+    {
+      "name": "file-explorer-enter-rename-file-input",
+      "value": "1"
+    },
+    {
+      "name": "terminal-open",
+      "value": "1"
+    },
+    {
+      "name": "terminal-type",
+      "value": "hello"
+    },
+    {
+      "name": "author-wait",
+      "value": "101"
+    },
+    {
+      "name": "slide-display",
+      "value": "# Checkpoint slide"
+    },
+    {
+      "name": "author-wait",
+      "value": "101"
+    },
+    {
+      "name": "author-wait",
+      "value": "201"
+    },
+    {
+      "name": "file-explorer-open-file",
+      "value": "second.ts"
+    },
+    {
+      "name": "author-wait",
+      "value": "101"
+    }
+  ]
+}

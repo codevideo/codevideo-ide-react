@@ -64,6 +64,16 @@ complete working simulation - the exact wiring a real streaming consumer uses.
 
 ## Regression testing (golden render)
 
+Experimental offline rendering is available through `renderMode="deterministic"`
+and an optional `renderSeed`. It uses action-scoped mouse randomness and emits
+`onRenderEvent` / `onRenderError` callbacks. Prepared speech items need `assetId`,
+`actionIndex` and measured `durationMs`; deterministic playback emits cues without
+playing browser audio. Virtual time is installed by the CLI runner, outside this
+component. The default remains realtime. The golden benchmark below supports
+1/2/4/8/12 browser workers with repeated measurements. The exported
+`RenderSession` and `RenderCheckpointV1` contracts support planning and suspended
+checkpoint restore; the CLI enables them with `--render-strategy ab-initio`.
+
 Beyond the jest suite, visual/timing behavior is guarded by a golden-render
 workflow: a deterministic fixture rendered to video via
 [codevideo-cli](https://github.com/codevideo/codevideo-cli) and compared

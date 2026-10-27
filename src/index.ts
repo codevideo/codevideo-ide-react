@@ -16,3 +16,7 @@ export { EDITOR_ID } from './constants/CodeVideoDataIds.js';
 export { TERMINAL_ID } from './constants/CodeVideoDataIds.js';
 export { SLIDE_ID } from './constants/CodeVideoDataIds.js';
 export { EXTERNAL_WEB_VIEWER_ID } from './constants/CodeVideoDataIds.js';
+
+export type { RenderEvent, RenderCallbacks } from './rendering/types.js';
+
+export type { RenderCheckpointV1, RenderCheckpointV2, RenderExecutionCursor, RenderSession, RenderSessionController } from './rendering/types.js';

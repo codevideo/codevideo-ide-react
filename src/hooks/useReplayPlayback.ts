@@ -1,12 +1,19 @@
 import { useEffect, useRef } from 'react';
-import { GUIMode, IAction, IPoint, Project } from '@fullstackcraftllc/codevideo-types';
+import { GUIMode, IAction, IPoint, Project, RenderMode, IAudioItem } from '@fullstackcraftllc/codevideo-types';
 import * as monaco from 'monaco-editor';
 import { executeActionPlaybackForMonacoInstance } from '../utils/executeActionPlaybackForMonacoInstance.js';
 import { getActionAtIndex } from '../utils/extractActions.js';
+import { PlaybackStopped } from '../playback/types.js';
 import { sleep } from '../utils/sleep.js';
 import { debugLog } from '../utils/debugLog.js';
 
-export interface UseReplayPlaybackParams {
+import { RenderSessionController, RenderCallbacks } from '../rendering/types.js';
+
+export interface UseReplayPlaybackParams extends RenderCallbacks {
+  suspended?: boolean;
+  renderController?: RenderSessionController;
+  renderMode?: RenderMode;
+  renderSeed?: string;
   mode: GUIMode;
   project: Project;
   currentActionIndex: number;
@@ -26,7 +33,7 @@ export interface UseReplayPlaybackParams {
   isStreaming: boolean;
 
   isSoundOn: boolean;
-  speakActionAudios: Array<{ text: string; mp3Url: string }>;
+  speakActionAudios: Array<IAudioItem>;
 
   monacoEditorRef: React.MutableRefObject<monaco.editor.IStandaloneCodeEditor | undefined>;
   containerRef: React.RefObject<HTMLDivElement | null>;
@@ -46,6 +53,9 @@ export interface UseReplayPlaybackParams {
   setRenameFolderInputValue: React.Dispatch<React.SetStateAction<string>>;
   setCurrentExternalBrowserScrollPosition: React.Dispatch<React.SetStateAction<number>>;
 
+  includeTypos?: boolean;
+  keyboardTypingJitterMs?: number;
+  typingValues?: Record<string, string>;
   keyboardTypingPauseMs: number;
   standardPauseMs: number;
   longPauseMs: number;
@@ -84,7 +94,9 @@ export interface UseReplayPlaybackParams {
  */
 export const useReplayPlayback = (params: UseReplayPlaybackParams): void => {
   const {
+    suspended, renderController,
     mode,
+    renderMode = 'realtime', renderSeed, onRenderEvent, onRenderError,
     project,
     currentActionIndex,
     currentLessonIndex,
@@ -145,9 +157,16 @@ export const useReplayPlayback = (params: UseReplayPlaybackParams): void => {
 
     debugLog("[applyAnimation] About to execute action:", currentAction.name, "with value:", currentAction.value?.substring(0, 100) + '...');
 
+    const continuation = renderController?.continuation(currentActionIndex);
+    if (!continuation && renderMode === 'deterministic') onRenderEvent?.({ type: 'action-start', actionIndex: currentActionIndex, name: currentAction.name, timestampMs: performance.now() });
     if (monacoEditorRef.current) {
       await executeActionPlaybackForMonacoInstance({
         editor: monacoEditorRef.current,
+        includeTypos: params.includeTypos, keyboardTypingJitterMs: params.keyboardTypingJitterMs,
+        typingValues: params.typingValues, continuation,
+        checkpointStep: renderController ? cursor => renderController.stepBoundary(currentActionIndex, cursor) : undefined,
+        cancelled: () => runIdRef.current !== runId,
+        renderMode, renderSeed, onRenderEvent,
         project,
         currentActionIndex,
         currentLessonIndex,
@@ -191,10 +210,21 @@ export const useReplayPlayback = (params: UseReplayPlaybackParams): void => {
     if (runIdRef.current !== runId) {
       return;
     }
-    actionFinishedCallback && actionFinishedCallback();
+    if (renderMode === 'deterministic') onRenderEvent?.({ type: 'action-end', actionIndex: currentActionIndex, name: currentAction.name, timestampMs: performance.now() });
+    if (renderController) renderController.finishBoundary(currentActionIndex + 1, () => actionFinishedCallback?.());
+    else actionFinishedCallback?.();
+  };
+
+  const startAnimation = () => {
+    void applyAnimation().catch(error => {
+      if (error instanceof PlaybackStopped) return;
+      if (onRenderError) onRenderError(error instanceof Error ? error : new Error(String(error)));
+      else console.error(error);
+    });
   };
 
   useEffect(() => {
+    if (suspended) return;
     debugLog("[useReplayPlayback] Triggered with:", { mode, currentActionIndex, actionsEpoch, hasActionAtCurrentIndex });
 
     // a content reset invalidates any in-flight animation and all guards
@@ -252,7 +282,7 @@ export const useReplayPlayback = (params: UseReplayPlaybackParams): void => {
     }
 
     // need to handle the first reset - ensure initial state is properly established
-    if (currentActionIndex === 0) {
+    if (currentActionIndex === 0 && !renderController?.resumed) {
       debugLog("[useReplayPlayback] First action (index 0) in replay mode, updating state first");
       updateState();
       // Don't start animation immediately for the first action: allow the
@@ -262,7 +292,7 @@ export const useReplayPlayback = (params: UseReplayPlaybackParams): void => {
         pendingTimerRef.current = null;
         lastStartedKeyRef.current = key;
         debugLog("[useReplayPlayback] Initial 1s timeout expired, calling applyAnimation");
-        applyAnimation();
+        startAnimation();
       }, 1000);
       pendingTimerRef.current = { key, timer };
       return () => {
@@ -276,6 +306,6 @@ export const useReplayPlayback = (params: UseReplayPlaybackParams): void => {
 
     // normal animation flow (non-first action): claim-on-start
     lastStartedKeyRef.current = key;
-    applyAnimation();
-  }, [mode, currentActionIndex, actionsEpoch, hasActionAtCurrentIndex, isStreaming]);
+    startAnimation();
+  }, [mode, currentActionIndex, actionsEpoch, hasActionAtCurrentIndex, isStreaming, suspended]);
 };

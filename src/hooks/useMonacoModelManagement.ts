@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { paintScrollbars } from '../rendering/presentation.js';
 import { GUIMode, IEditor, IEditorPosition } from '@fullstackcraftllc/codevideo-types';
 import { Monaco } from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
@@ -6,6 +7,9 @@ import { getLanguageFromFilename } from '../utils/getLanguageFromFilename.js';
 import { debugLog } from '../utils/debugLog.js';
 
 export interface UseMonacoModelManagementParams {
+  hydrating?: boolean;
+  scrollbarFadeStartRef?: React.MutableRefObject<number | null>;
+  modelViewStatesRef?: React.MutableRefObject<Record<string, monaco.editor.ICodeEditorViewState>>;
   mode: GUIMode;
   allowFocusInEditor: boolean;
   currentEditor: IEditor | undefined;
@@ -46,6 +50,7 @@ export const useMonacoModelManagement = (
   params: UseMonacoModelManagementParams
 ): UseMonacoModelManagementResult => {
   const {
+    hydrating, modelViewStatesRef, scrollbarFadeStartRef,
     mode,
     allowFocusInEditor,
     currentEditor,
@@ -63,12 +68,46 @@ export const useMonacoModelManagement = (
     monacoLoadedCallback,
   } = params;
 
+  const suspended = useRef(hydrating); suspended.current = hydrating;
+
   const handleEditorDidMount = (
     monacoEditor: monaco.editor.IStandaloneCodeEditor,
     monacoInstance: Monaco
   ) => {
     monacoEditorRef.current = monacoEditor;
     globalMonacoRef.current = monacoInstance;
+
+    if (scrollbarFadeStartRef) {
+      // Monaco's private hide timer cannot be restored. Own the presentation
+      // deadline in deterministic mode (500ms hold, 800ms linear fade).
+      const now = () => (window as any).__virtualNow?.() ?? performance.now();
+      const scroll = monacoEditor.onDidScrollChange(() => {
+        if (suspended.current) return;
+        scrollbarFadeStartRef.current = now() + 500;
+        paintScrollbars(monacoEditor, scrollbarFadeStartRef.current, now());
+      });
+      let frame: number;
+      const paint = () => {
+        if (!suspended.current) paintScrollbars(monacoEditor, scrollbarFadeStartRef.current, now());
+        frame = requestAnimationFrame(paint);
+      };
+      paint();
+      monacoEditor.onDidDispose(() => { scroll.dispose(); cancelAnimationFrame(frame); });
+    }
+    if (modelViewStatesRef) {
+      // Observe switches made by both our effects and @monaco-editor/react.
+      // Its private cache cannot be serialized into a render checkpoint.
+      const before = monacoEditor.onWillChangeModel(() => {
+        const model = monacoEditor.getModel(), view = monacoEditor.saveViewState();
+        if (model && view) modelViewStatesRef.current[model.uri.toString()] = view;
+      });
+      const after = monacoEditor.onDidChangeModel(() => {
+        const model = monacoEditor.getModel();
+        const view = model && modelViewStatesRef.current[model.uri.toString()];
+        if (view) monacoEditor.restoreViewState(view);
+      });
+      monacoEditor.onDidDispose(() => { before.dispose(); after.dispose(); });
+    }
 
     // Don't create a model here - let the model management useEffect handle it
     // This ensures proper file switching behavior in replay mode
@@ -79,6 +118,7 @@ export const useMonacoModelManagement = (
 
   // caret position effect - now works for both replay and step modes since Monaco editor is always rendered
   useEffect(() => {
+    if (hydrating) return;
     // Don't interfere if we're in the middle of restoring view state
     if (isRestoringViewStateRef.current) {
       return;
@@ -113,6 +153,7 @@ export const useMonacoModelManagement = (
 
   // Additional effect to handle caret positioning after content changes in step mode
   useEffect(() => {
+    if (hydrating) return;
     if (mode === 'step' && monacoEditorRef.current && !isRestoringViewStateRef.current) {
       // Use a longer timeout for content changes to ensure Monaco has finished all updates
       const timer = setTimeout(() => {
@@ -139,6 +180,7 @@ export const useMonacoModelManagement = (
 
   // Save/restore editor view state when overlays are shown/hidden to prevent caret position regression
   useEffect(() => {
+    if (hydrating) return;
     const isOverlayActive = isSlideDisplayStep || isExternalWebPreviewDisplayStep || isExternalBrowserDisplayStep;
 
     if (monacoEditorRef.current) {
@@ -195,6 +237,7 @@ export const useMonacoModelManagement = (
   // Monaco model management for proper file switching
   // this useEffect FROM CLAUDE:
   useEffect(() => {
+    if (hydrating) return;
     if (monacoEditorRef.current && globalMonacoRef.current) {
       const monacoInstance = globalMonacoRef.current;
       const editor = monacoEditorRef.current;
@@ -247,6 +290,7 @@ export const useMonacoModelManagement = (
 
   // update the language of the editor based on the current filename every time it changes
   useEffect(() => {
+    if (hydrating) return;
     if (currentFileName) {
       const detectedLanguage = getLanguageFromFilename(currentFileName);
       setCurrentEditorLanguage(detectedLanguage);

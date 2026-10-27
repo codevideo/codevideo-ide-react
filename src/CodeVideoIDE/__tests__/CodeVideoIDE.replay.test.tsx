@@ -104,6 +104,34 @@ describe('CodeVideoIDE replay-mode playback loop', () => {
     jest.restoreAllMocks();
   });
 
+  it('deterministic StrictMode mount emits each action boundary once', async () => {
+    const events = jest.fn();
+    const finished = jest.fn();
+    render(<React.StrictMode><Theme><CodeVideoIDE
+      {...baseProps} mode="replay" renderMode="deterministic" renderSeed="strict"
+      project={testActions} currentActionIndex={0}
+      onRenderEvent={events} actionFinishedCallback={finished}
+    /></Theme></React.StrictMode>);
+    await act(async () => { jest.advanceTimersByTime(1000); });
+    await flush();
+    expect(events.mock.calls.map(([event]) => event.type)).toEqual(['action-start', 'action-end']);
+    expect(finished).toHaveBeenCalledTimes(1);
+  });
+
+  it('suspended StrictMode resume starts a nonzero action once without an intro hold', async () => {
+    const events = jest.fn(), finished = jest.fn();
+    const component = (suspended: boolean) => <React.StrictMode><Theme><CodeVideoIDE
+      {...baseProps} mode="replay" renderMode="deterministic" renderSuspended={suspended}
+      project={testActions} currentActionIndex={1} onRenderEvent={events} actionFinishedCallback={finished}
+    /></Theme></React.StrictMode>;
+    const view = render(component(true));
+    await flush(); expect(events).not.toHaveBeenCalled();
+    view.rerender(component(false)); await flush();
+    expect(events.mock.calls.map(([event]) => event.type)).toEqual(['action-start', 'action-end']);
+    expect(finished).toHaveBeenCalledTimes(1);
+    expect(performance.now()).toBe(0);
+  });
+
   it('replay at index 0: waits exactly 1000ms before finishing the first action, then calls actionFinishedCallback once', async () => {
     const actionFinished = jest.fn();
     const playbackComplete = jest.fn();

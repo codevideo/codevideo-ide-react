@@ -1,8 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import { Box } from '@radix-ui/themes';
+import type { RenderMode } from '@fullstackcraftllc/codevideo-types';
 import { TERMINAL_ID } from 'src/constants/CodeVideoDataIds.js';
 
 export interface ITerminalProps {
+    renderMode?: RenderMode;
     theme?: 'light' | 'dark';
     terminalBuffer: string;
     fontSizePx?: number;
@@ -11,7 +13,7 @@ export interface ITerminalProps {
 }
 
 export function Terminal(props: ITerminalProps) {
-    const { theme, terminalBuffer, terminalHeight, fontSizePx = 14, showBlockCaret = false } = props;
+    const { renderMode = 'realtime', theme, terminalBuffer, terminalHeight, fontSizePx = 14, showBlockCaret = false } = props;
     const terminalRef = useRef<HTMLDivElement>(null);
 
     // always auto-scroll to the bottom whenever the terminal buffer changes
@@ -47,7 +49,7 @@ export function Terminal(props: ITerminalProps) {
                 padding: '8px',
                 position: 'relative',
                 overflow: 'auto',
-                scrollBehavior: 'smooth',
+                scrollBehavior: renderMode === 'deterministic' ? 'auto' : 'smooth',
             }}
         >
             <Box style={{

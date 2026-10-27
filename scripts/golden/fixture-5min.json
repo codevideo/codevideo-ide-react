@@ -1,0 +1,350 @@
+[
+  {
+    "name": "slide-display",
+    "value": "# Build a Task Tracker in TypeScript\n\nTypes, a store, formatting and a tiny CLI, from an empty folder."
+  },
+  {
+    "name": "author-wait",
+    "value": "8000"
+  },
+  {
+    "name": "mouse-move-terminal",
+    "value": "1"
+  },
+  {
+    "name": "mouse-left-click",
+    "value": "1"
+  },
+  {
+    "name": "terminal-type",
+    "value": "mkdir task-tracker && cd task-tracker"
+  },
+  {
+    "name": "terminal-enter",
+    "value": "1"
+  },
+  {
+    "name": "terminal-type",
+    "value": "npm init -y"
+  },
+  {
+    "name": "terminal-enter",
+    "value": "1"
+  },
+  {
+    "name": "terminal-set-output",
+    "value": "Wrote to /home/dev/task-tracker/package.json"
+  },
+  {
+    "name": "author-wait",
+    "value": "2400"
+  },
+  {
+    "name": "terminal-type",
+    "value": "npm install --save-dev typescript ts-node"
+  },
+  {
+    "name": "terminal-enter",
+    "value": "1"
+  },
+  {
+    "name": "terminal-set-output",
+    "value": "added 21 packages, and audited 22 packages in 3s"
+  },
+  {
+    "name": "author-wait",
+    "value": "4000"
+  },
+  {
+    "name": "mouse-move-file-explorer",
+    "value": "1"
+  },
+  {
+    "name": "file-explorer-create-file",
+    "value": "types.ts"
+  },
+  {
+    "name": "file-explorer-open-file",
+    "value": "types.ts"
+  },
+  {
+    "name": "mouse-move-editor",
+    "value": "1"
+  },
+  {
+    "name": "mouse-left-click",
+    "value": "1"
+  },
+  {
+    "name": "editor-type",
+    "value": "// Shared types for the task tracker\nexport type Priority = 'low' | 'medium' | 'high';\n\nexport interface Task {\n  id: number;\n  title: string;\n  priority: Priority;\n  done: boolean;\n  tags: string[];\n  createdAt: Date;\n  completedAt?: Date;\n}\n\nexport interface TaskFilter {\n  done?: boolean;\n  priority?: Priority;\n  tag?: string;\n  search?: string;\n}\n\nexport const PRIORITY_ORDER: Record<Priority, number> = {\n  high: 0,\n  medium: 1,\n  low: 2,\n};\n"
+  },
+  {
+    "name": "editor-save",
+    "value": "1"
+  },
+  {
+    "name": "author-wait",
+    "value": "4800"
+  },
+  {
+    "name": "mouse-move-file-explorer",
+    "value": "1"
+  },
+  {
+    "name": "file-explorer-create-file",
+    "value": "store.ts"
+  },
+  {
+    "name": "file-explorer-open-file",
+    "value": "store.ts"
+  },
+  {
+    "name": "mouse-move-editor",
+    "value": "1"
+  },
+  {
+    "name": "mouse-left-click",
+    "value": "1"
+  },
+  {
+    "name": "editor-type",
+    "value": "import { PRIORITY_ORDER, Priority, Task, TaskFilter } from './types';\n\nexport class TaskStore {\n  private tasks: Task[] = [];\n  private nextId = 1;\n\n  add(title: string, priority: Priority = 'medium', tags: string[] = []): Task {\n    const task: Task = {\n      id: this.nextId++,\n      title: title.trim(),\n      priority,\n      done: false,\n      tags,\n      createdAt: new Date(),\n    };\n    this.tasks.push(task);\n    return task;\n  }\n\n  complete(id: number): Task {\n    const task = this.get(id);\n    task.done = true;\n    task.completedAt = new Date();\n    return task;\n  }\n\n  remove(id: number): void {\n    this.tasks = this.tasks.filter(task => task.id !== id);\n  }\n\n  get(id: number): Task {\n    const task = this.tasks.find(candidate => candidate.id === id);\n    if (!task) throw new Error(`No task with id ${id}`);\n    return task;\n  }\n\n  list(filter: TaskFilter = {}): Task[] {\n    const search = filter.search?.toLowerCase();\n    return this.tasks\n      .filter(task => filter.done === undefined || task.done === filter.done)\n      .filter(task => !filter.priority || task.priority === filter.priority)\n      .filter(task => !filter.tag || task.tags.includes(filter.tag))\n      .filter(task => !search || task.title.toLowerCase().includes(search))\n      .sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority] || a.id - b.id);\n  }\n\n  stats() {\n    const done = this.tasks.filter(task => task.done).length;\n    return { total: this.tasks.length, done, open: this.tasks.length - done };\n  }\n}\n"
+  },
+  {
+    "name": "editor-save",
+    "value": "1"
+  },
+  {
+    "name": "editor-scroll-up",
+    "value": "30"
+  },
+  {
+    "name": "author-wait",
+    "value": "4800"
+  },
+  {
+    "name": "editor-scroll-down",
+    "value": "15"
+  },
+  {
+    "name": "author-wait",
+    "value": "4000"
+  },
+  {
+    "name": "mouse-move-file-explorer",
+    "value": "1"
+  },
+  {
+    "name": "file-explorer-create-file",
+    "value": "format.ts"
+  },
+  {
+    "name": "file-explorer-open-file",
+    "value": "format.ts"
+  },
+  {
+    "name": "mouse-move-editor",
+    "value": "1"
+  },
+  {
+    "name": "mouse-left-click",
+    "value": "1"
+  },
+  {
+    "name": "editor-type",
+    "value": "import { Task } from './types';\n\nconst ICONS = { high: '!!', medium: '! ', low: '  ' } as const;\n\nexport function formatTask(task: Task): string {\n  const box = task.done ? '[x]' : '[ ]';\n  const tags = task.tags.length ? ` #${task.tags.join(' #')}` : '';\n  return `${box} ${ICONS[task.priority]} ${String(task.id).padStart(3)}  ${task.title}${tags}`;\n}\n\nexport function formatList(tasks: Task[]): string {\n  if (tasks.length === 0) return 'Nothing to do. Enjoy your day!';\n  return tasks.map(formatTask).join('\\n');\n}\n\nexport function formatStats(stats: { total: number; done: number; open: number }): string {\n  const percent = stats.total ? Math.round((stats.done / stats.total) * 100) : 0;\n  const bar = '#'.repeat(Math.round(percent / 10)).padEnd(10, '.');\n  return `${stats.done}/${stats.total} done [${bar}] ${percent}%`;\n}\n"
+  },
+  {
+    "name": "editor-save",
+    "value": "1"
+  },
+  {
+    "name": "author-wait",
+    "value": "4800"
+  },
+  {
+    "name": "mouse-move-file-explorer",
+    "value": "1"
+  },
+  {
+    "name": "file-explorer-create-file",
+    "value": "index.ts"
+  },
+  {
+    "name": "file-explorer-open-file",
+    "value": "index.ts"
+  },
+  {
+    "name": "mouse-move-editor",
+    "value": "1"
+  },
+  {
+    "name": "mouse-left-click",
+    "value": "1"
+  },
+  {
+    "name": "editor-type",
+    "value": "import { TaskStore } from './store';\nimport { formatList, formatStats } from './format';\n\nconst store = new TaskStore();\n\nstore.add('Write the project README', 'medium', ['docs']);\nstore.add('Fix the login redirect bug', 'high', ['bug', 'auth']);\nstore.add('Record the CodeVideo demo', 'high', ['video']);\nstore.add('Upgrade TypeScript', 'low', ['chore']);\nstore.add('Review open pull requests', 'medium', ['review']);\n\nstore.complete(2);\nstore.complete(4);\n\nconsole.log('All tasks');\nconsole.log(formatList(store.list()));\nconsole.log();\n\nconsole.log('Still open, by priority');\nconsole.log(formatList(store.list({ done: false })));\nconsole.log();\n\nconsole.log('Tagged #video');\nconsole.log(formatList(store.list({ tag: 'video' })));\nconsole.log();\n\nconsole.log(formatStats(store.stats()));\n"
+  },
+  {
+    "name": "editor-save",
+    "value": "1"
+  },
+  {
+    "name": "author-wait",
+    "value": "3200"
+  },
+  {
+    "name": "mouse-move-terminal",
+    "value": "1"
+  },
+  {
+    "name": "mouse-left-click",
+    "value": "1"
+  },
+  {
+    "name": "terminal-type",
+    "value": "npx tsc --noEmit --strict *.ts"
+  },
+  {
+    "name": "terminal-enter",
+    "value": "1"
+  },
+  {
+    "name": "author-wait",
+    "value": "3200"
+  },
+  {
+    "name": "terminal-type",
+    "value": "npx ts-node index.ts"
+  },
+  {
+    "name": "terminal-enter",
+    "value": "1"
+  },
+  {
+    "name": "terminal-set-output",
+    "value": "All tasks\n[x] !!   2  Fix the login redirect bug #bug #auth\n[ ] !!   3  Record the CodeVideo demo #video\n[ ] !    1  Write the project README #docs\n[ ] !    5  Review open pull requests #review\n[x]      4  Upgrade TypeScript #chore\n\nStill open, by priority\n[ ] !!   3  Record the CodeVideo demo #video\n[ ] !    1  Write the project README #docs\n[ ] !    5  Review open pull requests #review\n\nTagged #video\n[ ] !!   3  Record the CodeVideo demo #video\n\n2/5 done [####......] 40%"
+  },
+  {
+    "name": "author-wait",
+    "value": "9600"
+  },
+  {
+    "name": "mouse-move-file-explorer",
+    "value": "1"
+  },
+  {
+    "name": "file-explorer-create-file",
+    "value": "store.test.ts"
+  },
+  {
+    "name": "file-explorer-open-file",
+    "value": "store.test.ts"
+  },
+  {
+    "name": "mouse-move-editor",
+    "value": "1"
+  },
+  {
+    "name": "mouse-left-click",
+    "value": "1"
+  },
+  {
+    "name": "editor-type",
+    "value": "import assert from 'node:assert/strict';\nimport { TaskStore } from './store';\n\nconst store = new TaskStore();\nconst readme = store.add('Write the README', 'low', ['docs']);\nconst bug = store.add('Fix the crash on save', 'high', ['bug']);\nstore.add('Plan the next sprint');\n\nassert.equal(store.list().length, 3);\nassert.deepEqual(store.list().map(task => task.id), [bug.id, 3, readme.id]);\n\nstore.complete(bug.id);\nassert.equal(store.get(bug.id).done, true);\nassert.ok(store.get(bug.id).completedAt instanceof Date);\nassert.deepEqual(store.list({ done: false }).map(task => task.title), ['Plan the next sprint', 'Write the README']);\n\nassert.equal(store.list({ tag: 'docs' })[0].id, readme.id);\nassert.equal(store.list({ search: 'SPRINT' }).length, 1);\n\nstore.remove(readme.id);\nassert.deepEqual(store.stats(), { total: 2, done: 1, open: 1 });\nassert.throws(() => store.get(readme.id), /No task with id/);\n\nconsole.log('All task store checks passed');\n"
+  },
+  {
+    "name": "editor-save",
+    "value": "1"
+  },
+  {
+    "name": "author-wait",
+    "value": "3200"
+  },
+  {
+    "name": "mouse-move-terminal",
+    "value": "1"
+  },
+  {
+    "name": "mouse-left-click",
+    "value": "1"
+  },
+  {
+    "name": "terminal-type",
+    "value": "npx ts-node store.test.ts"
+  },
+  {
+    "name": "terminal-enter",
+    "value": "1"
+  },
+  {
+    "name": "terminal-set-output",
+    "value": "All task store checks passed"
+  },
+  {
+    "name": "author-wait",
+    "value": "4800"
+  },
+  {
+    "name": "mouse-move-file-explorer",
+    "value": "1"
+  },
+  {
+    "name": "file-explorer-open-file",
+    "value": "store.ts"
+  },
+  {
+    "name": "mouse-move-editor",
+    "value": "1"
+  },
+  {
+    "name": "editor-scroll-down",
+    "value": "20"
+  },
+  {
+    "name": "author-wait",
+    "value": "4800"
+  },
+  {
+    "name": "editor-scroll-up",
+    "value": "20"
+  },
+  {
+    "name": "author-wait",
+    "value": "3200"
+  },
+  {
+    "name": "mouse-move-terminal",
+    "value": "1"
+  },
+  {
+    "name": "mouse-left-click",
+    "value": "1"
+  },
+  {
+    "name": "terminal-type",
+    "value": "git init && git add . && git commit -m \"Add task tracker\""
+  },
+  {
+    "name": "terminal-enter",
+    "value": "1"
+  },
+  {
+    "name": "terminal-set-output",
+    "value": "[main (root-commit) 3f9c2a1] Add task tracker\n 5 files changed, 165 insertions(+)"
+  },
+  {
+    "name": "author-wait",
+    "value": "4800"
+  },
+  {
+    "name": "slide-display",
+    "value": "# Done\n\nA typed store, a formatter, a CLI and its tests in five small files."
+  },
+  {
+    "name": "author-wait",
+    "value": "8000"
+  }
+]
