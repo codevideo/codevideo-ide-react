@@ -76,7 +76,8 @@ jest.mock('../../Terminal/Terminal', () => ({
   Terminal: () => <div data-testid="terminal">Terminal</div>
 }));
 jest.mock('../../MouseOverlay/MouseOverlay', () => ({
-  MouseOverlay: () => <div data-testid="mouse-overlay">Mouse</div>
+  MouseOverlay: ({ mouseVisible }: { mouseVisible: boolean }) =>
+    mouseVisible ? <div data-testid="mouse-overlay">Mouse</div> : null
 }));
 jest.mock('../../CaptionOverlay/CaptionOverlay', () => ({
   CaptionOverlay: () => <div data-testid="caption-overlay">Captions</div>
@@ -207,9 +208,11 @@ it('restores a backward selection after both step-mode caret timers, and clears 
 
 it.each([true, false])('applies explicit visibility=%s and wrapping options', visible => {
   const { queryByTestId } = render(<Theme><CodeVideoIDE {...baseProps}
-    isFileExplorerVisible={visible} isEditorTabsVisible={visible} isMinimapVisible={visible} wordWrap="off" /></Theme>);
+    isFileExplorerVisible={visible} isEditorTabsVisible={visible} isMinimapVisible={visible} isMouseVisible={visible}
+    wordWrap="off" /></Theme>);
   expect(!!queryByTestId('file-explorer')).toBe(visible);
   expect(!!queryByTestId('editor-tabs')).toBe(visible);
+  expect(!!queryByTestId('mouse-overlay')).toBe(visible);
   expect(mockOptions).toHaveBeenLastCalledWith(expect.objectContaining({ minimap: { enabled: visible }, wordWrap: 'off' }));
 });
 
@@ -217,5 +220,6 @@ it('preserves visible chrome and wrapping defaults', () => {
   const { getByTestId } = render(<Theme><CodeVideoIDE {...baseProps} /></Theme>);
   expect(getByTestId('file-explorer')).toBeTruthy();
   expect(getByTestId('editor-tabs')).toBeTruthy();
+  expect(getByTestId('mouse-overlay')).toBeTruthy();
   expect(mockOptions).toHaveBeenLastCalledWith(expect.objectContaining({ minimap: { enabled: true }, wordWrap: 'on' }));
 });

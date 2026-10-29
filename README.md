@@ -102,17 +102,20 @@ require('@radix-ui/themes/styles.css');
 
 ### Portrait layouts and selections
 
-`isFileExplorerVisible`, `isEditorTabsVisible`, and `isMinimapVisible` are independent
-optional booleans (all default to `true`). Hiding the editor tabs also hides their
-filenames. `wordWrap` accepts `'on'` (default) or `'off'`; wrapping only changes the
-visual layout and never inserts newlines into source content. These options also
-work in record and step modes and can change after mounting.
+`isFileExplorerVisible`, `isEditorTabsVisible`, `isMinimapVisible`, and `isMouseVisible`
+are independent optional booleans (all default to `true`). Hiding the editor tabs also
+hides their filenames. Hiding the mouse only stops drawing the cursor: mouse actions keep
+their timing and effects, and the position is still tracked, so there's no need for a
+first action that moves the cursor off screen. `wordWrap` accepts `'on'` (default) or
+`'off'`; wrapping only changes the visual layout and never inserts newlines into source
+content. These options also work in record and step modes and can change after mounting.
 
 ```tsx
 <CodeVideoIDE {...props}
   isFileExplorerVisible={false}
   isEditorTabsVisible={false}
   isMinimapVisible={false}
+  isMouseVisible={false}
   wordWrap="on"
 />
 ```

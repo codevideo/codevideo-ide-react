@@ -116,6 +116,7 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
     isMinimapVisible = true,
     wordWrap = 'on',
     isTerminalVisible = true,
+    isMouseVisible = true,
     includeTypos = false, keyboardTypingJitterMs = 0,
     keyboardTypingPauseMs = KEYBOARD_TYPING_PAUSE_MS,
     standardPauseMs = STANDARD_PAUSE_MS,
@@ -578,7 +579,7 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
         initial={renderSession?.checkpoint?.mouse} snapshotRef={mouseSnapshotRef}
         renderMode={renderMode} renderSeed={renderSeed} actionIndex={currentActionIndex} lessonIndex={currentLessonIndex} onRenderEvent={onRenderEvent}
         mode={mode}
-        mouseVisible={true}
+        mouseVisible={isMouseVisible}
         targetMousePosition={targetMousePosition}
         maximumAnimationDuration={standardPauseMs}
         onCurrentPositionChange={setCurrentMousePosition}
