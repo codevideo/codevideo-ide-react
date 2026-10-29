@@ -99,3 +99,31 @@ For Gatsby, add this to your `gatsby-browser.js` and `gatsby-ssr.js` files:
 ```js
 require('@radix-ui/themes/styles.css');
 ```
+
+### Portrait layouts and selections
+
+`isFileExplorerVisible`, `isEditorTabsVisible`, and `isMinimapVisible` are independent
+optional booleans (all default to `true`). Hiding the editor tabs also hides their
+filenames. `wordWrap` accepts `'on'` (default) or `'off'`; wrapping only changes the
+visual layout and never inserts newlines into source content. These options also
+work in record and step modes and can change after mounting.
+
+```tsx
+<CodeVideoIDE {...props}
+  isFileExplorerVisible={false}
+  isEditorTabsVisible={false}
+  isMinimapVisible={false}
+  wordWrap="on"
+/>
+```
+
+`editor-shift+arrow-right`, `left`, `up`, and `down` extend an anchored selection
+one logical character/line at a time; `value` is the number of key presses, with
+`keyboardTypingPauseMs` between presses. Reversing direction shrinks the selection
+and can extend it past the original anchor.
+
+`editor-command+shift+arrow-right` selects to the logical line end, excluding its
+newline; `editor-command+shift+arrow-left` selects to absolute column one,
+including indentation. `editor-shift+end` / `editor-shift+home` are the equivalent
+Windows/Linux actions. Soft wrapping does not change these boundaries. Each is
+repeatable; pressing again at the boundary does not select the next line.

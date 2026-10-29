@@ -150,3 +150,23 @@ version whose embedded site is gone, so **archive `out/golden.mp4` somewhere
 durable** after rendering it). The golden's contact sheet IS checked in as the
 durable visual reference, named for the version it was rendered from, e.g.
 `golden-sheet-0.0.179.png`.
+
+## Selection and portrait acceptance
+
+`embed-local.sh` also builds and overlays the sibling virtual editor and virtual
+IDE, so new selection actions reach the example and embedded CLI without an npm
+release. After embedding, run from `codevideo-cli/puppeteer-runner`:
+
+```bash
+CODEVIDEO_BROWSER_TESTS=1 CODEVIDEO_SELECTION_RENDER=1 \
+  CODEVIDEO_SELECTION_TEST_OUTPUT=/tmp/codevideo-selection-review \
+  node --test selection.integration.test.js
+```
+
+This speech-free fixture verifies real Monaco selections in step mode, native
+realtime replay, and deterministic replay, including line wrapping, both selection
+directions, repetition, replacement, and file switching. It checks hidden and
+visible chrome settings, saves portrait screenshots, renders 1080×1920 video, and
+compares every frame against a two-worker checkpoint render. No TTS credentials
+or notifications are involved. File-operation beats use 100 ms, allowing Monaco's
+50 ms occurrence-highlighter debounce to settle before switching models.

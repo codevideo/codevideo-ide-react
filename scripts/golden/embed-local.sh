@@ -32,6 +32,18 @@ mkdir -p "$REPO/node_modules/@fullstackcraftllc/codevideo-virtual-keyboard"
 rsync -a --delete "$KEYBOARD_DIR/dist/" "$REPO/node_modules/@fullstackcraftllc/codevideo-virtual-keyboard/dist/"
 cp "$KEYBOARD_DIR/package.json" "$REPO/node_modules/@fullstackcraftllc/codevideo-virtual-keyboard/package.json"
 
+echo "==> building and overlaying local virtual editor and IDE"
+EDITOR_DIR="$REPO/../codevideo-virtual-editor"
+IDE_DIR="$REPO/../codevideo-virtual-ide"
+for target in "$EDITOR_DIR" "$IDE_DIR"; do
+  rsync -a --delete "$TYPES_DIR/dist/" "$target/node_modules/@fullstackcraftllc/codevideo-types/dist/"
+done
+(cd "$EDITOR_DIR" && npm run build)
+rsync -a --delete "$EDITOR_DIR/dist/" "$IDE_DIR/node_modules/@fullstackcraftllc/codevideo-virtual-editor/dist/"
+(cd "$IDE_DIR" && npm run build)
+rsync -a --delete "$IDE_DIR/dist/" "$REPO/node_modules/@fullstackcraftllc/codevideo-virtual-ide/dist/"
+rsync -a --delete "$EDITOR_DIR/dist/" "$REPO/node_modules/@fullstackcraftllc/codevideo-virtual-editor/dist/"
+
 echo "==> building library"
 (cd "$REPO" && npm run build)
 
@@ -48,6 +60,7 @@ rsync -a --delete "$REPO/dist/" "$REPO/example/node_modules/@fullstackcraftllc/c
 # installed by this repo. The example's older React lock can retain 1.0.42,
 # whose lesson constructor is incompatible with current shared type guards.
 rsync -a --delete "$REPO/node_modules/@fullstackcraftllc/codevideo-virtual-ide/" "$REPO/example/node_modules/@fullstackcraftllc/codevideo-virtual-ide/"
+rsync -a --delete "$EDITOR_DIR/dist/" "$REPO/example/node_modules/@fullstackcraftllc/codevideo-virtual-editor/dist/"
 cp "$TYPES_DIR/package.json" "$REPO/example/node_modules/@fullstackcraftllc/codevideo-types/package.json"
 cp "$REPO/package.json" "$REPO/example/node_modules/@fullstackcraftllc/codevideo-ide-react/package.json"
 

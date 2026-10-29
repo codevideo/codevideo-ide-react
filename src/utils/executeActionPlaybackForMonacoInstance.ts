@@ -1,3 +1,5 @@
+import { getEditorModelPath } from './getEditorModelPath.js';
+import { moveEditorSelection } from './editorSelection.js';
 import { Project, IAction, IPoint, IAudioItem, RenderMode, isSteppableAction, isRepeatableAction } from "@fullstackcraftllc/codevideo-types";
 import { KEYBOARD_TYPING_PAUSE_MS, STANDARD_PAUSE_MS, LONG_PAUSE_MS } from "src/constants/CodeVideoIDEConstants";
 import { getNewMousePosition } from "src/MouseOverlay/utils/getNewMousePosition";
@@ -6,7 +8,7 @@ import { sleep } from "./sleep";
 import { speakText } from "./speakText";
 import { simulateHumanTypingWithReactSetterCallback } from "./simulateHumanTypingWithReactSetterCallback";
 import { simulateHumanTypingInMonaco } from "./simulateHumanTypingInMonaco";
-import * as monaco from 'monaco-editor';
+import type * as monaco from 'monaco-editor';
 import { debugLog, debugWarn } from './debugLog.js';
 
 /**
@@ -101,9 +103,10 @@ export const executeActionPlaybackForMonacoInstance = async (context: IPlaybackC
       setCurrentCode(currentCode);
       setCurrentCaretPosition(currentCaretPosition);
       
-      // Immediately set Monaco editor content for replay mode to fix visibility issue
+      // Only initialize the target model. React has not switched away from the
+      // previous file yet; writing into that model would corrupt its content/selection.
       const model = editor.getModel();
-      if (model && model.getValue() !== currentCode) {
+      if (model && model.uri.toString() === getEditorModelPath(currentFilename) && model.getValue() !== currentCode) {
         model.setValue(currentCode);
       }
       break;
@@ -114,7 +117,7 @@ export const executeActionPlaybackForMonacoInstance = async (context: IPlaybackC
       
       // Also immediately set Monaco editor content for replay mode
       const clickModel = editor.getModel();
-      if (clickModel && clickModel.getValue() !== currentCode) {
+      if (clickModel && clickModel.uri.toString() === getEditorModelPath(currentFilename) && clickModel.getValue() !== currentCode) {
         clickModel.setValue(currentCode);
       }
       break;
@@ -159,20 +162,11 @@ export const executeActionPlaybackForMonacoInstance = async (context: IPlaybackC
 
   // (highlightText helper graveyarded: findNextMatch/monaco.Range break SSR - see docs/MONACO_QUIRKS.md #1)
 
-  // try to parse the 'times' value as an integer for repeatable actions, if it fails, default to 1
-  // the "times" doesn't always apply to most actions, so we do that action just once
-  // KNOWN BUG (preserved during refactor): isRepeatableAction expects the full
-  // IAction but receives action.name (a string), so it always returns false and
-  // times is always 1 - repeatable actions animate once instead of N times.
-  // The type error was historically masked by a stray @ts-ignore inside a
-  // since-removed comment block. Fixing it (pass `action`) CHANGES replay
-  // behavior, so it is deliberately left as-is here. See docs/MONACO_QUIRKS.md.
-  // @ts-expect-error see comment above
-  const times = isRepeatableAction(action.name) ? parseInt(action.value) : 1;
-  const pos = editor.getPosition();
-  debugLog(`Editor position is at line ${pos?.lineNumber}, column ${pos?.column}`);
-  // const lineNumber = pos?.lineNumber;
+  // Repeatable actions use their declared key count; other actions run once.
+  const times = isRepeatableAction(action) ? parseInt(action.value, 10) : 1;
+
   for (let i = 0; i < times; i++) {
+    if (context.cancelled?.()) throw new PlaybackStopped();
     // actual logic
     switch (true) {
       case action.name.startsWith("external-"):
@@ -256,62 +250,37 @@ export const executeActionPlaybackForMonacoInstance = async (context: IPlaybackC
         }
         break;
       // BEGIN EDITOR ACTIONS
-      case action.name === "editor-arrow-down" && pos !== null:
-        // @ts-ignore
-        pos.lineNumber = pos.lineNumber + 1;
-        editor.setPosition(pos);
-        await sleep(keyboardTypingPauseMs)
+      case action.name === "editor-arrow-down":
+      case action.name === "editor-arrow-up":
+      case action.name === "editor-arrow-left":
+      case action.name === "editor-arrow-right":
+      case action.name === "editor-shift+arrow-right":
+      case action.name === "editor-shift+arrow-left":
+      case action.name === "editor-shift+arrow-up":
+      case action.name === "editor-shift+arrow-down":
+      case action.name === "editor-command+shift+arrow-right":
+      case action.name === "editor-command+shift+arrow-left":
+      case action.name === "editor-shift+end":
+      case action.name === "editor-shift+home":
+      case action.name === "editor-command-left":
+      case action.name === "editor-command-right":
+        moveEditorSelection(editor, action.name);
+        await sleep(keyboardTypingPauseMs);
         break;
-      case action.name === "editor-arrow-up" && pos !== null:
-        // @ts-ignore
-        pos.lineNumber = pos.lineNumber - 1;
-        editor.setPosition(pos);
-        await sleep(keyboardTypingPauseMs)
-        break;
-      case action.name === "editor-tab" && pos !== null:
-        // @ts-ignore
-        pos.lineNumber = pos.lineNumber + 2;
-        editor.setPosition(pos);
-        await sleep(keyboardTypingPauseMs)
-        break;
-      case action.name === "editor-arrow-left" && pos !== null:
-        // @ts-ignore
-        pos.column = pos.column - 1;
-        editor.setPosition(pos);
-        await sleep(keyboardTypingPauseMs)
-        break;
-      case action.name === "editor-arrow-right" && pos !== null:
-        // @ts-ignore
-        pos.column = pos.column + 1;
-        editor.setPosition(pos);
-        await sleep(keyboardTypingPauseMs)
+      case action.name === "editor-tab":
+        await simulateHumanTypingInMonaco(editor, "\t", keyboardTypingPauseMs);
         break;
       case action.name === "editor-enter":
         await simulateHumanTypingInMonaco(editor, "\n", keyboardTypingPauseMs);
         break;
       // (editor-delete-line graveyarded: monaco.Range breaks SSR - see docs/MONACO_QUIRKS.md #2)
-      case action.name === "editor-command-right" && pos !== null:
-        // simulate moving to the end of the current line
-        // @ts-ignore
-        pos.column = 100000;
-        editor.setPosition(pos);
-        await sleep(keyboardTypingPauseMs)
-        break;
       // (editor-highlight-code graveyarded - see docs/MONACO_QUIRKS.md #1)
       case action.name === "editor-space":
         await simulateHumanTypingInMonaco(editor, " ", keyboardTypingPauseMs);
         break;
       case action.name === "editor-backspace":
-        // @ts-ignore - this also breaks SSR
-        // typeof window !== "undefined" && editor.trigger(1, "deleteLeft");
-        // for number of times, we need to delete the left character
-        // if the action.value is a number, we delete that many characters
-        const deleteCount = parseInt(action.value) || 1; // Default to 1 character
-        for (let j = 0; j < deleteCount; j++) {
-          // @ts-ignore - test to see if this works
-          editor.trigger(1, "deleteLeft");
-        }
-        await sleep(keyboardTypingPauseMs)
+        editor.trigger('codevideo', 'deleteLeft', null);
+        await sleep(keyboardTypingPauseMs);
         break;
       case action.name === "editor-type":
         await simulateHumanTypingInMonaco(editor, action.value, keyboardTypingPauseMs);

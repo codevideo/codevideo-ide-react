@@ -180,7 +180,7 @@ models. The refs sketched for a fix:
 // });
 ```
 
-## 7. KNOWN BUG: repeatable actions animate once instead of N times
+## 7. RESOLVED: repeatable actions animated once instead of N times
 
 **Lives in:** `executeActionPlaybackForMonacoInstance.ts` (`const times = ...`).
 
@@ -196,6 +196,8 @@ The type error was masked for ages by a stray `// @ts-ignore` inside the
 since-removed `highlightText` comment block (it suppressed the next *code*
 line, far below it). Discovered 2026-06 while graveyarding that block.
 
-**Deliberately NOT fixed during the refactor** (fixing changes replay
+**Fixed in the selection playback update:** pass the complete action, refresh movement per repetition, and execute backspace only once per iteration. Browser coverage verifies repeated selection and deletion.
+
+**Historical note — deliberately NOT fixed during the refactor** (fixing changes replay
 behavior). The fix, when wanted, is `isRepeatableAction(action)` plus a visual
 re-test of repeatable actions in replay mode.

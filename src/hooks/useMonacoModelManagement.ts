@@ -1,8 +1,10 @@
 import { useEffect, useRef } from 'react';
+import { getEditorModelPath } from '../utils/getEditorModelPath.js';
+import { applyEditorSelection } from '../utils/editorSelection.js';
 import { paintScrollbars } from '../rendering/presentation.js';
 import { GUIMode, IEditor, IEditorPosition } from '@fullstackcraftllc/codevideo-types';
 import { Monaco } from '@monaco-editor/react';
-import * as monaco from 'monaco-editor';
+import type * as monaco from 'monaco-editor';
 import { getLanguageFromFilename } from '../utils/getLanguageFromFilename.js';
 import { debugLog } from '../utils/debugLog.js';
 
@@ -68,7 +70,10 @@ export const useMonacoModelManagement = (
     monacoLoadedCallback,
   } = params;
 
+  const activeCaretPosition = currentEditor?.caretPosition ?? currentCaretPosition;
   const suspended = useRef(hydrating); suspended.current = hydrating;
+  // @monaco-editor/react retains its initial onMount callback while loading.
+  const latest = useRef(params); latest.current = params;
 
   const handleEditorDidMount = (
     monacoEditor: monaco.editor.IStandaloneCodeEditor,
@@ -76,6 +81,13 @@ export const useMonacoModelManagement = (
   ) => {
     monacoEditorRef.current = monacoEditor;
     globalMonacoRef.current = monacoInstance;
+    // State may have been reconstituted before Monaco's async loader mounted.
+    // In that case the caret effects have already run without an editor.
+    const mounted = latest.current;
+    if (!mounted.hydrating && (mounted.mode === 'step' || mounted.mode === 'replay')) {
+      applyEditorSelection(monacoEditor, mounted.currentEditor, mounted.currentCaretPosition);
+      if (mounted.allowFocusInEditor) monacoEditor.focus();
+    }
 
     if (scrollbarFadeStartRef) {
       // Monaco's private hide timer cannot be restored. Own the presentation
@@ -129,15 +141,12 @@ export const useMonacoModelManagement = (
       // This is especially important in step mode where content can change significantly
       const timer = setTimeout(() => {
         if (monacoEditorRef.current) {
-          monacoEditorRef.current.setPosition({
-            lineNumber: currentCaretPosition.row,
-            column: currentCaretPosition.col
-          });
+          applyEditorSelection(monacoEditorRef.current, currentEditor, currentCaretPosition);
 
           // This only scrolls if the position is not already visible.
           monacoEditorRef.current.revealPosition({
-            lineNumber: currentCaretPosition.row,
-            column: currentCaretPosition.col
+            lineNumber: activeCaretPosition.row,
+            column: activeCaretPosition.col
           });
 
           // trigger a focus to actually highlight where the caret is - if allowFocusInEditor is true
@@ -149,7 +158,7 @@ export const useMonacoModelManagement = (
 
       return () => clearTimeout(timer);
     }
-  }, [currentCaretPosition, allowFocusInEditor, mode]);
+  }, [currentCaretPosition, currentEditor, allowFocusInEditor, mode]);
 
   // Additional effect to handle caret positioning after content changes in step mode
   useEffect(() => {
@@ -158,14 +167,11 @@ export const useMonacoModelManagement = (
       // Use a longer timeout for content changes to ensure Monaco has finished all updates
       const timer = setTimeout(() => {
         if (monacoEditorRef.current) {
-          monacoEditorRef.current.setPosition({
-            lineNumber: currentCaretPosition.row,
-            column: currentCaretPosition.col
-          });
+          applyEditorSelection(monacoEditorRef.current, currentEditor, currentCaretPosition);
 
           monacoEditorRef.current.revealPositionInCenter({
-            lineNumber: currentCaretPosition.row,
-            column: currentCaretPosition.col
+            lineNumber: activeCaretPosition.row,
+            column: activeCaretPosition.col
           });
 
           if (allowFocusInEditor) {
@@ -176,7 +182,7 @@ export const useMonacoModelManagement = (
 
       return () => clearTimeout(timer);
     }
-  }, [currentCode, mode, currentCaretPosition, allowFocusInEditor]);
+  }, [currentCode, mode, currentCaretPosition, currentEditor, allowFocusInEditor]);
 
   // Save/restore editor view state when overlays are shown/hidden to prevent caret position regression
   useEffect(() => {
@@ -211,15 +217,12 @@ export const useMonacoModelManagement = (
             debugLog('Expected position:', { row: currentCaretPosition.row, col: currentCaretPosition.col });
 
             // Then set the current caret position to ensure it's at the right place
-            monacoEditorRef.current.setPosition({
-              lineNumber: currentCaretPosition.row,
-              column: currentCaretPosition.col
-            });
+            applyEditorSelection(monacoEditorRef.current, currentEditor, currentCaretPosition);
 
             // Reveal the position to ensure it's visible
             monacoEditorRef.current.revealPositionInCenter({
-              lineNumber: currentCaretPosition.row,
-              column: currentCaretPosition.col
+              lineNumber: activeCaretPosition.row,
+              column: activeCaretPosition.col
             });
 
             debugLog('Final position after manual set:', monacoEditorRef.current.getPosition());
@@ -230,7 +233,7 @@ export const useMonacoModelManagement = (
         }, 0);
       }
     }
-  }, [isSlideDisplayStep, isExternalWebPreviewDisplayStep, isExternalBrowserDisplayStep, currentCaretPosition]);
+  }, [isSlideDisplayStep, isExternalWebPreviewDisplayStep, isExternalBrowserDisplayStep, currentCaretPosition, currentEditor]);
 
   // (highlight effect and caret auto-scroll graveyarded - see docs/MONACO_QUIRKS.md #1, #4)
 
@@ -255,7 +258,7 @@ export const useMonacoModelManagement = (
       const filename = currentEditor.filename;
 
       // Create a unique URI for this file
-      const uri = monacoInstance.Uri.file(filename);
+      const uri = monacoInstance.Uri.parse(getEditorModelPath(filename));
 
       // Check if a model already exists for this file
       let model = monacoInstance.editor.getModel(uri);

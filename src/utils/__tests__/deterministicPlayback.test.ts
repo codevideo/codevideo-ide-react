@@ -1,10 +1,11 @@
+import { reconstituteAllPartsOfState } from '../reconstituteAllPartsOfState';
 import { executeActionPlaybackForMonacoInstance, IPlaybackContext } from '../executeActionPlaybackForMonacoInstance';
 import { speakText } from '../speakText';
 import { createActionRandom } from '../deterministicRandom';
 import { generateControlPoints } from '../../MouseOverlay/coordinateFunctions/mouse-movement/generateControlPoints';
 
 jest.mock('../speakText', () => ({ speakText: jest.fn().mockResolvedValue(undefined) }));
-jest.mock('../reconstituteAllPartsOfState', () => ({ reconstituteAllPartsOfState: () => ({}) }));
+jest.mock('../reconstituteAllPartsOfState', () => ({ reconstituteAllPartsOfState: jest.fn(() => ({})) }));
 jest.mock('../../MouseOverlay/utils/getNewMousePosition', () => ({ getNewMousePosition: () => ({ x: 0, y: 0 }) }));
 
 function context(name: string): IPlaybackContext {
@@ -72,4 +73,53 @@ test('mouse random streams depend on seed, action, lesson and purpose, independe
   expect(path('seed')).toEqual(expected);
   expect(path('other')).not.toEqual(expected); expect(path('seed', 6)).not.toEqual(expected); expect(path('seed', 5, 1)).not.toEqual(expected);
   expect(createActionRandom('seed', 5, 'mouse-target')()).not.toEqual(createActionRandom('seed', 5, 'mouse-path')());
+});
+
+
+describe('repeat playback', () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+  it.each(['realtime', 'deterministic'] as const)('animates each selection step and deletes N times in %s', async renderMode => {
+    const ctx = context('editor-shift+arrow-right');
+    ctx.renderMode = renderMode;
+    ctx.action.value = '3';
+    let column = 1;
+    ctx.editor = {
+      getPosition: () => ({ lineNumber: 1, column }),
+      getModel: () => ({ getLineMaxColumn: () => 10, getLineCount: () => 1 }),
+      getSelection: () => ({ selectionStartLineNumber: 1, selectionStartColumn: 1 }),
+      setSelection: jest.fn(selection => { column = selection.positionColumn; }),
+      revealPosition: jest.fn(), trigger: jest.fn(),
+    } as any;
+    const running = executeActionPlaybackForMonacoInstance(ctx);
+    await jest.advanceTimersByTimeAsync(200);
+    expect(column).toBe(2);
+    await jest.advanceTimersByTimeAsync(40);
+    expect(column).toBe(3);
+    await jest.advanceTimersByTimeAsync(80);
+    await running;
+    expect(column).toBe(4);
+    ctx.action = { name: 'editor-backspace', value: '3' };
+    const deleting = executeActionPlaybackForMonacoInstance(ctx);
+    await jest.runAllTimersAsync();
+    await deleting;
+    expect(ctx.editor.trigger).toHaveBeenCalledTimes(3);
+  });
+});
+
+
+test('opening another file never writes target content into the previous model', async () => {
+  jest.useFakeTimers();
+  try {
+    (reconstituteAllPartsOfState as jest.Mock).mockReturnValueOnce({ currentFilename: 'second.ts', currentCode: 'second file' });
+    const model = { uri: { toString: () => 'file:///first.ts' }, getValue: () => 'first file', setValue: jest.fn() };
+    const ctx = context('file-explorer-open-file');
+    ctx.editor = { getModel: () => model } as any;
+    ctx.action.value = 'second.ts';
+    const running = executeActionPlaybackForMonacoInstance(ctx);
+    await jest.runAllTimersAsync();
+    await running;
+    expect(model.setValue).not.toHaveBeenCalled();
+    expect(ctx.setCurrentCode).toHaveBeenCalledWith('second file');
+  } finally { jest.useRealTimers(); }
 });

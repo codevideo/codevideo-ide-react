@@ -1,3 +1,4 @@
+import { getEditorModelPath } from './utils/getEditorModelPath.js';
 import { validateTypingSettings } from './playback/createActionSteps.js';
 import React from 'react';
 import { Editor } from '@monaco-editor/react';
@@ -111,6 +112,9 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
     requestPreviousActionCallback,
     requestPlaybackStartCallback,
     isFileExplorerVisible = true,
+    isEditorTabsVisible = true,
+    isMinimapVisible = true,
+    wordWrap = 'on',
     isTerminalVisible = true,
     includeTypos = false, keyboardTypingJitterMs = 0,
     keyboardTypingPauseMs = KEYBOARD_TYPING_PAUSE_MS,
@@ -420,11 +424,11 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
           style={renderMode === 'deterministic' ? { minWidth: 0 } : undefined}
           direction="column"
           width="100%">
-          <EditorTabs
+          {isEditorTabsVisible && <EditorTabs
             theme={theme}
             editors={editors || []}
             currentEditor={currentEditor}
-          />
+          />}
           {/* Editor */}
           <Box
             data-codevideo-id={EDITOR_ID}
@@ -450,7 +454,7 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
               userSelect: isRecording ? 'auto' : 'none',
             }}>
               <Editor
-                path={currentEditor?.filename}
+                path={currentEditor?.filename ? getEditorModelPath(currentEditor.filename) : undefined}
                 saveViewState={renderMode !== 'deterministic'}
                 theme={theme === 'light' ? 'vs' : 'vs-dark'}
                 className={`no-mouse ${editors && editors.length === 0 ? 'display-none' : 'display-block'}`}
@@ -479,7 +483,7 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
                     matchBrackets: 'never' as const,
                     stickyScroll: { enabled: false },
                   } : {}),
-                  minimap: { enabled: true },
+                  minimap: { enabled: isMinimapVisible },
                   scrollBeyondLastLine: true,
                   fontSize: renderFontSizePx ? renderFontSizePx : 14,
                   fontFamily: 'Fira Code, monospace',
@@ -488,7 +492,7 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
                   lineNumbers: 'on',
                   renderWhitespace: 'selection',
                   wrappingStrategy: 'advanced',
-                  wordWrap: 'on',
+                  wordWrap,
                   wordWrapColumn: 80,
                   bracketPairColorization: { enabled: true },
                   matchBrackets: 'never',

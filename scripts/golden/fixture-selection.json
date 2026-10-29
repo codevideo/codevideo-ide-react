@@ -1,0 +1,231 @@
+{
+  "id": "checkpoint-fixture",
+  "name": "Selection regression",
+  "description": "Initial snapshot, tabs, scrolling, unsaved dialog, context menu, rename input, terminal and slide continuation.",
+  "initialSnapshot": {
+    "isUnsavedChangesDialogOpen": false,
+    "unsavedFileName": "",
+    "fileExplorerSnapshot": {
+      "fileStructure": {
+        "first.ts": {
+          "type": "file",
+          "content": "  alpha beta\n\nomega\nconst longLine = \"wrapped text wrapped text wrapped text wrapped text wrapped text wrapped text wrapped text wrapped text wrapped text wrapped text wrapped text wrapped text \";",
+          "language": "ts",
+          "caretPosition": {
+            "row": 1,
+            "col": 3
+          }
+        },
+        "second.ts": {
+          "type": "file",
+          "content": "second file",
+          "language": "ts",
+          "caretPosition": {
+            "row": 1,
+            "col": 3
+          }
+        }
+      },
+      "isFileExplorerContextMenuOpen": false,
+      "isFileContextMenuOpen": false,
+      "isFolderContextMenuOpen": false,
+      "isNewFileInputVisible": false,
+      "isNewFolderInputVisible": false,
+      "newFileInputValue": "",
+      "newFolderInputValue": "",
+      "isRenameFileInputVisible": false,
+      "isRenameFolderInputVisible": false,
+      "originalFileBeingRenamed": "",
+      "originalFolderBeingRenamed": "",
+      "renameFileInputValue": "",
+      "renameFolderInputValue": "",
+      "newFileParentPath": "",
+      "newFolderParentPath": ""
+    },
+    "editorSnapshot": {
+      "editors": [
+        {
+          "isActive": true,
+          "filename": "first.ts",
+          "content": "  alpha beta\n\nomega\nconst longLine = \"wrapped text wrapped text wrapped text wrapped text wrapped text wrapped text wrapped text wrapped text wrapped text wrapped text wrapped text wrapped text \";",
+          "caretPosition": {
+            "row": 1,
+            "col": 3
+          },
+          "highlightCoordinates": {
+            "start": {
+              "row": 1,
+              "col": 1
+            },
+            "end": {
+              "row": 1,
+              "col": 3
+            }
+          },
+          "isSaved": true
+        },
+        {
+          "isActive": false,
+          "filename": "second.ts",
+          "content": "second file",
+          "caretPosition": {
+            "row": 1,
+            "col": 3
+          },
+          "highlightCoordinates": null,
+          "isSaved": true
+        }
+      ],
+      "isEditorContextMenuOpen": false
+    },
+    "terminalSnapshot": {
+      "terminals": []
+    },
+    "mouseSnapshot": {
+      "location": "editor",
+      "currentHoveredFileName": "",
+      "currentHoveredFolderName": "",
+      "currentHoveredEditorTabFileName": "",
+      "x": 0,
+      "y": 0,
+      "timestamp": 0,
+      "type": "move",
+      "button": 0,
+      "buttonStates": {
+        "left": false,
+        "right": false,
+        "middle": false
+      },
+      "scrollPosition": {
+        "x": 0,
+        "y": 0
+      },
+      "scrollDelta": 0
+    },
+    "authorSnapshot": {
+      "authors": []
+    }
+  },
+  "actions": [
+    {
+      "name": "author-wait",
+      "value": "120"
+    },
+    {
+      "name": "editor-command-left",
+      "value": "1"
+    },
+    {
+      "name": "editor-shift+arrow-right",
+      "value": "4"
+    },
+    {
+      "name": "author-wait",
+      "value": "150"
+    },
+    {
+      "name": "editor-command+shift+arrow-right",
+      "value": "2"
+    },
+    {
+      "name": "author-wait",
+      "value": "150"
+    },
+    {
+      "name": "editor-shift+home",
+      "value": "1"
+    },
+    {
+      "name": "author-wait",
+      "value": "150"
+    },
+    {
+      "name": "editor-command-right",
+      "value": "1"
+    },
+    {
+      "name": "editor-shift+arrow-left",
+      "value": "4"
+    },
+    {
+      "name": "author-wait",
+      "value": "150"
+    },
+    {
+      "name": "editor-type",
+      "value": "X"
+    },
+    {
+      "name": "author-wait",
+      "value": "150"
+    },
+    {
+      "name": "editor-arrow-down",
+      "value": "2"
+    },
+    {
+      "name": "editor-shift+arrow-up",
+      "value": "2"
+    },
+    {
+      "name": "author-wait",
+      "value": "150"
+    },
+    {
+      "name": "editor-shift+arrow-down",
+      "value": "3"
+    },
+    {
+      "name": "author-wait",
+      "value": "150"
+    },
+    {
+      "name": "editor-command-left",
+      "value": "1"
+    },
+    {
+      "name": "editor-command+shift+arrow-right",
+      "value": "1"
+    },
+    {
+      "name": "author-wait",
+      "value": "150"
+    },
+    {
+      "name": "file-explorer-open-file",
+      "value": "second.ts"
+    },
+    {
+      "name": "file-explorer-open-file",
+      "value": "first.ts"
+    },
+    {
+      "name": "author-wait",
+      "value": "150"
+    },
+    {
+      "name": "editor-command+shift+arrow-left",
+      "value": "1"
+    },
+    {
+      "name": "author-wait",
+      "value": "150"
+    },
+    {
+      "name": "editor-shift+end",
+      "value": "1"
+    },
+    {
+      "name": "author-wait",
+      "value": "150"
+    },
+    {
+      "name": "editor-backspace",
+      "value": "2"
+    },
+    {
+      "name": "author-wait",
+      "value": "150"
+    }
+  ]
+}

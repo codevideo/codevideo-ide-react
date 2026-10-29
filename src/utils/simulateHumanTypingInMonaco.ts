@@ -1,5 +1,5 @@
 import { KEYBOARD_TYPING_PAUSE_MS } from "src/constants/CodeVideoIDEConstants";
-import * as monaco from 'monaco-editor';
+import type * as monaco from 'monaco-editor';
 
 // define the human typing here in the puppeteer environment
 export const simulateHumanTypingInMonaco = (
@@ -18,8 +18,8 @@ export const simulateHumanTypingInMonaco = (
         editor.executeEdits("simulateTyping", [
           {
             range: {
-              startLineNumber: selection?.selectionStartLineNumber || 1,
-              startColumn: selection?.selectionStartColumn || 1,
+              startLineNumber: selection?.startLineNumber || 1,
+              startColumn: selection?.startColumn || 1,
               endLineNumber: selection?.endLineNumber || 1,
               endColumn: selection?.endColumn || 1,
             },

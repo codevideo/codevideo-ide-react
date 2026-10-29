@@ -22,6 +22,7 @@ const mockEditorStub = {
   getModel: jest.fn(() => null),
   setModel: jest.fn(),
   setPosition: jest.fn(),
+  setSelection: jest.fn(),
   revealPosition: jest.fn(),
   revealPositionInCenter: jest.fn(),
   revealLineInCenter: jest.fn(),
@@ -33,7 +34,7 @@ const mockEditorStub = {
 };
 
 const mockMonacoStub = {
-  Uri: { file: (f: string) => ({ path: `/${f}`, toString: () => `file:///${f}` }) },
+  Uri: { parse: (uri: string) => ({ path: uri, toString: () => uri }) },
   editor: {
     getModel: jest.fn(() => null),
     createModel: jest.fn((..._args: any[]) => mockModel),
@@ -41,10 +42,13 @@ const mockMonacoStub = {
   },
 };
 
+const mockOptions = jest.fn();
+
 jest.mock('@monaco-editor/react', () => {
   const ReactLocal = require('react');
   return {
-    Editor: ({ onMount }: { onMount?: (editor: any, monaco: any) => void }) => {
+    Editor: ({ onMount, options }: { onMount?: (editor: any, monaco: any) => void; options?: any }) => {
+      mockOptions(options);
       ReactLocal.useEffect(() => {
         onMount && onMount(mockEditorStub, mockMonacoStub);
       }, []);
@@ -124,6 +128,8 @@ beforeEach(() => {
   jest.spyOn(console, 'warn').mockImplementation(() => {});
   mockEditorStub.setModel.mockClear();
   mockEditorStub.setPosition.mockClear();
+  mockEditorStub.setSelection.mockClear();
+  mockOptions.mockClear();
   mockMonacoStub.editor.createModel.mockClear();
 });
 
@@ -178,4 +184,38 @@ describe('Monaco model management (stub editor, step mode)', () => {
       })
     );
   });
+});
+
+
+it('restores a backward selection after both step-mode caret timers, and clears it when stepping back', async () => {
+  const actions: IAction[] = [
+    a('file-explorer-create-file', 'select.ts'), a('file-explorer-open-file', 'select.ts'),
+    a('editor-type', 'hello'), a('editor-shift+arrow-left', '3'),
+  ];
+  const view = render(<Theme><CodeVideoIDE {...baseProps} project={actions} currentActionIndex={3} /></Theme>);
+  await flush();
+  await act(async () => { jest.advanceTimersByTime(50); });
+  expect(mockEditorStub.setSelection).toHaveBeenLastCalledWith({
+    selectionStartLineNumber: 1, selectionStartColumn: 6, positionLineNumber: 1, positionColumn: 3,
+  });
+  mockEditorStub.setPosition.mockClear();
+  view.rerender(<Theme><CodeVideoIDE {...baseProps} project={actions} currentActionIndex={2} /></Theme>);
+  await flush();
+  await act(async () => { jest.advanceTimersByTime(50); });
+  expect(mockEditorStub.setPosition).toHaveBeenLastCalledWith({ lineNumber: 1, column: 6 });
+});
+
+it.each([true, false])('applies explicit visibility=%s and wrapping options', visible => {
+  const { queryByTestId } = render(<Theme><CodeVideoIDE {...baseProps}
+    isFileExplorerVisible={visible} isEditorTabsVisible={visible} isMinimapVisible={visible} wordWrap="off" /></Theme>);
+  expect(!!queryByTestId('file-explorer')).toBe(visible);
+  expect(!!queryByTestId('editor-tabs')).toBe(visible);
+  expect(mockOptions).toHaveBeenLastCalledWith(expect.objectContaining({ minimap: { enabled: visible }, wordWrap: 'off' }));
+});
+
+it('preserves visible chrome and wrapping defaults', () => {
+  const { getByTestId } = render(<Theme><CodeVideoIDE {...baseProps} /></Theme>);
+  expect(getByTestId('file-explorer')).toBeTruthy();
+  expect(getByTestId('editor-tabs')).toBeTruthy();
+  expect(mockOptions).toHaveBeenLastCalledWith(expect.objectContaining({ minimap: { enabled: true }, wordWrap: 'on' }));
 });
