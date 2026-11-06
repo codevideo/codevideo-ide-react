@@ -10,7 +10,7 @@ Typically, this is caused by calling `monaco.editor` by accident, when the react
 
 ## Examples
 
-There is a Gatsby site (in this repo under the `./example` folder) featuring the CodeVideoIDE component in various configurations. 
+There is a Next.js site (in this repo under the `./example` folder) featuring the CodeVideoIDE component in various configurations. 
 
 In `step` mode using the arrow keys to navigate through steps:
 
@@ -39,10 +39,6 @@ npm test         # full jest suite
 npm run example:local   # build the lib + run the example app against it
 ```
 
-> **Note:** the library itself builds and tests on Node 20-23, but the
-> `example/` Gatsby app needs Node 20 or 22 - Gatsby's lmdb dependency
-> crashes on Node 23+ (`"length" is outside of buffer bounds`).
-> `npm run example:local` guards for this and tells you what to do.
 
 
 ## Streaming actions (live-generated content)

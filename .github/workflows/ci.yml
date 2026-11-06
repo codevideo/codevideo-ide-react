@@ -22,7 +22,7 @@ jobs:
       - run: npm run type-check
       - run: npm run build
 
-  # the example app is also the codevideo-cli's render surface: a Gatsby build
+  # the example app is also the codevideo-cli's render surface: a Next build
   # break here means a broken video pipeline that jest cannot see. The freshly
   # built dist is overlaid so this exercises the UNPUBLISHED library code.
   example-build:
@@ -37,4 +37,4 @@ jobs:
       - run: npm run build
       - run: cd example && npm install --legacy-peer-deps
       - run: rsync -a --delete dist/ example/node_modules/@fullstackcraftllc/codevideo-ide-react/dist/
-      - run: cd example && npx gatsby build
+      - run: cd example && npx next build

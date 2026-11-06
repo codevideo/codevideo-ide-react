@@ -7,20 +7,14 @@
 # !! CLI's embedded site, and the pre-change golden can't be regenerated after.
 # The user's normal fullbuild.sh restores the published-version flow later.
 #
-# Steps: build lib -> overlay dist into example/node_modules -> gatsby build
-# (Node 20/22 only - lmdb breaks on 23+) -> copy example/public into the CLI
-# -> go build (go:embed picks up the new site).
+# Steps: build lib -> overlay dist into example/node_modules -> next build
+# -> copy example/out into the CLI -> go build (go:embed picks up the new site).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$SCRIPT_DIR/../.."
 CLI_DIR="${CODEVIDEO_CLI_DIR:-$REPO/../codevideo-cli}"
 TYPES_DIR="${CODEVIDEO_TYPES_DIR:-$REPO/../codevideo-types}"
-
-case "$(node -v)" in
-  v20.*|v22.*) ;;
-  *) echo "example/ needs Node 20 or 22 (lmdb breaks on 23+). Try: nvm use 22" >&2; exit 1 ;;
-esac
 
 echo "==> building and overlaying local shared types"
 (cd "$TYPES_DIR" && npm run build)
@@ -68,11 +62,13 @@ mkdir -p "$REPO/example/node_modules/@fullstackcraftllc/codevideo-virtual-keyboa
 rsync -a --delete "$KEYBOARD_DIR/dist/" "$REPO/example/node_modules/@fullstackcraftllc/codevideo-virtual-keyboard/dist/"
 cp "$KEYBOARD_DIR/package.json" "$REPO/example/node_modules/@fullstackcraftllc/codevideo-virtual-keyboard/package.json"
 
-echo "==> building example site (gatsby)"
-(cd "$REPO/example" && npx gatsby clean && npx gatsby build)
+# Clean first: Next's on-disk build cache can otherwise keep the overlaid
+# packages' previous versions.
+echo "==> building example site (next)"
+(cd "$REPO/example" && npm run clean && npm run build)
 
 echo "==> embedding into CLI static server"
-rsync -a --delete "$REPO/example/public/" "$CLI_DIR/cli/staticserver/public/"
+rsync -a --delete "$REPO/example/out/" "$CLI_DIR/cli/staticserver/public/"
 
 echo "==> rebuilding CLI (go:embed)"
 (cd "$CLI_DIR" && go build -o "${CODEVIDEO_BUILD_OUTPUT:-codevideo}")

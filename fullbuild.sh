@@ -31,7 +31,7 @@ npm run rebuild &&
 rm -rf /Users/chris/enterprise/codevideo/codevideo-cli/cli/staticserver/public &&
 
 # then, copy in the public folder from the build here
-cp -r /Users/chris/enterprise/codevideo/codevideo-ide-react/example/public /Users/chris/enterprise/codevideo/codevideo-cli/cli/staticserver/public &&
+cp -r /Users/chris/enterprise/codevideo/codevideo-ide-react/example/out /Users/chris/enterprise/codevideo/codevideo-cli/cli/staticserver/public &&
 
 # build the codevideo-cli tool with the named binary
 cd /Users/chris/enterprise/codevideo/codevideo-cli &&

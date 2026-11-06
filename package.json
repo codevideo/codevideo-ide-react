@@ -13,7 +13,7 @@
     "test:coverage": "jest --coverage",
     "example:local": "bash scripts/example-local.sh",
     "predeploy": "cd example && npm run clean && npm run build-for-gh-pages && cd ..",
-    "deploy": "gh-pages -d example/public"
+    "deploy": "gh-pages -d example/out --nojekyll"
   },
   "repository": {
     "type": "git",

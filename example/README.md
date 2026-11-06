@@ -1,6 +1,6 @@
 # codevideo-ide-react example
 
-This is a static gatsby site with the `<CodeVideoIDE />` component embedded in the index page.
+This is a static Next.js site with the `<CodeVideoIDE />` component embedded in the index page.
 
 To ensure that no SSR issues occur:
 
@@ -13,7 +13,7 @@ npm install @fullstackcraft/codevideo-ide-react@latest
 Then, test in either develop or build mode:
 
 ```bash
-npm run develop
+npm run dev
 ```
 
 or

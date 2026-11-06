@@ -57,7 +57,7 @@ export default function Puppeteer() {
   // on user interaction, set mode to 'replay' and reset the current action index
   const [readyToReplay, setReadyToReplay] = useState(false)
 
-  // Gatsby's server HTML has no worker checkpoint. Mount the IDE only after
+  // The prerendered HTML has no worker checkpoint. Mount the IDE only after
   // hydration so a resumed file/overlay cannot mismatch that empty HTML.
   useEffect(() => {
     const session = (window as any).__codeVideoRenderSession as RenderSession | undefined;

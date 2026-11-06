@@ -8,8 +8,7 @@ Measured results: [atomic (mid-action) checkpoints vs legacy, 1/2/4/8 workers,
 [action-boundary checkpoints, 19 October 2026](checkpoint-benchmark-2026-10-19.md).
 
 The local embed builds the sibling `codevideo-types` and `codevideo-virtual-keyboard`
-first and overlays the unpublished packages. With dependencies installed and
-Node 20/22 active:
+first and overlays the unpublished packages. With dependencies installed:
 
 ```bash
 ./embed-local.sh       # only after changing React/types/keyboard code
@@ -62,9 +61,9 @@ continuation; `fixture-full.json` uses synthetic speech durations in this test,
 so the browser validation does not call TTS.
 
 See the sibling CLI's `docs/deterministic-rendering.md` for implementation details,
-limitations and the types → React → Gatsby → CLI release order. Local overlays
+limitations and the types → React → example site → CLI release order. Local overlays
 are deliberately unpublished; update the normal dependency lockfiles once the
-upstream releases exist. Always clean Gatsby before rebuilding overlaid packages.
+upstream releases exist. Always clean `example/.next` before rebuilding overlaid packages.
 
 The jest suite can't see Monaco timing, mouse animation, or caret behavior in
 a real browser. This workflow can: render a fixed, deterministic fixture to
@@ -93,7 +92,7 @@ There are three main fixtures:
 - sibling checkout of `codevideo-cli` (or set `CODEVIDEO_CLI_DIR`), with its
   `puppeteer-runner` installed (`npm install` there) and a Chrome for Testing
   under `puppeteer-runner/chrome/` (see the CLI README)
-- `go`, `ffmpeg`/`ffprobe`, Node 20 or 22 for the example build
+- `go`, `ffmpeg`/`ffprobe`, Node 20.11 or newer for the example build
 
 ## Procedure
 
