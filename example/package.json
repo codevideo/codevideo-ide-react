@@ -19,8 +19,8 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@fullstackcraftllc/codevideo-ide-react": "^0.0.183",
-    "@fullstackcraftllc/codevideo-types": "^2.7.0",
+    "@fullstackcraftllc/codevideo-ide-react": "^0.0.184",
+    "@fullstackcraftllc/codevideo-types": "^2.8.0",
     "@radix-ui/themes": "^3.2.1",
     "next": "16.4.5",
     "puppeteer-stream": "^3.0.19",
