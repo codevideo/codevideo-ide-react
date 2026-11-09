@@ -4,6 +4,7 @@ import { Project, IAction, IDiagnosticLocation, IPoint, IAudioItem, RenderMode, 
 import { KEYBOARD_TYPING_PAUSE_MS, STANDARD_PAUSE_MS, LONG_PAUSE_MS } from "src/constants/CodeVideoIDEConstants";
 import { getNewMousePosition } from "src/MouseOverlay/utils/getNewMousePosition";
 import { reconstituteAllPartsOfState } from "./reconstituteAllPartsOfState";
+import { cutRange, pasteEdit } from "./clipboardEdits";
 import { sleep } from "./sleep";
 import { speakText } from "./speakText";
 import { simulateHumanTypingWithReactSetterCallback } from "./simulateHumanTypingWithReactSetterCallback";
@@ -310,6 +311,39 @@ export const executeActionPlaybackForMonacoInstance = async (context: IPlaybackC
             editor.setPosition({ lineNumber: range.startLineNumber, column: range.startColumn });
             editor.revealPosition({ lineNumber: range.startLineNumber, column: range.startColumn });
           }
+        }
+        await sleep(keyboardTypingPauseMs);
+        break;
+      }
+      case action.name === "editor-command-c":
+        // copying changes nothing on screen; the virtual clipboard holds the text
+        await sleep(keyboardTypingPauseMs);
+        break;
+      case action.name === "editor-command-x": {
+        // the selection, or with nothing selected the caret's whole line, as VirtualEditor cuts it
+        const selection = editor.getSelection();
+        const model = editor.getModel();
+        if (selection && model) {
+          const range = cutRange(selection, model);
+          const caret = { lineNumber: range.startLineNumber, column: range.startColumn };
+          editor.executeEdits('codevideo', [{ range, text: '', forceMoveMarkers: true }]);
+          editor.setPosition(caret);
+          editor.revealPosition(caret);
+        }
+        await sleep(keyboardTypingPauseMs);
+        break;
+      }
+      case action.name === "editor-command-v": {
+        // the clipboard's text from the virtual IDE, inserted in one literal edit
+        // (never Monaco's own paste, which would reformat it)
+        const { clipboardSnapshot } = reconstituteAllPartsOfState(project, currentActionIndex, currentLessonIndex);
+        const text = clipboardSnapshot?.text ?? '';
+        const selection = editor.getSelection();
+        if (text !== '' && selection) {
+          const { range, caretAfter } = pasteEdit(selection, text, clipboardSnapshot?.isFullLine ?? false);
+          editor.executeEdits('codevideo', [{ range, text, forceMoveMarkers: true }]);
+          editor.setPosition(caretAfter);
+          editor.revealPosition(caretAfter);
         }
         await sleep(keyboardTypingPauseMs);
         break;

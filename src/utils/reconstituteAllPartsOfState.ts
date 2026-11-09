@@ -45,5 +45,6 @@ export const reconstituteAllPartsOfState = (project: Project, currentActionIndex
     const mouseSnapshot = courseSnapshot?.mouseSnapshot;
     const isUnsavedChangesDialogOpen = courseSnapshot.isUnsavedChangesDialogOpen;
     const unsavedFileName = courseSnapshot.unsavedFileName;
-    return { editors, currentEditor, currentFilename, fileExplorerSnapshot, currentCode, currentCaretPosition, currentTerminalBuffer, captionText, actions, mouseSnapshot, isUnsavedChangesDialogOpen, unsavedFileName };
+    const clipboardSnapshot = courseSnapshot.clipboardSnapshot;
+    return { editors, currentEditor, currentFilename, fileExplorerSnapshot, currentCode, currentCaretPosition, currentTerminalBuffer, captionText, actions, mouseSnapshot, isUnsavedChangesDialogOpen, unsavedFileName, clipboardSnapshot };
   }

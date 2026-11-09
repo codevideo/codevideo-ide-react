@@ -196,3 +196,66 @@ test('opening another file never writes target content into the previous model',
     expect(ctx.setCurrentCode).toHaveBeenCalledWith('second file');
   } finally { jest.useRealTimers(); }
 });
+
+describe('copy, cut and paste', () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => {
+    jest.useRealTimers();
+    (reconstituteAllPartsOfState as jest.Mock).mockReset().mockImplementation(() => ({}));
+  });
+  const press = async (editor: ReturnType<typeof textEditor>, name: string, times = 1) => {
+    const ctx = context(name);
+    ctx.action.value = String(times);
+    ctx.editor = editor as any;
+    const running = executeActionPlaybackForMonacoInstance(ctx);
+    await jest.runAllTimersAsync();
+    await running;
+  };
+  // the virtual IDE's clipboard at this action, as the playback reads it
+  const clipboardHolds = (text: string, isFullLine = false) =>
+    (reconstituteAllPartsOfState as jest.Mock).mockImplementation(() => ({ clipboardSnapshot: { text, isFullLine } }));
+
+  it('leaves the text alone when copying', async () => {
+    const editor = textEditor('abc', 1, 4);
+    await press(editor, 'editor-command-c');
+    expect(editor.text()).toBe('abc');
+  });
+
+  it('cuts the selection', async () => {
+    const editor = textEditor('abc def', 1, 8);
+    editor.select({ startLineNumber: 1, startColumn: 5, endLineNumber: 1, endColumn: 8, positionLineNumber: 1, positionColumn: 8 });
+    await press(editor, 'editor-command-x');
+    expect(editor.text()).toBe('abc ');
+    expect(editor.getPosition()).toEqual({ lineNumber: 1, column: 5 });
+  });
+
+  it('cuts the whole line when nothing is selected', async () => {
+    const editor = textEditor('one\ntwo\nthree', 2, 3);
+    await press(editor, 'editor-command-x');
+    expect(editor.text()).toBe('one\nthree');
+    expect(editor.getPosition()).toEqual({ lineNumber: 2, column: 1 });
+  });
+
+  it('pastes the clipboard once per press', async () => {
+    clipboardHolds('ab');
+    const editor = textEditor('xy', 1, 2);
+    await press(editor, 'editor-command-v', 2);
+    expect(editor.text()).toBe('xababy');
+    expect(editor.getPosition()).toEqual({ lineNumber: 1, column: 6 });
+  });
+
+  it('pastes a whole line above the caret, and the caret stays with its text', async () => {
+    clipboardHolds('line\n', true);
+    const editor = textEditor('a\nb', 2, 2);
+    await press(editor, 'editor-command-v');
+    expect(editor.text()).toBe('a\nline\nb');
+    expect(editor.getPosition()).toEqual({ lineNumber: 3, column: 2 });
+  });
+
+  it('pastes nothing from an empty clipboard', async () => {
+    clipboardHolds('');
+    const editor = textEditor('unchanged', 1, 1);
+    await press(editor, 'editor-command-v');
+    expect(editor.text()).toBe('unchanged');
+  });
+});

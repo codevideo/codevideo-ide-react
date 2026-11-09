@@ -26,6 +26,19 @@ mkdir -p "$REPO/node_modules/@fullstackcraftllc/codevideo-virtual-keyboard"
 rsync -a --delete "$KEYBOARD_DIR/dist/" "$REPO/node_modules/@fullstackcraftllc/codevideo-virtual-keyboard/dist/"
 cp "$KEYBOARD_DIR/package.json" "$REPO/node_modules/@fullstackcraftllc/codevideo-virtual-keyboard/package.json"
 
+echo "==> building local virtual clipboard"
+CLIPBOARD_DIR="$REPO/../codevideo-virtual-clipboard"
+# A whole-package copy (dist and package.json), for node_modules that may not have it yet.
+overlay_clipboard() {
+  mkdir -p "$1/@fullstackcraftllc/codevideo-virtual-clipboard"
+  rsync -a --delete "$CLIPBOARD_DIR/dist/" "$1/@fullstackcraftllc/codevideo-virtual-clipboard/dist/"
+  cp "$CLIPBOARD_DIR/package.json" "$1/@fullstackcraftllc/codevideo-virtual-clipboard/package.json"
+}
+mkdir -p "$CLIPBOARD_DIR/node_modules/@fullstackcraftllc/codevideo-types"
+rsync -a --delete "$TYPES_DIR/dist/" "$CLIPBOARD_DIR/node_modules/@fullstackcraftllc/codevideo-types/dist/"
+cp "$TYPES_DIR/package.json" "$CLIPBOARD_DIR/node_modules/@fullstackcraftllc/codevideo-types/package.json"
+(cd "$CLIPBOARD_DIR" && npm run build)
+
 echo "==> building and overlaying local virtual editor and IDE"
 EDITOR_DIR="$REPO/../codevideo-virtual-editor"
 IDE_DIR="$REPO/../codevideo-virtual-ide"
@@ -34,7 +47,9 @@ for target in "$EDITOR_DIR" "$IDE_DIR"; do
 done
 (cd "$EDITOR_DIR" && npm run build)
 rsync -a --delete "$EDITOR_DIR/dist/" "$IDE_DIR/node_modules/@fullstackcraftllc/codevideo-virtual-editor/dist/"
+overlay_clipboard "$IDE_DIR/node_modules"
 (cd "$IDE_DIR" && npm run build)
+overlay_clipboard "$REPO/node_modules"
 rsync -a --delete "$IDE_DIR/dist/" "$REPO/node_modules/@fullstackcraftllc/codevideo-virtual-ide/dist/"
 rsync -a --delete "$EDITOR_DIR/dist/" "$REPO/node_modules/@fullstackcraftllc/codevideo-virtual-editor/dist/"
 
@@ -55,6 +70,7 @@ rsync -a --delete "$REPO/dist/" "$REPO/example/node_modules/@fullstackcraftllc/c
 # whose lesson constructor is incompatible with current shared type guards.
 rsync -a --delete "$REPO/node_modules/@fullstackcraftllc/codevideo-virtual-ide/" "$REPO/example/node_modules/@fullstackcraftllc/codevideo-virtual-ide/"
 rsync -a --delete "$EDITOR_DIR/dist/" "$REPO/example/node_modules/@fullstackcraftllc/codevideo-virtual-editor/dist/"
+overlay_clipboard "$REPO/example/node_modules"
 cp "$TYPES_DIR/package.json" "$REPO/example/node_modules/@fullstackcraftllc/codevideo-types/package.json"
 cp "$REPO/package.json" "$REPO/example/node_modules/@fullstackcraftllc/codevideo-ide-react/package.json"
 

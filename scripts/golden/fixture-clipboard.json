@@ -1,0 +1,17 @@
+[
+  { "name": "author-wait", "value": "500" },
+  { "name": "file-explorer-create-file", "value": "a.ts" },
+  { "name": "file-explorer-open-file", "value": "a.ts" },
+  { "name": "editor-type", "value": "const greeting = 'hi';\nconsole.log(greeting);" },
+  { "name": "editor-arrow-up", "value": "1" },
+  { "name": "editor-command-c", "value": "1" },
+  { "name": "editor-command-v", "value": "1" },
+  { "name": "clipboard-set-text", "value": "'hello'" },
+  { "name": "editor-command-right", "value": "1" },
+  { "name": "editor-arrow-left", "value": "1" },
+  { "name": "editor-shift+arrow-left", "value": "4" },
+  { "name": "editor-command-v", "value": "1" },
+  { "name": "editor-arrow-down", "value": "1" },
+  { "name": "editor-command-x", "value": "1" },
+  { "name": "author-wait", "value": "1500" }
+]
