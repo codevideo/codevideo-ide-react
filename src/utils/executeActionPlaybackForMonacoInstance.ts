@@ -1,6 +1,6 @@
 import { getEditorModelPath } from './getEditorModelPath.js';
 import { moveEditorSelection } from './editorSelection.js';
-import { Project, IAction, IPoint, IAudioItem, RenderMode, isSteppableAction, isRepeatableAction } from "@fullstackcraftllc/codevideo-types";
+import { Project, IAction, IDiagnosticLocation, IPoint, IAudioItem, RenderMode, isSteppableAction, isRepeatableAction, parseDiagnosticLocation } from "@fullstackcraftllc/codevideo-types";
 import { KEYBOARD_TYPING_PAUSE_MS, STANDARD_PAUSE_MS, LONG_PAUSE_MS } from "src/constants/CodeVideoIDEConstants";
 import { getNewMousePosition } from "src/MouseOverlay/utils/getNewMousePosition";
 import { reconstituteAllPartsOfState } from "./reconstituteAllPartsOfState";
@@ -23,6 +23,7 @@ import { executePlaybackSteps } from '../playback/executePlaybackSteps.js';
 import { monacoTarget, textTarget } from '../playback/targets.js';
 import { PlaybackStopped } from '../playback/types.js';
 import type { PlaybackContinuation } from '../playback/types.js';
+import type { DiagnosticsController } from '../diagnostics/useDiagnostics.js';
 
 export interface IPlaybackContext extends RenderCallbacks {
   includeTypos?: boolean;
@@ -54,6 +55,10 @@ export interface IPlaybackContext extends RenderCallbacks {
   setNewFolderInputValue: React.Dispatch<React.SetStateAction<string>>;
   setRenameFileInputValue: React.Dispatch<React.SetStateAction<string>>;
   setRenameFolderInputValue: React.Dispatch<React.SetStateAction<string>>;
+  /** Present only while the project uses diagnostics. */
+  diagnostics?: DiagnosticsController;
+  hoveredDiagnosticRef?: React.MutableRefObject<IDiagnosticLocation | undefined>;
+  setHoveredDiagnostic?: React.Dispatch<React.SetStateAction<IDiagnosticLocation | undefined>>;
   keyboardTypingPauseMs?: number;
   standardPauseMs?: number;
   longPauseMs?: number;
@@ -90,6 +95,8 @@ export const executeActionPlaybackForMonacoInstance = async (context: IPlaybackC
   let startTime = -1;
 
   if (!context.continuation) {
+  // A diagnostic hover stays open through narration and waits only.
+  if (context.hoveredDiagnosticRef?.current && !action.name.startsWith('author-')) context.setHoveredDiagnostic?.(undefined);
   const { editors, currentEditor, currentFilename, currentCaretPosition, currentCode } = reconstituteAllPartsOfState(project, currentActionIndex, currentLessonIndex);
 
 
@@ -129,7 +136,10 @@ export const executeActionPlaybackForMonacoInstance = async (context: IPlaybackC
   await sleep(standardPauseMs);
 
   // MOUSE MOVEMENT ANIMATIONS, PASS THROUGH AND CONTINUE BELOW
-  const newPosition = getNewMousePosition(mousePosition, action, containerRef, renderMode === 'deterministic' ? createActionRandom(renderSeed, currentActionIndex, 'mouse-target', currentLessonIndex) : Math.random);
+  // a squiggle hover needs the squiggles from the last edit (realtime computes them in the background)
+  if (action.name === 'mouse-move-editor-diagnostic') await context.diagnostics?.whenIdle();
+  const newPosition = getNewMousePosition(mousePosition, action, containerRef, renderMode === 'deterministic' ? createActionRandom(renderSeed, currentActionIndex, 'mouse-target', currentLessonIndex) : Math.random,
+    editor, context.diagnostics);
   
   // Safety check before setting mouse position
   if (newPosition && newPosition.x !== undefined && newPosition.y !== undefined && 
@@ -278,10 +288,32 @@ export const executeActionPlaybackForMonacoInstance = async (context: IPlaybackC
       case action.name === "editor-space":
         await simulateHumanTypingInMonaco(editor, " ", keyboardTypingPauseMs);
         break;
-      case action.name === "editor-backspace":
-        editor.trigger('codevideo', 'deleteLeft', null);
+      case action.name === "editor-backspace": {
+        // One character per press (or the selection), exactly as VirtualEditor
+        // counts it. Monaco's deleteLeft removes a whole tab stop of indentation
+        // and auto-closed pairs at once, so the screen drifted from the validated
+        // text wherever a lesson backspaced through indentation.
+        const selection = editor.getSelection();
+        const model = editor.getModel();
+        if (selection && model) {
+          const isEmpty = selection.startLineNumber === selection.endLineNumber && selection.startColumn === selection.endColumn;
+          const line = selection.positionLineNumber, column = selection.positionColumn;
+          const range = !isEmpty
+            ? { startLineNumber: selection.startLineNumber, startColumn: selection.startColumn, endLineNumber: selection.endLineNumber, endColumn: selection.endColumn }
+            : column > 1
+              ? { startLineNumber: line, startColumn: column - 1, endLineNumber: line, endColumn: column }
+              : line > 1
+                ? { startLineNumber: line - 1, startColumn: model.getLineMaxColumn(line - 1), endLineNumber: line, endColumn: 1 }
+                : null;
+          if (range) {
+            editor.executeEdits('codevideo', [{ range, text: '', forceMoveMarkers: true }]);
+            editor.setPosition({ lineNumber: range.startLineNumber, column: range.startColumn });
+            editor.revealPosition({ lineNumber: range.startLineNumber, column: range.startColumn });
+          }
+        }
         await sleep(keyboardTypingPauseMs);
         break;
+      }
       case action.name === "editor-type":
         await simulateHumanTypingInMonaco(editor, action.value, keyboardTypingPauseMs);
         break;
@@ -309,6 +341,8 @@ export const executeActionPlaybackForMonacoInstance = async (context: IPlaybackC
       case action.name.startsWith("mouse-move-"):
         // do the standard delay for mouse movement - padded with 300ms so it allows time for the animation to complete
         await sleep(standardPauseMs + 300);
+        // the mouse has arrived on the squiggle: open its hover
+        if (action.name === 'mouse-move-editor-diagnostic') context.setHoveredDiagnostic?.(parseDiagnosticLocation(action.value) ?? undefined);
         break;
       default:
         // no op - but still do default delay

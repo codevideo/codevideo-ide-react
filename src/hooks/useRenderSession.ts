@@ -4,12 +4,15 @@ import type { OverlayDisplayState } from './useOverlayDisplay.js';
 import type { RenderCheckpointV1, RenderCheckpointV2, RenderExecutionCursor, RenderSession, RenderSessionCallbacks, RenderSessionController } from '../rendering/types.js';
 import type { PlaybackContinuation } from '../playback/types.js';
 import { captureInputs, captureMonaco, captureUI, restoreMonaco, validateCheckpoint } from '../rendering/checkpoints.js';
+import type { DiagnosticsController } from '../diagnostics/useDiagnostics.js';
 
 interface Params extends RenderSessionCallbacks {
   session?: RenderSession;
   state: CodeVideoIDEState;
   overlay: OverlayDisplayState;
   mouse: React.MutableRefObject<(RenderCheckpointV1['mouse'] & { animating: boolean }) | null>;
+  /** Null unless the project uses diagnostics, so other checkpoints stay as they were. */
+  diagnostics?: React.MutableRefObject<DiagnosticsController | null>;
   tracePosition: React.MutableRefObject<number>;
   seed: string;
   lesson: number | null;
@@ -49,6 +52,7 @@ export function useRenderSession(params: Params) {
             viewport: { width: window.innerWidth, height: window.innerHeight, deviceScaleFactor: window.devicePixelRatio },
             presentation: { terminalCaretDeadlineMs: p.state.terminalCaretDeadlineRef.current },
             ui: captureUI(p.state), overlay: p.overlay, mouse: position, monaco: captureMonaco(p.state),
+            diagnostics: p.diagnostics?.current?.capture(),
             inputs: captureInputs(),
             scroll: Array.from(document.querySelectorAll<HTMLElement>('[data-codevideo-id]')).filter(el => el.scrollTop || el.scrollLeft).map(el => ({ id: el.dataset.codevideoId!, top: el.scrollTop, left: el.scrollLeft })),
           };
@@ -74,6 +78,7 @@ export function useRenderSession(params: Params) {
       validateCheckpoint(p.session.checkpoint, p.session.fingerprint, p.seed, p.lesson);
       if (p.session.checkpoint.cursor.actionIndex >= p.totalActions) throw new Error('Checkpoint points beyond the project');
       await restoreMonaco(p.state, p.session.checkpoint);
+      p.diagnostics?.current?.restore(p.session.checkpoint.diagnostics);
     },
     stepBoundary(actionIndex: number, continuation: PlaybackContinuation) {
       return new Promise(resolve => boundary({ actionIndex, timestampMs: performance.now(), continuation }, resolve));

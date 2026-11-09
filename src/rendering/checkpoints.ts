@@ -25,6 +25,9 @@ export function validateCheckpoint(checkpoint: RenderCheckpointV2, fingerprint: 
   for (const point of [checkpoint.mouse?.current, checkpoint.mouse?.target, checkpoint.mouse?.previous, checkpoint.mouse?.lastTarget]) {
     if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) fail();
   }
+  const diagnostics = checkpoint.diagnostics;
+  if (diagnostics !== undefined && (!diagnostics || typeof diagnostics.byPath !== 'object' || typeof diagnostics.contents !== 'object' || typeof diagnostics.live !== 'object' ||
+      Object.values(diagnostics.live).some(list => !Array.isArray(list)))) fail();
   if (!checkpoint.viewport || checkpoint.viewport.width !== window.innerWidth || checkpoint.viewport.height !== window.innerHeight || checkpoint.viewport.deviceScaleFactor !== window.devicePixelRatio) fail();
 }
 

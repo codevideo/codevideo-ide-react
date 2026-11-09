@@ -15,6 +15,7 @@ import type { RenderUIState } from '../state/useCodeVideoIDEState.js';
 import type { OverlayDisplayState } from '../hooks/useOverlayDisplay.js';
 import type * as monaco from 'monaco-editor';
 import type { PlaybackContinuation } from '../playback/types.js';
+import type { DiagnosticsCheckpoint } from '../diagnostics/useDiagnostics.js';
 
 /** Ephemeral renderer data, valid only for this project/settings/build. */
 export interface RenderCheckpointV1 {
@@ -54,6 +55,8 @@ export interface RenderCheckpointV2 extends Omit<RenderCheckpointV1, 'version' |
   cursor: RenderExecutionCursor;
   tracePosition: number;
   inputs: Array<{ id: string; selectionStart: number | null; selectionEnd: number | null; selectionDirection: 'forward' | 'backward' | 'none' | null; focused: boolean; scrollLeft: number }>;
+  /** TypeScript squiggles as drawn at this moment. Absent when the project doesn't use them. */
+  diagnostics?: DiagnosticsCheckpoint;
 }
 
 export type RenderSession = {

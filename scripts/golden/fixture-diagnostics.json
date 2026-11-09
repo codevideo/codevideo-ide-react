@@ -1,0 +1,12 @@
+[
+  { "name": "author-wait", "value": "1000" },
+  { "name": "file-explorer-create-file", "value": "generics.ts" },
+  { "name": "file-explorer-open-file", "value": "generics.ts" },
+  { "name": "editor-show-diagnostics", "value": "1" },
+  { "name": "editor-type", "value": "interface IFooBar {\n    foo: string;\n    bar: string;\n}\n\nfunction sortByKey<T>(data: Array<T>, key: keyof T) {\n    return data;\n}\n\nsortByKey<IFooBar>([], \"cat\")\n" },
+  { "name": "author-wait", "value": "1500" },
+  { "name": "mouse-move-editor-diagnostic", "value": "generics.ts:10:25" },
+  { "name": "author-wait", "value": "3000" },
+  { "name": "mouse-move-editor", "value": "1" },
+  { "name": "author-wait", "value": "1000" }
+]

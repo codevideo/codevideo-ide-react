@@ -263,11 +263,16 @@ export const useMonacoModelManagement = (
       // Check if a model already exists for this file
       let model = monacoInstance.editor.getModel(uri);
 
+      // In replay, a file's model starts from that editor's own text. currentCode
+      // can still hold the previous file's code in the commit that switches to a
+      // file created by the action being played, and would be copied into it.
+      const initialCode = mode === 'replay' ? (currentEditor.content ?? '') : (currentCode || '');
+
       if (!model) {
         // Create a new model for this file
         const language = getLanguageFromFilename(filename);
-        model = monacoInstance.editor.createModel(currentCode || '', language, uri);
-        debugLog(`Created new Monaco model for file: ${filename} with language: ${language}, uri: ${uri} content length: ${(currentCode || '').length}`);
+        model = monacoInstance.editor.createModel(initialCode, language, uri);
+        debugLog(`Created new Monaco model for file: ${filename} with language: ${language}, uri: ${uri} content length: ${initialCode.length}`);
       } else {
         // In replay mode, don't update model content here since executeActionPlaybackForMonacoInstance
         // handles the typing animation. Only update in step mode or when file content changes significantly.
@@ -275,10 +280,10 @@ export const useMonacoModelManagement = (
           model.setValue(currentCode || '');
           debugLog(`Updated Monaco model content for file: ${filename} (step mode), content length: ${(currentCode || '').length}`);
         } else if (mode === 'replay') {
-          // In replay mode, only update if the model is completely empty or if we're switching files
-          if (model.getValue() === '' && currentCode && currentCode !== '') {
-            model.setValue(currentCode);
-            debugLog(`Initialized Monaco model content for file: ${filename} (replay mode), content length: ${currentCode.length}`);
+          // In replay mode, only fill a model that is still empty (e.g. one the editor's path prop just created)
+          if (model.getValue() === '' && initialCode !== '') {
+            model.setValue(initialCode);
+            debugLog(`Initialized Monaco model content for file: ${filename} (replay mode), content length: ${initialCode.length}`);
           }
         }
       }

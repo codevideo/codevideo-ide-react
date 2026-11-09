@@ -1,13 +1,17 @@
-import { IAction, IPoint } from "@fullstackcraftllc/codevideo-types";
+import { IAction, IPoint, parseDiagnosticLocation } from "@fullstackcraftllc/codevideo-types";
+import type * as monaco from 'monaco-editor';
 import { getCoordinatesOfEditor } from "../coordinateFunctions/getCoordinatesOfEditor.js";
 import { getCoordinatesOfFileOrFolder } from "../coordinateFunctions/getCoordinatesOfFileOrFolder.js";
 import { getCoordinatesOfTerminalInput } from "../coordinateFunctions/getCoordinatesOfTerminalInput.js";
 import { parseCoordinatesFromMouseCoordinateAction } from "../coordinateFunctions/parseCoordinatesFromAction.js";
 import { getGaussianCoordinatesByCodeVideoDataID } from "../coordinateFunctions/getCoordinatesByCodeVideoDataID.js";
+import { getCoordinatesOfDiagnostic } from "../coordinateFunctions/getCoordinatesOfDiagnostic.js";
+import type { DiagnosticsController } from "../../diagnostics/useDiagnostics.js";
 import { FILE_EXPLORER_ID } from "src/constants/CodeVideoDataIds.js";
 import { debugLog, debugWarn } from '../../utils/debugLog.js';
 
-export const getNewMousePosition = (targetMousePosition: IPoint, currentAction: IAction, containerRef: React.RefObject<HTMLDivElement | null>, random: () => number = Math.random) => {
+export const getNewMousePosition = (targetMousePosition: IPoint, currentAction: IAction, containerRef: React.RefObject<HTMLDivElement | null>, random: () => number = Math.random,
+  editor?: monaco.editor.ICodeEditor, diagnostics?: DiagnosticsController) => {
   let newPosition = { x: targetMousePosition.x, y: targetMousePosition.y };
 
   switch (currentAction.name) {
@@ -78,6 +82,14 @@ export const getNewMousePosition = (targetMousePosition: IPoint, currentAction: 
     case 'mouse-move-editor-tab-close':
       newPosition = getGaussianCoordinatesByCodeVideoDataID(`editor-tab-close-${currentAction.value}`, containerRef, undefined, random)
       break;
+    // squiggle hover: an exact spot in the active editor
+    case 'mouse-move-editor-diagnostic': {
+      const location = parseDiagnosticLocation(currentAction.value);
+      const position = location && editor && diagnostics ? getCoordinatesOfDiagnostic(editor, containerRef, location, diagnostics) : null;
+      if (position) newPosition = position;
+      else debugWarn('No squiggle position for', currentAction.value, '- is that file in the active editor?');
+      break;
+    }
     // unsaved changes dialog movements
     case 'mouse-move-unsaved-changes-dialog-button-save':
       newPosition = getGaussianCoordinatesByCodeVideoDataID("unsaved-changes-dialog-button-save", containerRef, undefined, random)

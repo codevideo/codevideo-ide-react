@@ -1,0 +1,13 @@
+[
+  { "name": "author-wait", "value": "500" },
+  { "name": "file-explorer-create-file", "value": "a.ts" },
+  { "name": "file-explorer-open-file", "value": "a.ts" },
+  { "name": "editor-type", "value": "function f() {\n        " },
+  { "name": "editor-backspace", "value": "2" },
+  { "name": "editor-type", "value": "return 1;\n}" },
+  { "name": "editor-enter", "value": "1" },
+  { "name": "editor-type", "value": "foo(\n    bar" },
+  { "name": "editor-arrow-left", "value": "3" },
+  { "name": "editor-backspace", "value": "5" },
+  { "name": "author-wait", "value": "1500" }
+]

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { GUIMode, IAction, IPoint, Project, RenderMode, IAudioItem } from '@fullstackcraftllc/codevideo-types';
+import { GUIMode, IAction, IDiagnosticLocation, IPoint, Project, RenderMode, IAudioItem } from '@fullstackcraftllc/codevideo-types';
 import * as monaco from 'monaco-editor';
 import { executeActionPlaybackForMonacoInstance } from '../utils/executeActionPlaybackForMonacoInstance.js';
 import { getActionAtIndex } from '../utils/extractActions.js';
@@ -8,6 +8,7 @@ import { sleep } from '../utils/sleep.js';
 import { debugLog } from '../utils/debugLog.js';
 
 import { RenderSessionController, RenderCallbacks } from '../rendering/types.js';
+import type { DiagnosticsController } from '../diagnostics/useDiagnostics.js';
 
 export interface UseReplayPlaybackParams extends RenderCallbacks {
   suspended?: boolean;
@@ -52,6 +53,11 @@ export interface UseReplayPlaybackParams extends RenderCallbacks {
   setRenameFileInputValue: React.Dispatch<React.SetStateAction<string>>;
   setRenameFolderInputValue: React.Dispatch<React.SetStateAction<string>>;
   setCurrentExternalBrowserScrollPosition: React.Dispatch<React.SetStateAction<number>>;
+
+  /** Set while the project uses diagnostics (squiggles and their hover). */
+  diagnosticsRef?: React.MutableRefObject<DiagnosticsController | null>;
+  hoveredDiagnosticRef?: React.MutableRefObject<IDiagnosticLocation | undefined>;
+  setHoveredDiagnostic?: React.Dispatch<React.SetStateAction<IDiagnosticLocation | undefined>>;
 
   includeTypos?: boolean;
   keyboardTypingJitterMs?: number;
@@ -187,6 +193,9 @@ export const useReplayPlayback = (params: UseReplayPlaybackParams): void => {
         setNewFolderInputValue,
         setRenameFileInputValue,
         setRenameFolderInputValue,
+        diagnostics: params.diagnosticsRef?.current ?? undefined,
+        hoveredDiagnosticRef: params.hoveredDiagnosticRef,
+        setHoveredDiagnostic: params.setHoveredDiagnostic,
         keyboardTypingPauseMs,
         standardPauseMs,
         longPauseMs,

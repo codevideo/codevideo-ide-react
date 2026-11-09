@@ -1,0 +1,15 @@
+[
+  { "name": "author-wait", "value": "500" },
+  { "name": "file-explorer-create-folder", "value": "src" },
+  { "name": "file-explorer-create-file", "value": "src/a.ts" },
+  { "name": "file-explorer-open-file", "value": "src/a.ts" },
+  { "name": "editor-type", "value": "export const fromA = 1;\n" },
+  { "name": "mouse-move-file-explorer-folder", "value": "src" },
+  { "name": "mouse-right-click", "value": "1" },
+  { "name": "mouse-move-file-explorer-folder-context-menu-new-file", "value": "1" },
+  { "name": "mouse-left-click", "value": "1" },
+  { "name": "file-explorer-type-new-file-input", "value": "b.ts" },
+  { "name": "file-explorer-enter-new-file-input", "value": "1" },
+  { "name": "editor-type", "value": "export const fromB = 2;" },
+  { "name": "author-wait", "value": "1500" }
+]

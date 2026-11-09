@@ -4,7 +4,7 @@ import React from 'react';
 import { Editor } from '@monaco-editor/react';
 import { Box, Flex } from '@radix-ui/themes';
 // types
-import { ICodeVideoIDEProps } from '@fullstackcraftllc/codevideo-types';
+import { ICodeVideoIDEProps, isDiagnosticsVisibleAt, usesDiagnostics } from '@fullstackcraftllc/codevideo-types';
 
 // editor tabs
 import { EditorTabs } from './Editor/EditorTabs.jsx';
@@ -38,6 +38,10 @@ import { SlideViewer } from './SlideViewer/SlideViewer.jsx';
 
 // web preview
 import { WebPreview } from './WebPreview/WebPreview.jsx';
+
+// TypeScript squiggles
+import { DiagnosticHover, squiggleStyles } from './diagnostics/DiagnosticHover.jsx';
+import { DiagnosticsController, useDiagnostics } from './diagnostics/useDiagnostics.js';
 
 // util functions
 import { setDebugLogging } from './utils/debugLog.js';
@@ -117,6 +121,7 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
     wordWrap = 'on',
     isTerminalVisible = true,
     isMouseVisible = true,
+    isDiagnosticsVisible = false,
     includeTypos = false, keyboardTypingJitterMs = 0,
     keyboardTypingPauseMs = KEYBOARD_TYPING_PAUSE_MS,
     standardPauseMs = STANDARD_PAUSE_MS,
@@ -170,6 +175,7 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
     isUnsavedChangesDialogOpen, setIsUnsavedChangesDialogOpen,
     unsavedFileName, setUnsavedFileName,
     currentExternalBrowserScrollPosition, setCurrentExternalBrowserScrollPosition,
+    hoveredDiagnostic, setHoveredDiagnostic,
     containerRef,
     monacoEditorRef,
     globalMonacoRef,
@@ -180,6 +186,15 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
   // single source of action extraction for the whole component; the epoch only
   // changes on non-append content changes (see useStableActions)
   const { actions: stableActions, actionsEpoch, currentAction: stableCurrentAction, hasActionAtCurrentIndex } = useStableActions(project, currentLessonIndex, currentActionIndex);
+
+  // TypeScript squiggles: off unless the prop or a diagnostics action asks for
+  // them, in which case nothing below changes from before they existed
+  const diagnosticsEnabled = React.useMemo(() => usesDiagnostics(stableActions, isDiagnosticsVisible), [stableActions, isDiagnosticsVisible]);
+  const diagnosticsVisible = React.useMemo(() => diagnosticsEnabled && isDiagnosticsVisibleAt(stableActions, currentActionIndex, isDiagnosticsVisible),
+    [diagnosticsEnabled, stableActions, currentActionIndex, isDiagnosticsVisible]);
+  const diagnosticsRef = React.useRef<DiagnosticsController | null>(null);
+  const hoveredDiagnosticRef = React.useRef(hoveredDiagnostic);
+  hoveredDiagnosticRef.current = hoveredDiagnostic;
 
   // Handle scroll actions for step mode
   // step-mode state derivation: reconstitutes the full VirtualIDE snapshot at
@@ -218,6 +233,8 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
     setIsUnsavedChangesDialogOpen,
     setUnsavedFileName,
     setCurrentExternalBrowserScrollPosition,
+    setHoveredDiagnostic,
+    diagnosticsRef,
   });
 
   // slide / web-preview / external-browser overlay routing, including
@@ -267,7 +284,7 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
   // mode it updates state immediately. Appends to a streamed actions array
   // do NOT re-trigger it (see useStableActions).
   const renderController = useRenderSession({
-    tracePosition, session: renderSession, state: ideState, overlay: overlayState, mouse: mouseSnapshotRef,
+    tracePosition, session: renderSession, state: ideState, overlay: overlayState, mouse: mouseSnapshotRef, diagnostics: diagnosticsRef,
     seed: renderSeed, lesson: currentLessonIndex, totalActions: stableActions.length,
     onRenderSessionReady, onRenderCheckpoint, onRenderSegmentComplete, onError: onRenderError,
   });
@@ -300,6 +317,7 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
     setRenameFileInputValue,
     setRenameFolderInputValue,
     setCurrentExternalBrowserScrollPosition,
+    diagnosticsRef, hoveredDiagnosticRef, setHoveredDiagnostic,
     includeTypos, keyboardTypingJitterMs,
     typingValues: {
       'terminal-type': terminalBuffer,
@@ -340,6 +358,17 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
     setCurrentEditorLanguage,
     monacoLoadedCallback,
   });
+
+  // squiggles for open TS/JS files; effects run after the model management
+  // above, so a file shown in this commit already has its model
+  const diagnostics = useDiagnostics({
+    enabled: diagnosticsEnabled, visible: diagnosticsVisible, hydrating: renderSuspended, renderMode,
+    editors, fileStructure: currentFileStructure, activePath: currentEditor?.filename,
+    monacoEditorRef, globalMonacoRef, onError: onRenderError,
+  });
+  diagnosticsRef.current = diagnosticsEnabled ? diagnostics.controller : null;
+  const hoverDiagnostics = diagnosticsVisible && hoveredDiagnostic ? diagnostics.controller.hoverDiagnostics(hoveredDiagnostic) : [];
+  const hoverAnchor = hoveredDiagnostic && hoverDiagnostics.length ? diagnostics.controller.hoverPosition(hoveredDiagnostic) : null;
 
   // if embedMode is 'true', we use space bar to request playback, left arrow to request previous frame, and right arrow to request next frame
   const showEmbedOverlay = useEmbedKeyboard({
@@ -383,6 +412,7 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
           display: none !important;
         }
       `}</style>}
+      {diagnosticsEnabled && <style>{squiggleStyles(theme)}</style>}
       <Flex direction="row"
         style={{
           height: '100%',
@@ -484,6 +514,9 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
                     matchBrackets: 'never' as const,
                     stickyScroll: { enabled: false },
                   } : {}),
+                  // Our squiggles are plain decorations; this keeps Monaco's
+                  // own (wall-clock, worker-timed) validation out of the picture.
+                  ...(diagnosticsEnabled ? { renderValidationDecorations: 'off' as const } : {}),
                   minimap: { enabled: isMinimapVisible },
                   scrollBeyondLastLine: true,
                   fontSize: renderFontSizePx ? renderFontSizePx : 14,
@@ -500,9 +533,15 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
                   formatOnPaste: true,
                   formatOnType: true,
                 }}
-                onMount={handleEditorDidMount}
+                onMount={(editor, monaco) => { handleEditorDidMount(editor, monaco); diagnostics.onEditorMount(); }}
               />
             </Box>
+            {diagnosticsEnabled && <DiagnosticHover
+              editor={monacoEditorRef.current}
+              anchor={hoverAnchor}
+              diagnostics={hoverDiagnostics}
+              theme={theme}
+              fontSizePx={renderFontSizePx ? renderFontSizePx : 14} />}
           </Box>
           {/* Terminal - TODO: add support for multiple terminals in the future */}
           {isTerminalVisible && <Terminal

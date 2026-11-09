@@ -1,9 +1,11 @@
-import { GUIMode, IAction, IPoint, Project } from '@fullstackcraftllc/codevideo-types';
+import { GUIMode, IAction, IDiagnosticLocation, IPoint, Project, getDiagnosticHoverAt } from '@fullstackcraftllc/codevideo-types';
 import * as monaco from 'monaco-editor';
 import { reconstituteAllPartsOfState } from '../utils/reconstituteAllPartsOfState.js';
 import { extractActions, getActionAtIndex } from '../utils/extractActions.js';
 import { getNewMousePosition } from '../MouseOverlay/utils/getNewMousePosition.js';
 import { debugLog, debugWarn } from '../utils/debugLog.js';
+import type { DiagnosticsController } from '../diagnostics/useDiagnostics.js';
+import { getVisibleExplorerHover } from '../utils/getVisibleExplorerHover.js';
 
 export interface UseStepModeStateParams {
   project: Project;
@@ -41,6 +43,9 @@ export interface UseStepModeStateParams {
   setIsUnsavedChangesDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
   setUnsavedFileName: React.Dispatch<React.SetStateAction<string>>;
   setCurrentExternalBrowserScrollPosition: React.Dispatch<React.SetStateAction<number>>;
+  setHoveredDiagnostic?: React.Dispatch<React.SetStateAction<IDiagnosticLocation | undefined>>;
+  /** Set while diagnostics are in use; the hover and its mouse target need it. */
+  diagnosticsRef?: React.MutableRefObject<DiagnosticsController | null>;
 }
 
 export interface UseStepModeStateResult {
@@ -94,6 +99,8 @@ export const useStepModeState = (params: UseStepModeStateParams): UseStepModeSta
     setIsUnsavedChangesDialogOpen,
     setUnsavedFileName,
     setCurrentExternalBrowserScrollPosition,
+    setHoveredDiagnostic,
+    diagnosticsRef,
   } = params;
 
   const handleStepModeScrollActions = () => {
@@ -153,7 +160,7 @@ export const useStepModeState = (params: UseStepModeStateParams): UseStepModeSta
     const currentAction = getActionAtIndex(actions, currentActionIndex);
     if (!currentAction) return;
 
-    const newPosition = getNewMousePosition(targetMousePosition, currentAction, containerRef);
+    const newPosition = getNewMousePosition(targetMousePosition, currentAction, containerRef, Math.random, monacoEditorRef.current, diagnosticsRef?.current ?? undefined);
 
     // Safety check to prevent undefined coordinates
     if (!newPosition || isNaN(newPosition.x) || isNaN(newPosition.y) ||
@@ -223,6 +230,9 @@ export const useStepModeState = (params: UseStepModeStateParams): UseStepModeSta
       // Only update mouse position in step mode, not in replay mode
       // This prevents double mouse movement animations in replay mode
       updateMouseStateAndSideEffects(actions);
+
+      // replay opens the hover once the mouse arrives; step mode shows it at once
+      if (diagnosticsRef?.current) setHoveredDiagnostic?.(getDiagnosticHoverAt(actions, currentActionIndex) ?? undefined);
     }
 
     setTerminalBuffer(currentTerminalBuffer);
@@ -234,8 +244,9 @@ export const useStepModeState = (params: UseStepModeStateParams): UseStepModeSta
     setIsNewFolderInputVisible(fileExplorerSnapshot.isNewFolderInputVisible);
     setOriginalFileBeingRenamed(fileExplorerSnapshot.originalFileBeingRenamed);
     setOriginalFolderBeingRenamed(fileExplorerSnapshot.originalFolderBeingRenamed);
-    setCurrentHoveredFileName(mouseSnapshot.currentHoveredFileName);
-    setCurrentHoveredFolderName(mouseSnapshot.currentHoveredFolderName);
+    const hover = getVisibleExplorerHover(mouseSnapshot, fileExplorerSnapshot);
+    setCurrentHoveredFileName(hover.file);
+    setCurrentHoveredFolderName(hover.folder);
     setNewFileParentPath(fileExplorerSnapshot.newFileParentPath);
     setNewFolderParentPath(fileExplorerSnapshot.newFolderParentPath);
     setCurrentHoveredEditorTabFileName(mouseSnapshot.currentHoveredEditorTabFileName);

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { IEditor, IEditorPosition, IFileStructure, IPoint } from '@fullstackcraftllc/codevideo-types';
+import { IDiagnosticLocation, IEditor, IEditorPosition, IFileStructure, IPoint } from '@fullstackcraftllc/codevideo-types';
 import { Monaco } from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
 import { DEFAULT_CARET_POSITION, DEFAULT_MOUSE_POSITION } from '../constants/CodeVideoIDEConstants.js';
@@ -43,6 +43,8 @@ export interface RenderUIState {
   isUnsavedChangesDialogOpen: boolean;
   unsavedFileName: string;
   currentExternalBrowserScrollPosition: number;
+  /** The diagnostic whose hover is open. Undefined (never null) when none, so checkpoints of projects without diagnostics don't change. */
+  hoveredDiagnostic?: IDiagnosticLocation;
 }
 
 export const useCodeVideoIDEState = (defaultLanguage: string, initial?: RenderUIState) => {
@@ -76,6 +78,7 @@ export const useCodeVideoIDEState = (defaultLanguage: string, initial?: RenderUI
   const [isUnsavedChangesDialogOpen, setIsUnsavedChangesDialogOpen] = useState<boolean>(initial?.isUnsavedChangesDialogOpen ?? false);
   const [unsavedFileName, setUnsavedFileName] = useState<string>(initial?.unsavedFileName ?? "");
   const [currentExternalBrowserScrollPosition, setCurrentExternalBrowserScrollPosition] = useState<number>(initial?.currentExternalBrowserScrollPosition ?? 0);
+  const [hoveredDiagnostic, setHoveredDiagnostic] = useState<IDiagnosticLocation | undefined>(initial?.hoveredDiagnostic);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const monacoEditorRef = useRef<monaco.editor.IStandaloneCodeEditor | undefined>(undefined);
@@ -119,6 +122,7 @@ export const useCodeVideoIDEState = (defaultLanguage: string, initial?: RenderUI
     isUnsavedChangesDialogOpen, setIsUnsavedChangesDialogOpen,
     unsavedFileName, setUnsavedFileName,
     currentExternalBrowserScrollPosition, setCurrentExternalBrowserScrollPosition,
+    hoveredDiagnostic, setHoveredDiagnostic,
     containerRef,
     monacoEditorRef,
     globalMonacoRef,
