@@ -3,6 +3,8 @@ import { executeActionPlaybackForMonacoInstance, IPlaybackContext } from '../exe
 import { speakText } from '../speakText';
 import { createActionRandom } from '../deterministicRandom';
 import { generateControlPoints } from '../../MouseOverlay/coordinateFunctions/mouse-movement/generateControlPoints';
+import { PlaybackStopped } from '../../playback/types';
+import type { PendingSpeech } from '../pendingSpeech';
 
 jest.mock('../speakText', () => ({ speakText: jest.fn().mockResolvedValue(undefined) }));
 jest.mock('../reconstituteAllPartsOfState', () => ({ reconstituteAllPartsOfState: jest.fn(() => ({})) }));
@@ -41,6 +43,55 @@ describe('deterministic playback', () => {
     await jest.advanceTimersByTimeAsync(200); await running;
     expect(finished).toBe(true); expect(ctx.onRenderEvent).toHaveBeenCalledTimes(1);
     expect(speakText).not.toHaveBeenCalled();
+  });
+
+  it('a speech waits for a speak-during clip that is still playing, then plays its own', async () => {
+    const speechRef = { current: null as PendingSpeech | null };
+    const during = { ...context('author-speak-during'), speechRef };
+    const first = executeActionPlaybackForMonacoInstance(during);
+    await jest.advanceTimersByTimeAsync(200); await first;
+    expect(speechRef.current).toEqual({ untilMs: 1450 }); // spoken from 200 for 1250 ms
+
+    const next = { ...context('author-speak-before'), speechRef, currentActionIndex: 4, action: { name: 'author-speak-before', value: 'next' } as any,
+      speakActionAudios: [{ text: 'next', mp3Url: '', assetId: 'next', durationMs: 500, actionIndex: 4 }] };
+    let finished = false;
+    const second = executeActionPlaybackForMonacoInstance(next).then(() => { finished = true; });
+    await jest.advanceTimersByTimeAsync(1249); expect(next.onRenderEvent).not.toHaveBeenCalled();
+    await jest.advanceTimersByTimeAsync(1);
+    expect(next.onRenderEvent).toHaveBeenCalledWith(expect.objectContaining({ type: 'speech', actionIndex: 4, timestampMs: 1450 }));
+    expect(speechRef.current).toBeNull();
+    await jest.advanceTimersByTimeAsync(499); expect(finished).toBe(false);
+    await jest.advanceTimersByTimeAsync(1); await second;
+  });
+
+  it('in realtime, a speech waits for the speak-during audio to end instead of cutting it off', async () => {
+    let endDuring: () => void = () => {};
+    (speakText as jest.Mock).mockImplementationOnce(() => new Promise<void>(resolve => { endDuring = resolve; }));
+    const speechRef = { current: null as PendingSpeech | null };
+    const first = executeActionPlaybackForMonacoInstance({ ...context('author-speak-during'), renderMode: 'realtime', speechRef });
+    await jest.advanceTimersByTimeAsync(200); await first;
+
+    let finished = false;
+    const second = executeActionPlaybackForMonacoInstance({ ...context('author-speak-before'), renderMode: 'realtime', speechRef }).then(() => { finished = true; });
+    await jest.advanceTimersByTimeAsync(5000);
+    expect(speakText).toHaveBeenCalledTimes(1); expect(finished).toBe(false);
+    endDuring();
+    await jest.advanceTimersByTimeAsync(100); await second;
+    expect(speakText).toHaveBeenCalledTimes(2); expect(speechRef.current).toBeNull();
+  });
+
+  it('stops waiting for speech when playback is stopped', async () => {
+    (speakText as jest.Mock).mockImplementationOnce(() => new Promise<void>(() => {}));
+    const speechRef = { current: null as PendingSpeech | null };
+    const first = executeActionPlaybackForMonacoInstance({ ...context('author-speak-during'), renderMode: 'realtime', speechRef });
+    await jest.advanceTimersByTimeAsync(200); await first;
+
+    let stopped = false;
+    const assertion = expect(executeActionPlaybackForMonacoInstance({ ...context('author-speak-before'), renderMode: 'realtime', speechRef, cancelled: () => stopped }))
+      .rejects.toBeInstanceOf(PlaybackStopped);
+    await jest.advanceTimersByTimeAsync(1000);
+    stopped = true;
+    await jest.advanceTimersByTimeAsync(100); await assertion;
   });
 
   it('missing prepared speech fails instead of silently producing an incomplete video', async () => {

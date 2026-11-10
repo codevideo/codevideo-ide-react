@@ -24,6 +24,7 @@ import { executePlaybackSteps } from '../playback/executePlaybackSteps.js';
 import { monacoTarget, textTarget } from '../playback/targets.js';
 import { PlaybackStopped } from '../playback/types.js';
 import type { PlaybackContinuation } from '../playback/types.js';
+import { PendingSpeech, waitForSpeech } from './pendingSpeech.js';
 import type { DiagnosticsController } from '../diagnostics/useDiagnostics.js';
 
 export interface IPlaybackContext extends RenderCallbacks {
@@ -60,6 +61,8 @@ export interface IPlaybackContext extends RenderCallbacks {
   diagnostics?: DiagnosticsController;
   hoveredDiagnosticRef?: React.MutableRefObject<IDiagnosticLocation | undefined>;
   setHoveredDiagnostic?: React.Dispatch<React.SetStateAction<IDiagnosticLocation | undefined>>;
+  /** An author-speak-during clip still playing; the next speech waits for it. */
+  speechRef?: React.MutableRefObject<PendingSpeech | null>;
   keyboardTypingPauseMs?: number;
   standardPauseMs?: number;
   longPauseMs?: number;
@@ -189,6 +192,9 @@ export const executeActionPlaybackForMonacoInstance = async (context: IPlaybackC
       case action.name === "author-speak-before":
       case action.name === "author-speak-during":
       case action.name === "author-speak-after":
+        // One voice at a time: a speak-during clip that is still playing
+        // finishes first, and its caption stays up until then.
+        await waitForSpeech(context.speechRef, context.cancelled);
         setCaptionText(action.value);
         if (renderMode === 'deterministic') {
           const audio = speakActionAudios.find(a => a.actionIndex === currentActionIndex)
@@ -198,6 +204,7 @@ export const executeActionPlaybackForMonacoInstance = async (context: IPlaybackC
           }
           onRenderEvent?.({ type: 'speech', actionIndex: currentActionIndex, name: action.name, text: action.value, timestampMs: performance.now(), durationMs: audio.durationMs!, assetId: audio.assetId });
           if (action.name !== 'author-speak-during') await sleep(audio.durationMs!);
+          else if (context.speechRef) context.speechRef.current = { untilMs: performance.now() + audio.durationMs! };
           break;
         }
         // try to find a matching mp3 url by matching the text of it to action.value in the speakActionAudios array
@@ -205,8 +212,9 @@ export const executeActionPlaybackForMonacoInstance = async (context: IPlaybackC
 
         // Handle different types of author actions
         if (action.name === "author-speak-during") {
-          // Fire and forget - don't await
-          speakText(action.value, isSoundOn ? 1 : 0, mp3Url);
+          // keeps playing while the next actions run; the next speech waits for it
+          const done = speakText(action.value, isSoundOn ? 1 : 0, mp3Url).catch(() => {});
+          if (context.speechRef) context.speechRef.current = { done };
         } else {
           // Default behavior for author-speak-before and other author actions - await completion
           await speakText(action.value, isSoundOn ? 1 : 0, mp3Url);

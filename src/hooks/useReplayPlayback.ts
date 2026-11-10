@@ -5,6 +5,7 @@ import { executeActionPlaybackForMonacoInstance } from '../utils/executeActionPl
 import { getActionAtIndex } from '../utils/extractActions.js';
 import { PlaybackStopped } from '../playback/types.js';
 import { sleep } from '../utils/sleep.js';
+import { PendingSpeech, waitForSpeech } from '../utils/pendingSpeech.js';
 import { debugLog } from '../utils/debugLog.js';
 
 import { RenderSessionController, RenderCallbacks } from '../rendering/types.js';
@@ -58,6 +59,8 @@ export interface UseReplayPlaybackParams extends RenderCallbacks {
   diagnosticsRef?: React.MutableRefObject<DiagnosticsController | null>;
   hoveredDiagnosticRef?: React.MutableRefObject<IDiagnosticLocation | undefined>;
   setHoveredDiagnostic?: React.Dispatch<React.SetStateAction<IDiagnosticLocation | undefined>>;
+  /** An author-speak-during clip still playing; the next speech and the end of playback wait for it. */
+  speechRef?: React.MutableRefObject<PendingSpeech | null>;
 
   includeTypos?: boolean;
   keyboardTypingJitterMs?: number;
@@ -141,6 +144,17 @@ export const useReplayPlayback = (params: UseReplayPlaybackParams): void => {
   const runIdRef = useRef<number>(0);
   const lastEpochRef = useRef<number>(actionsEpoch);
 
+  // Narration from an author-speak-during that is still playing when the
+  // actions run out finishes before playback completes. Deterministic renders
+  // already extend the video to the end of every speech.
+  const complete = () => {
+    if (!playBackCompleteCallback) return;
+    if (renderMode === 'deterministic' || !params.speechRef?.current) { playBackCompleteCallback(); return; }
+    const runId = runIdRef.current;
+    void waitForSpeech(params.speechRef, () => runIdRef.current !== runId)
+      .then(() => { if (runIdRef.current === runId) playBackCompleteCallback(); }, () => {});
+  };
+
   const applyAnimation = async () => {
     const runId = runIdRef.current;
 
@@ -157,7 +171,7 @@ export const useReplayPlayback = (params: UseReplayPlaybackParams): void => {
 
     if (!currentAction) {
       debugLog("[applyAnimation] No current action found, calling playback complete callback.");
-      playBackCompleteCallback && playBackCompleteCallback();
+      complete();
       return;
     }
 
@@ -195,6 +209,7 @@ export const useReplayPlayback = (params: UseReplayPlaybackParams): void => {
         setRenameFolderInputValue,
         diagnostics: params.diagnosticsRef?.current ?? undefined,
         hoveredDiagnosticRef: params.hoveredDiagnosticRef,
+        speechRef: params.speechRef,
         setHoveredDiagnostic: params.setHoveredDiagnostic,
         keyboardTypingPauseMs,
         standardPauseMs,
@@ -241,12 +256,15 @@ export const useReplayPlayback = (params: UseReplayPlaybackParams): void => {
       lastEpochRef.current = actionsEpoch;
       runIdRef.current += 1;
       lastStartedKeyRef.current = null;
+      // speech from the invalidated run must not hold back the next one
+      if (params.speechRef) params.speechRef.current = null;
     }
 
     if (mode !== 'replay') {
       // leaving replay invalidates guards so re-entering animates from scratch
       runIdRef.current += 1;
       lastStartedKeyRef.current = null;
+      if (params.speechRef) params.speechRef.current = null;
 
       // normal step by step mode - can update state immediately
       if (mode === 'step') {
@@ -278,7 +296,7 @@ export const useReplayPlayback = (params: UseReplayPlaybackParams): void => {
       }
       // past the end of the available actions: legacy completion semantics
       debugLog("[useReplayPlayback] No current action at index", currentActionIndex, "- calling playback complete callback");
-      playBackCompleteCallback && playBackCompleteCallback();
+      complete();
       return;
     }
 

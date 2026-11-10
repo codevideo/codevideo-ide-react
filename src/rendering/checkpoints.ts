@@ -84,6 +84,8 @@ export async function restoreMonaco(state: CodeVideoIDEState, checkpoint: Render
   if (checkpoint.monaco.focused) editor.focus();
   editor.render(true);
   state.terminalCaretDeadlineRef.current = checkpoint.presentation.terminalCaretDeadlineMs;
+  const speechUntilMs = checkpoint.presentation.speechUntilMs;
+  state.speechRef.current = speechUntilMs == null ? null : { untilMs: speechUntilMs };
   state.scrollbarFadeStartRef.current = checkpoint.monaco.scrollbarFadeStartMs;
   paintScrollbars(editor, checkpoint.monaco.scrollbarFadeStartMs, checkpoint.timestampMs);
   for (const item of checkpoint.scroll) {

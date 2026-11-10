@@ -28,7 +28,8 @@ export interface RenderCheckpointV1 {
   viewport: { width: number; height: number; deviceScaleFactor: number };
   ui: RenderUIState;
   overlay: OverlayDisplayState;
-  presentation: { terminalCaretDeadlineMs: number | null };
+  /** speechUntilMs: when an author-speak-during clip still playing ends, so a resumed segment waits for it too. */
+  presentation: { terminalCaretDeadlineMs: number | null; speechUntilMs?: number | null };
   mouse: { current: IPoint; target: IPoint; previous: IPoint; lastTarget: IPoint };
   monaco: {
     models: Array<{ uri: string; content: string; language: string }>;

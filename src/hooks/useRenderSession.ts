@@ -50,7 +50,7 @@ export function useRenderSession(params: Params) {
             version: 2, fingerprint: session.fingerprint, renderSeed: p.seed, lessonIndex: p.lesson,
             cursor, timestampMs: cursor.timestampMs, tracePosition: p.tracePosition.current,
             viewport: { width: window.innerWidth, height: window.innerHeight, deviceScaleFactor: window.devicePixelRatio },
-            presentation: { terminalCaretDeadlineMs: p.state.terminalCaretDeadlineRef.current },
+            presentation: { terminalCaretDeadlineMs: p.state.terminalCaretDeadlineRef.current, speechUntilMs: p.state.speechRef.current?.untilMs ?? null },
             ui: captureUI(p.state), overlay: p.overlay, mouse: position, monaco: captureMonaco(p.state),
             diagnostics: p.diagnostics?.current?.capture(),
             inputs: captureInputs(),

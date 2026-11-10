@@ -57,6 +57,22 @@ test('a segment ends without starting the next action or completing the whole pr
   jest.restoreAllMocks();
 });
 
+test('a speak-during clip still playing is captured and restored, so a resumed segment waits for it too', async () => {
+  const h = harness();
+  h.result.current.state.speechRef.current = { untilMs: 4321 };
+  h.result.current.controller.finishBoundary(2, jest.fn()); h.flush();
+  const checkpoint: RenderCheckpointV2 = h.onCheckpoint.mock.calls[0][0];
+  expect(checkpoint.presentation.speechUntilMs).toBe(4321);
+
+  const model = { getValue: () => 'stale', setValue: jest.fn() };
+  const editor = {setModel: jest.fn(), layout: jest.fn(), restoreViewState: jest.fn(), focus: jest.fn(), render: jest.fn(), getDomNode: () => null, getLayoutInfo: () => ({width: 800, height: 500}), getScrollHeight: () => 500, getScrollWidth: () => 800};
+  const api = {Uri: {parse: (uri: string) => uri}, editor: {colorize: jest.fn(async () => {}), remeasureFonts: jest.fn(), getModel: jest.fn(() => model), setModelLanguage: jest.fn()}};
+  const state = {...h.result.current.state, speechRef: {current: null}, monacoEditorRef: {current: editor}, globalMonacoRef: {current: api}} as any;
+  const {restoreMonaco} = await import('../checkpoints');
+  await restoreMonaco(state, checkpoint);
+  expect(state.speechRef.current).toEqual({ untilMs: 4321 });
+});
+
 test('restoration loads language support, restores exact layout and model/view caches', async () => {
   const h = harness();
   h.result.current.controller.finishBoundary(2, jest.fn()); h.flush();

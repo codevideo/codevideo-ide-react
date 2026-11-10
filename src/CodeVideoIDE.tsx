@@ -318,6 +318,7 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
     setRenameFolderInputValue,
     setCurrentExternalBrowserScrollPosition,
     diagnosticsRef, hoveredDiagnosticRef, setHoveredDiagnostic,
+    speechRef: ideState.speechRef,
     includeTypos, keyboardTypingJitterMs,
     typingValues: {
       'terminal-type': terminalBuffer,

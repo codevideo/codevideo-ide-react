@@ -3,6 +3,7 @@ import { IDiagnosticLocation, IEditor, IEditorPosition, IFileStructure, IPoint }
 import { Monaco } from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
 import { DEFAULT_CARET_POSITION, DEFAULT_MOUSE_POSITION } from '../constants/CodeVideoIDEConstants.js';
+import type { PendingSpeech } from '../utils/pendingSpeech.js';
 
 /**
  * All of CodeVideoIDE's mutable state and refs, moved en bloc from the
@@ -87,6 +88,8 @@ export const useCodeVideoIDEState = (defaultLanguage: string, initial?: RenderUI
   // Store editor view state to preserve caret position when overlays are shown/hidden
   const editorViewStateRef = useRef<monaco.editor.ICodeEditorViewState | null>(null);
   const terminalCaretDeadlineRef = useRef<number | null>(null);
+  // an author-speak-during clip that is still playing (utils/pendingSpeech.ts)
+  const speechRef = useRef<PendingSpeech | null>(null);
   const scrollbarFadeStartRef = useRef<number | null>(null);
   const modelViewStatesRef = useRef<Record<string, monaco.editor.ICodeEditorViewState>>({});
   const isRestoringViewStateRef = useRef<boolean>(false);
@@ -130,6 +133,7 @@ export const useCodeVideoIDEState = (defaultLanguage: string, initial?: RenderUI
     modelViewStatesRef,
     scrollbarFadeStartRef,
     terminalCaretDeadlineRef,
+    speechRef,
     isRestoringViewStateRef,
   };
 };
