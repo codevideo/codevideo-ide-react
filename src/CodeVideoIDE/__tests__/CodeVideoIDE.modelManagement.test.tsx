@@ -223,3 +223,10 @@ it('preserves visible chrome and wrapping defaults', () => {
   expect(getByTestId('mouse-overlay')).toBeTruthy();
   expect(mockOptions).toHaveBeenLastCalledWith(expect.objectContaining({ minimap: { enabled: true }, wordWrap: 'on' }));
 });
+
+// Deterministic mode turned it off already; its mount needs more editor stub
+// than this step-mode suite has.
+it('turns sticky scroll off in realtime render mode too', () => {
+  render(<Theme><CodeVideoIDE {...baseProps} renderMode="realtime" /></Theme>);
+  expect(mockOptions).toHaveBeenLastCalledWith(expect.objectContaining({ stickyScroll: { enabled: false } }));
+});

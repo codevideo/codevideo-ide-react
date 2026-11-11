@@ -513,11 +513,14 @@ export function CodeVideoIDE(props: CodeVideoIDEProps) {
                     inlayHints: { enabled: 'off' as const },
                     bracketPairColorization: { enabled: false },
                     matchBrackets: 'never' as const,
-                    stickyScroll: { enabled: false },
                   } : {}),
                   // Our squiggles are plain decorations; this keeps Monaco's
                   // own (wall-clock, worker-timed) validation out of the picture.
                   ...(diagnosticsEnabled ? { renderValidationDecorations: 'off' as const } : {}),
+                  // Off in every mode: sticky scroll is built asynchronously from
+                  // the language worker's outline and goes stale across model
+                  // switches (it can keep the previous file's header).
+                  stickyScroll: { enabled: false },
                   minimap: { enabled: isMinimapVisible },
                   scrollBeyondLastLine: true,
                   fontSize: renderFontSizePx ? renderFontSizePx : 14,
