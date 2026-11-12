@@ -1,10 +1,13 @@
 {
   "name": "@fullstackcraftllc/codevideo-ide-react",
-  "version": "0.0.185",
+  "version": "0.0.186",
   "description": "A React TypeScript component for a fully auditable, drivable, and replayable IDE written in React with @radix-ui/theme styling.",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "rollup -c ./rollup.config.js",
     "type-check": "tsc --noEmit",
