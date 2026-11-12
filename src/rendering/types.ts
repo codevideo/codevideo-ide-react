@@ -1,5 +1,9 @@
 import type { IPoint } from '@fullstackcraftllc/codevideo-types';
 
+/**
+ * Action boundaries are reported in every render mode; speech and mouse paths
+ * only in deterministic renders, where they describe the virtual-clock timeline.
+ */
 export type RenderEvent =
   | { type: 'action-start' | 'action-end'; actionIndex: number; name: string; timestampMs: number }
   | { type: 'speech'; actionIndex: number; name: string; text: string; timestampMs: number; durationMs: number; assetId: string }

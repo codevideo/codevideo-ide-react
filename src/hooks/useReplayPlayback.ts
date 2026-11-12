@@ -178,7 +178,9 @@ export const useReplayPlayback = (params: UseReplayPlaybackParams): void => {
     debugLog("[applyAnimation] About to execute action:", currentAction.name, "with value:", currentAction.value?.substring(0, 100) + '...');
 
     const continuation = renderController?.continuation(currentActionIndex);
-    if (!continuation && renderMode === 'deterministic') onRenderEvent?.({ type: 'action-start', actionIndex: currentActionIndex, name: currentAction.name, timestampMs: performance.now() });
+    // Action boundaries are reported in every render mode: a realtime recorder
+    // uses the first action-start to trim the idle lead-in off its recording.
+    if (!continuation) onRenderEvent?.({ type: 'action-start', actionIndex: currentActionIndex, name: currentAction.name, timestampMs: performance.now() });
     if (monacoEditorRef.current) {
       await executeActionPlaybackForMonacoInstance({
         editor: monacoEditorRef.current,
@@ -234,7 +236,7 @@ export const useReplayPlayback = (params: UseReplayPlaybackParams): void => {
     if (runIdRef.current !== runId) {
       return;
     }
-    if (renderMode === 'deterministic') onRenderEvent?.({ type: 'action-end', actionIndex: currentActionIndex, name: currentAction.name, timestampMs: performance.now() });
+    onRenderEvent?.({ type: 'action-end', actionIndex: currentActionIndex, name: currentAction.name, timestampMs: performance.now() });
     if (renderController) renderController.finishBoundary(currentActionIndex + 1, () => actionFinishedCallback?.());
     else actionFinishedCallback?.();
   };

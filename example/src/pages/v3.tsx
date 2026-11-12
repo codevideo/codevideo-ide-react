@@ -344,7 +344,8 @@ export default function Puppeteer() {
             {...ideProps}
             renderMode={renderMode}
             renderSeed={renderSeed}
-            onRenderEvent={renderMode === 'deterministic' ? reportEvent : undefined}
+            // realtime recordings read the first action-start to trim the idle lead-in
+            onRenderEvent={reportEvent}
             onRenderError={reportError}
             // should be project, but something seems broken - just use the actions for now
             project={project}

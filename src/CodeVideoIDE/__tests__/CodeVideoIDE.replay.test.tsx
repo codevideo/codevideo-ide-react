@@ -132,6 +132,31 @@ describe('CodeVideoIDE replay-mode playback loop', () => {
     expect(performance.now()).toBe(0);
   });
 
+  it('realtime replay reports action boundaries, the first action-start right after the intro hold', async () => {
+    const events = jest.fn();
+    render(<Theme><CodeVideoIDE
+      {...baseProps} mode="replay" renderMode="realtime"
+      project={testActions} currentActionIndex={0} onRenderEvent={events}
+    /></Theme>);
+    await flush();
+
+    // the intro hold is idle: a recorder may trim everything before the first action-start
+    await act(async () => {
+      jest.advanceTimersByTime(999);
+    });
+    await flush();
+    expect(events).not.toHaveBeenCalled();
+
+    await act(async () => {
+      jest.advanceTimersByTime(1);
+    });
+    await flush();
+    const [start] = events.mock.calls.map(([event]) => event);
+    expect(start).toMatchObject({ type: 'action-start', actionIndex: 0, name: testActions[0].name });
+    expect(typeof start.timestampMs).toBe('number');
+    expect(events.mock.calls.map(([event]) => event.type)).toEqual(['action-start', 'action-end']);
+  });
+
   it('replay at index 0: waits exactly 1000ms before finishing the first action, then calls actionFinishedCallback once', async () => {
     const actionFinished = jest.fn();
     const playbackComplete = jest.fn();
