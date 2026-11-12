@@ -19,7 +19,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@fullstackcraftllc/codevideo-ide-react": "^0.0.185",
+    "@fullstackcraftllc/codevideo-ide-react": "^0.0.186",
     "@fullstackcraftllc/codevideo-types": "^2.8.1",
     "@radix-ui/themes": "^3.2.1",
     "next": "16.4.5",
