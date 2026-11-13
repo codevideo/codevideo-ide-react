@@ -68,3 +68,6 @@ yarn-error.log
 .pnp.js
 # Yarn Integrity file
 .yarn-integrity
+
+# Copied from node_modules by scripts/copy-monaco.mjs
+public/monaco/

@@ -8,10 +8,12 @@
     "node": ">=20.11"
   },
   "scripts": {
+    "predev": "node scripts/copy-monaco.mjs",
     "dev": "next dev -p 8000",
     "start": "next dev -p 8000",
+    "prebuild": "node scripts/copy-monaco.mjs",
     "build": "next build",
-    "build-for-gh-pages": "GITHUB_PAGES=true next build",
+    "build-for-gh-pages": "node scripts/copy-monaco.mjs && GITHUB_PAGES=true next build",
     "serve": "npx --yes serve out -l 7001",
     "clean": "rm -rf .next out",
     "redo": "npm install @fullstackcraftllc/codevideo-ide-react@latest --legacy-peer-deps && npm run clean && npm run dev",
@@ -21,7 +23,10 @@
   "dependencies": {
     "@fullstackcraftllc/codevideo-ide-react": "^0.0.186",
     "@fullstackcraftllc/codevideo-types": "^2.8.1",
+    "@monaco-editor/react": "4.7.0",
     "@radix-ui/themes": "^3.2.1",
+    "firacode": "6.2.0",
+    "monaco-editor": "0.52.2",
     "next": "16.4.5",
     "puppeteer-stream": "^3.0.19",
     "react": "^18.2.0",
